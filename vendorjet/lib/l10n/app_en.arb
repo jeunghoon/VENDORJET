@@ -1,0 +1,20 @@
+{
+  "appTitle": "VendorJet",
+  "homeTitle": "Dashboard",
+  "ordersTitle": "Orders",
+  "productsTitle": "Products",
+  "settingsTitle": "Settings",
+  "welcome": "Welcome",
+  "subtitle": "Wholesale order management",
+  "language": "Language",
+  "selectLanguage": "Select language",
+  "english": "English",
+  "korean": "Korean"
+  ,
+  "signInTitle": "Sign in",
+  "email": "Email",
+  "password": "Password",
+  "continueLabel": "Continue",
+  "or": "or",
+  "signOut": "Sign out"
+}
