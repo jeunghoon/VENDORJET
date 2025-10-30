@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'l10n/app_localizations.dart';
 
-// UI 테마
-import 'theme/app_theme.dart';
-// 페이지
-import 'ui/pages/dashboard_page.dart';
-import 'ui/pages/orders_page.dart';
-import 'ui/pages/products_page.dart';
-import 'ui/pages/settings_page.dart';
-import 'ui/widgets/responsive_scaffold.dart';
-import 'ui/pages/auth/sign_in_page.dart';
+import 'l10n/app_localizations.dart';
 import 'services/auth/auth_controller.dart';
 import 'services/auth/auth_service.dart';
+import 'theme/app_theme.dart';
+import 'ui/pages/auth/sign_in_page.dart';
+import 'ui/pages/dashboard_page.dart';
+import 'ui/pages/orders/order_detail_page.dart';
+import 'ui/pages/orders_page.dart';
+import 'ui/pages/products_page.dart';
+import 'ui/pages/products/product_detail_page.dart';
+import 'ui/pages/settings_page.dart';
+import 'ui/widgets/responsive_scaffold.dart';
 
 void main() {
-  // 앱 실행 (디폴트 언어는 영어)
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
-// 최상위 앱: 로케일(언어) 상태를 보유하여 설정 화면에서 변경 가능
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -29,26 +29,132 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // 기본 사용 언어는 영어
   Locale? _locale = const Locale('en');
+  late final AuthController _authController;
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _authController = AuthController(MockAuthService())..load();
+    _router = _createRouter();
+  }
+
+  @override
+  void dispose() {
+    _router.dispose();
+    _authController.dispose();
+    super.dispose();
+  }
 
   void _changeLocale(Locale locale) {
+    if (_locale == locale) return;
     setState(() => _locale = locale);
+  }
+
+  GoRouter _createRouter() {
+    return GoRouter(
+      initialLocation: '/dashboard',
+      refreshListenable: _authController,
+      redirect: (context, state) {
+        final loading = _authController.loading;
+        final signedIn = _authController.signedIn;
+        final loggingIn = state.matchedLocation == '/sign-in';
+
+        if (loading) {
+          return null;
+        }
+
+        if (!signedIn && !loggingIn) {
+          return '/sign-in';
+        }
+
+        if (signedIn && loggingIn) {
+          return state.uri.queryParameters['from'] ?? '/dashboard';
+        }
+
+        return null;
+      },
+      routes: [
+        GoRoute(
+          path: '/',
+          redirect: (_, __) => '/dashboard',
+        ),
+        GoRoute(
+          path: '/sign-in',
+          name: 'sign-in',
+          builder: (context, state) => SignInPage(
+            currentLocale: _locale,
+            onLocaleChanged: _changeLocale,
+          ),
+        ),
+        ShellRoute(
+          builder: (context, state, child) {
+            return _HomeShell(child: child);
+          },
+          routes: [
+            GoRoute(
+              path: '/dashboard',
+              name: 'dashboard',
+              builder: (context, state) => const DashboardPage(),
+            ),
+            GoRoute(
+              path: '/orders',
+              name: 'orders',
+              builder: (context, state) => const OrdersPage(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  name: 'order-detail',
+                  builder: (context, state) => OrderDetailPage(
+                    orderId: state.pathParameters['id']!,
+                  ),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/products',
+              name: 'products',
+              builder: (context, state) => const ProductsPage(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  name: 'product-detail',
+                  builder: (context, state) => ProductDetailPage(
+                    productId: state.pathParameters['id']!,
+                  ),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/settings',
+              name: 'settings',
+              builder: (context, state) => SettingsPage(
+                currentLocale: _locale,
+                onLocaleChanged: _changeLocale,
+                onSignOut: () {
+                  _authController.signOut();
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthController(MockAuthService())..load(),
+    return ChangeNotifierProvider<AuthController>.value(
+      value: _authController,
       child: Consumer<AuthController>(
         builder: (context, auth, _) {
-          return MaterialApp(
+          return MaterialApp.router(
             title: 'VendorJet',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             locale: _locale,
-            // 다국어 설정 (영어 기본 + 한국어)
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
@@ -56,18 +162,13 @@ class _MyAppState extends State<MyApp> {
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: const [Locale('en'), Locale('ko')],
-            home: auth.loading
-                ? const _Splash()
-                : auth.signedIn
-                ? _HomeShell(
-                    onLocaleChanged: _changeLocale,
-                    currentLocale: _locale,
-                    onSignOut: auth.signOut,
-                  )
-                : SignInPage(
-                    currentLocale: _locale,
-                    onLocaleChanged: _changeLocale,
-                  ),
+            routerConfig: _router,
+            builder: (context, child) {
+              if (auth.loading) {
+                return const _Splash();
+              }
+              return child ?? const SizedBox.shrink();
+            },
           );
         },
       ),
@@ -75,27 +176,42 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-// 홈 셸: 하단탭/네비게이션 레일 + 각 화면 구성
-class _HomeShell extends StatefulWidget {
-  final ValueChanged<Locale> onLocaleChanged;
-  final Locale? currentLocale;
-  final VoidCallback onSignOut;
-  const _HomeShell({
-    required this.onLocaleChanged,
-    required this.currentLocale,
-    required this.onSignOut,
-  });
+class _HomeShell extends StatelessWidget {
+  const _HomeShell({required this.child});
 
-  @override
-  State<_HomeShell> createState() => _HomeShellState();
-}
+  final Widget child;
 
-class _HomeShellState extends State<_HomeShell> {
-  int _index = 0;
+  static const _paths = [
+    '/dashboard',
+    '/orders',
+    '/products',
+    '/settings',
+  ];
+
+  int _indexForLocation(String location) {
+    if (location.startsWith('/orders')) return 1;
+    if (location.startsWith('/products')) return 2;
+    if (location.startsWith('/settings')) return 3;
+    return 0;
+  }
+
+  void _handleNavigation(BuildContext context, int index) {
+    final target = _paths[index];
+    final current = GoRouterState.of(context).uri.toString();
+    if (current != target) {
+      context.go(target);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
+    final state = GoRouterState.of(context);
+    final location = state.uri.toString();
+    final segments = state.uri.pathSegments;
+    final isDetail = segments.length > 1 && (segments.first == 'orders' || segments.first == 'products');
+    final currentIndex = _indexForLocation(location);
+
     final destinations = [
       NavigationDestination(
         icon: const Icon(Icons.dashboard_outlined),
@@ -119,32 +235,23 @@ class _HomeShellState extends State<_HomeShell> {
       ),
     ];
 
-    final pages = [
-      const DashboardPage(),
-      const OrdersPage(),
-      const ProductsPage(),
-      SettingsPage(
-        currentLocale: widget.currentLocale,
-        onLocaleChanged: widget.onLocaleChanged,
-        onSignOut: widget.onSignOut,
-      ),
-    ];
-
     return ResponsiveScaffold(
-      currentIndex: _index,
-      onIndexChanged: (i) => setState(() => _index = i),
+      currentIndex: currentIndex,
+      onIndexChanged: (index) => _handleNavigation(context, index),
       destinations: destinations,
-      pages: pages,
-      appBar: AppBar(title: Text(t.appTitle)),
+      appBar: isDetail ? null : AppBar(title: Text(t.appTitle)),
+      child: child,
     );
   }
 }
 
-// 간단한 스플래시: 인증 상태 로드 중 표시
 class _Splash extends StatelessWidget {
   const _Splash();
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
   }
 }

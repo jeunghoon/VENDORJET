@@ -199,6 +199,456 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign out'**
   String get signOut;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @editComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit flow coming soon.'**
+  String get editComingSoon;
+
+  /// No description provided for @invalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid credentials'**
+  String get invalidCredentials;
+
+  /// No description provided for @ordersSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search orders'**
+  String get ordersSearchHint;
+
+  /// No description provided for @productsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search products'**
+  String get productsSearchHint;
+
+  /// No description provided for @ordersDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Order details'**
+  String get ordersDetailTitle;
+
+  /// No description provided for @orderPlacedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Placed on'**
+  String get orderPlacedOn;
+
+  /// No description provided for @orderTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Order total'**
+  String get orderTotal;
+
+  /// No description provided for @orderItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Line items'**
+  String get orderItems;
+
+  /// No description provided for @orderMetaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Order metadata'**
+  String get orderMetaTitle;
+
+  /// No description provided for @orderMetaPlannedShip.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned shipment'**
+  String get orderMetaPlannedShip;
+
+  /// No description provided for @orderMetaLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated'**
+  String get orderMetaLastUpdated;
+
+  /// No description provided for @orderMetaOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Account owner'**
+  String get orderMetaOwner;
+
+  /// No description provided for @orderMetaNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal note'**
+  String get orderMetaNote;
+
+  /// No description provided for @orderEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit order'**
+  String get orderEditTitle;
+
+  /// No description provided for @orderEditStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get orderEditStatusLabel;
+
+  /// No description provided for @orderEditPlannedShip.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned shipment'**
+  String get orderEditPlannedShip;
+
+  /// No description provided for @orderEditNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal note'**
+  String get orderEditNote;
+
+  /// No description provided for @orderEditNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note for teammates'**
+  String get orderEditNoteHint;
+
+  /// No description provided for @orderEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get orderEditSave;
+
+  /// No description provided for @orderEditCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get orderEditCancel;
+
+  /// No description provided for @orderEditSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Order updated.'**
+  String get orderEditSaved;
+
+  /// No description provided for @dashboardTodayOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Today Orders'**
+  String get dashboardTodayOrders;
+
+  /// No description provided for @dashboardOpenOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Orders'**
+  String get dashboardOpenOrders;
+
+  /// No description provided for @dashboardLowStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Low Stock'**
+  String get dashboardLowStock;
+
+  /// No description provided for @dashboardPreviewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview item for layout'**
+  String get dashboardPreviewSubtitle;
+
+  /// No description provided for @dashboardRecentOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Orders'**
+  String get dashboardRecentOrders;
+
+  /// No description provided for @dashboardRecentOrdersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent orders to show.'**
+  String get dashboardRecentOrdersEmpty;
+
+  /// No description provided for @ordersEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No orders found.'**
+  String get ordersEmptyMessage;
+
+  /// No description provided for @ordersEmptyFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'No {status} orders found.'**
+  String ordersEmptyFiltered(String status);
+
+  /// No description provided for @productsEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No products found.'**
+  String get productsEmptyMessage;
+
+  /// No description provided for @productsEmptyFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'No products found in {category}.'**
+  String productsEmptyFiltered(String category);
+
+  /// No description provided for @stateErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong.'**
+  String get stateErrorMessage;
+
+  /// No description provided for @stateRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get stateRetry;
+
+  /// No description provided for @ordersFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get ordersFilterAll;
+
+  /// No description provided for @ordersStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get ordersStatusPending;
+
+  /// No description provided for @ordersStatusConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get ordersStatusConfirmed;
+
+  /// No description provided for @ordersStatusShipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Shipped'**
+  String get ordersStatusShipped;
+
+  /// No description provided for @ordersStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get ordersStatusCompleted;
+
+  /// No description provided for @ordersStatusCanceled.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled'**
+  String get ordersStatusCanceled;
+
+  /// No description provided for @ordersStatusReturned.
+  ///
+  /// In en, this message translates to:
+  /// **'Returned'**
+  String get ordersStatusReturned;
+
+  /// No description provided for @ordersStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get ordersStatusLabel;
+
+  /// No description provided for @productsFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get productsFilterAll;
+
+  /// No description provided for @productsCategoryBeverages.
+  ///
+  /// In en, this message translates to:
+  /// **'Beverages'**
+  String get productsCategoryBeverages;
+
+  /// No description provided for @productsCategorySnacks.
+  ///
+  /// In en, this message translates to:
+  /// **'Snacks'**
+  String get productsCategorySnacks;
+
+  /// No description provided for @productsCategoryHousehold.
+  ///
+  /// In en, this message translates to:
+  /// **'Household'**
+  String get productsCategoryHousehold;
+
+  /// No description provided for @productsCategoryFashion.
+  ///
+  /// In en, this message translates to:
+  /// **'Fashion'**
+  String get productsCategoryFashion;
+
+  /// No description provided for @productsCategoryElectronics.
+  ///
+  /// In en, this message translates to:
+  /// **'Electronics'**
+  String get productsCategoryElectronics;
+
+  /// No description provided for @productLowStockTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock'**
+  String get productLowStockTag;
+
+  /// No description provided for @orderListSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items · {total}'**
+  String orderListSubtitle(int count, String total);
+
+  /// No description provided for @orderLinePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample item {position}'**
+  String orderLinePlaceholder(int position);
+
+  /// No description provided for @notFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Content not found'**
+  String get notFound;
+
+  /// No description provided for @productsDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Product details'**
+  String get productsDetailTitle;
+
+  /// No description provided for @productSku.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU'**
+  String get productSku;
+
+  /// No description provided for @productPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit price'**
+  String get productPrice;
+
+  /// No description provided for @productVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Variants'**
+  String get productVariants;
+
+  /// No description provided for @productHighlights.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights'**
+  String get productHighlights;
+
+  /// No description provided for @productMetaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory & attributes'**
+  String get productMetaTitle;
+
+  /// No description provided for @productMetaCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get productMetaCategory;
+
+  /// No description provided for @productMetaStockLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock'**
+  String get productMetaStockLow;
+
+  /// No description provided for @productMetaStockHealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'Healthy stock'**
+  String get productMetaStockHealthy;
+
+  /// No description provided for @productMetaLastSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory sync'**
+  String get productMetaLastSync;
+
+  /// No description provided for @productCardSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {count} variants'**
+  String productCardSummary(String name, int count);
+
+  /// No description provided for @productAvailabilityInStock.
+  ///
+  /// In en, this message translates to:
+  /// **'In stock'**
+  String get productAvailabilityInStock;
+
+  /// No description provided for @productAvailabilityLowStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock'**
+  String get productAvailabilityLowStock;
+
+  /// No description provided for @productAvailabilityBackordered.
+  ///
+  /// In en, this message translates to:
+  /// **'Backordered'**
+  String get productAvailabilityBackordered;
+
+  /// No description provided for @productLeadTimeSameDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Same-day shipping'**
+  String get productLeadTimeSameDay;
+
+  /// No description provided for @productLeadTimeTwoDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Ships in 2 days'**
+  String get productLeadTimeTwoDays;
+
+  /// No description provided for @productLeadTimeWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Ships in 1 week'**
+  String get productLeadTimeWeek;
+
+  /// No description provided for @productBadgeBestseller.
+  ///
+  /// In en, this message translates to:
+  /// **'Bestseller'**
+  String get productBadgeBestseller;
+
+  /// No description provided for @productBadgeNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New arrival'**
+  String get productBadgeNew;
+
+  /// No description provided for @productBadgeSeasonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Seasonal pick'**
+  String get productBadgeSeasonal;
+
+  /// No description provided for @productHighlightAvailabilityNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory level synced as of today.'**
+  String get productHighlightAvailabilityNote;
+
+  /// No description provided for @productHighlightLeadTimeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard lead time for wholesale orders.'**
+  String get productHighlightLeadTimeNote;
+
+  /// No description provided for @productHighlightBadgeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible to top-tier retailers.'**
+  String get productHighlightBadgeNote;
 }
 
 class _AppLocalizationsDelegate

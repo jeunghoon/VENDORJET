@@ -109,7 +109,7 @@ class _SignInPageState extends State<SignInPage> {
                             );
                             if (!ok) {
                               messenger.showSnackBar(
-                                const SnackBar(content: Text('Invalid credentials')),
+                                SnackBar(content: Text(t.invalidCredentials)),
                               );
                             }
                           }

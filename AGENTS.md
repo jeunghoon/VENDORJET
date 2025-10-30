@@ -1,4 +1,4 @@
-# VendorJet 개발 에이전트 가이드 (한국어)
+﻿# VendorJet 개발 에이전트 가이드 (한국어)
 
 이 파일은 도매-소매 주문 앱(VendorJet)의 개발/배포 전 과정을 계획하고, 코드 스타일과 작업 절차를 정리한 가이드입니다. 이 디렉토리 트리 전체에 적용됩니다.
 
@@ -92,61 +92,38 @@
 본 가이드는 실제 작업 중 업데이트될 수 있습니다. 변경 시 릴리즈 노트에 반영하세요.
 
 ## 진행 이력(요약)
-- P0 기본 프레임 구축 완료
-  - Flutter 스캐폴딩 및 Material3 테마 구성: 파스텔 주황/파랑/흰색 팔레트 적용 (lib/theme/app_theme.dart)
-  - 반응형 내비게이션: 폰/태블릿은 하단탭, 데스크톱은 NavigationRail (lib/ui/widgets/responsive_scaffold.dart)
-  - 화면: 대시보드/주문/상품/설정 골격 + 더미 UI (lib/ui/pages/*.dart)
-  - 다국어(영/한) 및 런타임 언어 전환: gen_l10n + 설정 화면 드롭다운 (lib/l10n/*.arb, l10n.yaml, lib/main.dart)
-  - 로그인 화면 골격 추가: 이메일/비밀번호 입력 + 계속 버튼 (lib/ui/pages/auth/sign_in_page.dart)
-  - 인증 상태 관리/복원: Provider + SharedPreferences 기반 목업 Auth 서비스 도입
-    - 서비스/컨트롤러: lib/services/auth/auth_service.dart, lib/services/auth/auth_controller.dart
-    - 앱 시작 시 로그인 상태 로드(스플래시): lib/main.dart
-    - 로그인/로그아웃: SignInPage → AuthController.signIn, SettingsPage → AuthController.signOut
-  - 로그인/로그아웃 흐름: 미로그인 시 로그인 화면 → 성공 시 홈, 설정에서 로그아웃 (lib/main.dart, settings_page.dart)
-  - 정적 분석 통과: `flutter analyze` 문제 없음
-  - 도메인 목업 반영: Product/Order 모델 및 목업 리포지토리 추가, 검색바 UI 연결
-    - 모델: lib/models/product.dart, lib/models/order.dart
-    - 리포지토리: lib/repositories/mock_repository.dart
-    - 화면 반영: 상품/주문 페이지에 검색 입력 + 비동기 로딩 적용
+- P0 기본 프레임 구축 완료: Material3 테마, 반응형 내비게이션, 다국어 전환, 로그인 플로우 골격 확립
+- GoRouter 기반 라우팅 전환 및 주문/상품 상세 라우트·딥링크 정비
+- 주문/상품 목록에 상태·카테고리 필터와 공통 상태 뷰(StateMessageView) 도입
+- 대시보드 지표·최근 주문 UI 구축 및 DashboardService 계층 분리
+- 주문/상품 상세 화면 확장: 편집 액션, 메타데이터 섹션, 내부 메모/재고 정보 표시
 
 ## 다음 실행 과정(체크리스트)
-1) 인증 연동(선택지 결정)
-- 현재: 목업 Auth + SharedPreferences로 상태 복원
-- 다음: Firebase Auth 또는 자체 백엔드(OAuth2/JWT) 중 택1로 서비스 교체
-- 비밀번호 재설정/회원가입 플로우, 토큰 보관(보안 스토리지) 설계
-- 주의: Firebase 선택 시 flutterfire 설정/환경 키 필요(스토어/프로덕션 분리)
-
-2) 라우팅/보안 가드 정리
-- 현재: MaterialApp.home에서 게이트 처리(스플래시/로그인/홈)
-- 다음: `GoRouter`로 전환하여 인증 가드/딥링크/명시적 라우트 구성
-
-3) 도메인 모델/목업 저장소
-- 엔티티: Product, Variant, Inventory, Customer, Order, OrderLine
-- 목업 리포지토리/서비스 주입으로 목록/상세/검색 플로우 연결
-- API 연동 시 구현체 교체 전략 수립(인터페이스 유지)
-  - 현재: Product/Order 반영 및 검색/목록 연결 완료
-  - 다음: 상세 화면 레이아웃 초안(ProductDetail, OrderDetail), 필터/정렬 바 추가
-
-4) 주문/상품 UX 개선
-- 검색/필터/정렬 UI 와이어프레임 추가
-- 빈 상태/로딩/오류 상태 컴포넌트 공통화
-
-5) 빌드 자산
-- 앱 아이콘/스플래시 적용, 패키지명/번들 ID 확정
-
-6) 품질/분석
-- Crashlytics/Analytics(선택) 탑재 계획 수립, 최소 이벤트 정의
-
-## 빠른 재시작 가이드
-- 데스크톱(Windows): `flutter run -d windows`
-- 웹 미리보기: `flutter run -d chrome`
-- 디바이스 확인: `flutter devices` → `flutter run -d <deviceId>`
-- 문자열 수정 후 로컬라이즈 재생성: `flutter gen-l10n`
+1) 주문 편집 결과를 목록·대시보드에 동기화하는 데이터 리프레시 전략 마련
+2) 상품 상세 편집 플로우(모달/페이지) 설계 및 목업 데이터 연동
+3) DashboardService 인터페이스 확장 및 캐싱/오류 처리 정책 정의
+4) 필터 조건에 맞는 API/쿼리 모델 초안 작성
+5) 핵심 화면 위젯/통합 테스트 시나리오 명세 작성
 
 ## 이어하기(작업 포인터)
-- 인증 실제 연동 시작 지점
-  - 인증 UI: `lib/ui/pages/auth/sign_in_page.dart`
-  - 앱 상태/전환: `lib/main.dart` (스플래시/게이트 + Provider)
-  - 컨트롤러/서비스: `lib/services/auth/auth_controller.dart`, `lib/services/auth/auth_service.dart`
-- 언어/문구 추가: `lib/l10n/app_en.arb`, `lib/l10n/app_ko.arb` → `flutter gen-l10n`
-- 색/스타일 조정: `lib/theme/app_theme.dart`
+- 주문 편집 시트 & 로컬 반영: lib/ui/pages/orders/order_edit_sheet.dart, lib/ui/pages/orders/order_detail_page.dart
+- 대시보드 스냅샷 로직: lib/services/dashboard/dashboard_service.dart, lib/ui/pages/dashboard_page.dart
+- 필터형 목록 화면: lib/ui/pages/orders_page.dart, lib/ui/pages/products_page.dart
+- 로컬라이즈 리소스: lib/l10n/app_en.arb, lib/l10n/app_ko.arb → flutter gen-l10n
+## 진행 상황 체크리스트
+- [x] P0 기본 프레임 구축 및 다국어 적용
+- [x] GoRouter 기반 라우팅과 주문/상품 상세 페이지 초안
+- [x] 주문·상품 목록 로딩/빈/오류 상태 공통 UI 정비
+- [x] 대시보드 지표·최근 주문 데이터 반영
+- [x] 주문/상품 상세 편집 UI 및 메타데이터 확장
+- [x] 주문 상태(반품) 추가 및 필터 반영
+- [ ] 주문·상품 편집 결과를 목록/대시보드에 동기화
+- [ ] 상품 상세 편집 플로우 구현
+
+## 향후 진행 체크리스트
+- [ ] Firebase/Auth 백엔드 연동 및 가입·재설정 흐름 구현
+- [ ] GoRouter 딥링크/보안 가드 고도화
+- [ ] 주문·상품 편집 기능 실데이터 반영 및 동기화 전략 확립
+- [ ] 주문/상품 빈 결과·오류 메시지 조건별 구체화
+- [ ] 대시보드/목록 데이터 캐싱·자동 새로고침 정책 정의
+- [ ] 실제 백엔드 연동 대비 API 계약·테스트 전략 수립

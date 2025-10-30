@@ -58,4 +58,241 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signOut => 'Sign out';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get editComingSoon => 'Edit flow coming soon.';
+
+  @override
+  String get invalidCredentials => 'Invalid credentials';
+
+  @override
+  String get ordersSearchHint => 'Search orders';
+
+  @override
+  String get productsSearchHint => 'Search products';
+
+  @override
+  String get ordersDetailTitle => 'Order details';
+
+  @override
+  String get orderPlacedOn => 'Placed on';
+
+  @override
+  String get orderTotal => 'Order total';
+
+  @override
+  String get orderItems => 'Line items';
+
+  @override
+  String get orderMetaTitle => 'Order metadata';
+
+  @override
+  String get orderMetaPlannedShip => 'Planned shipment';
+
+  @override
+  String get orderMetaLastUpdated => 'Last updated';
+
+  @override
+  String get orderMetaOwner => 'Account owner';
+
+  @override
+  String get orderMetaNote => 'Internal note';
+
+  @override
+  String get orderEditTitle => 'Edit order';
+
+  @override
+  String get orderEditStatusLabel => 'Status';
+
+  @override
+  String get orderEditPlannedShip => 'Planned shipment';
+
+  @override
+  String get orderEditNote => 'Internal note';
+
+  @override
+  String get orderEditNoteHint => 'Add a note for teammates';
+
+  @override
+  String get orderEditSave => 'Save';
+
+  @override
+  String get orderEditCancel => 'Cancel';
+
+  @override
+  String get orderEditSaved => 'Order updated.';
+
+  @override
+  String get dashboardTodayOrders => 'Today Orders';
+
+  @override
+  String get dashboardOpenOrders => 'Open Orders';
+
+  @override
+  String get dashboardLowStock => 'Low Stock';
+
+  @override
+  String get dashboardPreviewSubtitle => 'Preview item for layout';
+
+  @override
+  String get dashboardRecentOrders => 'Recent Orders';
+
+  @override
+  String get dashboardRecentOrdersEmpty => 'No recent orders to show.';
+
+  @override
+  String get ordersEmptyMessage => 'No orders found.';
+
+  @override
+  String ordersEmptyFiltered(String status) {
+    return 'No $status orders found.';
+  }
+
+  @override
+  String get productsEmptyMessage => 'No products found.';
+
+  @override
+  String productsEmptyFiltered(String category) {
+    return 'No products found in $category.';
+  }
+
+  @override
+  String get stateErrorMessage => 'Something went wrong.';
+
+  @override
+  String get stateRetry => 'Retry';
+
+  @override
+  String get ordersFilterAll => 'All';
+
+  @override
+  String get ordersStatusPending => 'Pending';
+
+  @override
+  String get ordersStatusConfirmed => 'Confirmed';
+
+  @override
+  String get ordersStatusShipped => 'Shipped';
+
+  @override
+  String get ordersStatusCompleted => 'Completed';
+
+  @override
+  String get ordersStatusCanceled => 'Canceled';
+
+  @override
+  String get ordersStatusReturned => 'Returned';
+
+  @override
+  String get ordersStatusLabel => 'Status';
+
+  @override
+  String get productsFilterAll => 'All';
+
+  @override
+  String get productsCategoryBeverages => 'Beverages';
+
+  @override
+  String get productsCategorySnacks => 'Snacks';
+
+  @override
+  String get productsCategoryHousehold => 'Household';
+
+  @override
+  String get productsCategoryFashion => 'Fashion';
+
+  @override
+  String get productsCategoryElectronics => 'Electronics';
+
+  @override
+  String get productLowStockTag => 'Low stock';
+
+  @override
+  String orderListSubtitle(int count, String total) {
+    return '$count items · $total';
+  }
+
+  @override
+  String orderLinePlaceholder(int position) {
+    return 'Sample item $position';
+  }
+
+  @override
+  String get notFound => 'Content not found';
+
+  @override
+  String get productsDetailTitle => 'Product details';
+
+  @override
+  String get productSku => 'SKU';
+
+  @override
+  String get productPrice => 'Unit price';
+
+  @override
+  String get productVariants => 'Variants';
+
+  @override
+  String get productHighlights => 'Highlights';
+
+  @override
+  String get productMetaTitle => 'Inventory & attributes';
+
+  @override
+  String get productMetaCategory => 'Category';
+
+  @override
+  String get productMetaStockLow => 'Low stock';
+
+  @override
+  String get productMetaStockHealthy => 'Healthy stock';
+
+  @override
+  String get productMetaLastSync => 'Inventory sync';
+
+  @override
+  String productCardSummary(String name, int count) {
+    return '$name · $count variants';
+  }
+
+  @override
+  String get productAvailabilityInStock => 'In stock';
+
+  @override
+  String get productAvailabilityLowStock => 'Low stock';
+
+  @override
+  String get productAvailabilityBackordered => 'Backordered';
+
+  @override
+  String get productLeadTimeSameDay => 'Same-day shipping';
+
+  @override
+  String get productLeadTimeTwoDays => 'Ships in 2 days';
+
+  @override
+  String get productLeadTimeWeek => 'Ships in 1 week';
+
+  @override
+  String get productBadgeBestseller => 'Bestseller';
+
+  @override
+  String get productBadgeNew => 'New arrival';
+
+  @override
+  String get productBadgeSeasonal => 'Seasonal pick';
+
+  @override
+  String get productHighlightAvailabilityNote =>
+      'Inventory level synced as of today.';
+
+  @override
+  String get productHighlightLeadTimeNote =>
+      'Standard lead time for wholesale orders.';
+
+  @override
+  String get productHighlightBadgeNote => 'Visible to top-tier retailers.';
 }

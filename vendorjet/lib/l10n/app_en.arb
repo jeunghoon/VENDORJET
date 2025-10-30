@@ -9,12 +9,127 @@
   "language": "Language",
   "selectLanguage": "Select language",
   "english": "English",
-  "korean": "Korean"
-  ,
+  "korean": "Korean",
   "signInTitle": "Sign in",
   "email": "Email",
   "password": "Password",
   "continueLabel": "Continue",
   "or": "or",
-  "signOut": "Sign out"
+  "signOut": "Sign out",
+  "edit": "Edit",
+  "editComingSoon": "Edit flow coming soon.",
+  "invalidCredentials": "Invalid credentials",
+  "ordersSearchHint": "Search orders",
+  "productsSearchHint": "Search products",
+  "ordersDetailTitle": "Order details",
+  "orderPlacedOn": "Placed on",
+  "orderTotal": "Order total",
+  "orderItems": "Line items",
+  "orderMetaTitle": "Order metadata",
+  "orderMetaPlannedShip": "Planned shipment",
+  "orderMetaLastUpdated": "Last updated",
+  "orderMetaOwner": "Account owner",
+  "orderMetaNote": "Internal note",
+  "orderEditTitle": "Edit order",
+  "orderEditStatusLabel": "Status",
+  "orderEditPlannedShip": "Planned shipment",
+  "orderEditNote": "Internal note",
+  "orderEditNoteHint": "Add a note for teammates",
+  "orderEditSave": "Save",
+  "orderEditCancel": "Cancel",
+  "orderEditSaved": "Order updated.",
+  "dashboardTodayOrders": "Today Orders",
+  "dashboardOpenOrders": "Open Orders",
+  "dashboardLowStock": "Low Stock",
+  "dashboardPreviewSubtitle": "Preview item for layout",
+  "dashboardRecentOrders": "Recent Orders",
+  "dashboardRecentOrdersEmpty": "No recent orders to show.",
+  "ordersEmptyMessage": "No orders found.",
+  "ordersEmptyFiltered": "No {status} orders found.",
+  "@ordersEmptyFiltered": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "productsEmptyMessage": "No products found.",
+  "productsEmptyFiltered": "No products found in {category}.",
+  "@productsEmptyFiltered": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "stateErrorMessage": "Something went wrong.",
+  "stateRetry": "Retry",
+  "ordersFilterAll": "All",
+  "ordersStatusPending": "Pending",
+  "ordersStatusConfirmed": "Confirmed",
+  "ordersStatusShipped": "Shipped",
+  "ordersStatusCompleted": "Completed",
+  "ordersStatusCanceled": "Canceled",
+  "ordersStatusReturned": "Returned",
+  "ordersStatusLabel": "Status",
+  "productsFilterAll": "All",
+  "productsCategoryBeverages": "Beverages",
+  "productsCategorySnacks": "Snacks",
+  "productsCategoryHousehold": "Household",
+  "productsCategoryFashion": "Fashion",
+  "productsCategoryElectronics": "Electronics",
+  "productLowStockTag": "Low stock",
+  "orderListSubtitle": "{count} items · {total}",
+  "@orderListSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "orderLinePlaceholder": "Sample item {position}",
+  "@orderLinePlaceholder": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
+  "notFound": "Content not found",
+  "productsDetailTitle": "Product details",
+  "productSku": "SKU",
+  "productPrice": "Unit price",
+  "productVariants": "Variants",
+  "productHighlights": "Highlights",
+  "productMetaTitle": "Inventory & attributes",
+  "productMetaCategory": "Category",
+  "productMetaStockLow": "Low stock",
+  "productMetaStockHealthy": "Healthy stock",
+  "productMetaLastSync": "Inventory sync",
+  "productCardSummary": "{name} · {count} variants",
+  "@productCardSummary": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "productAvailabilityInStock": "In stock",
+  "productAvailabilityLowStock": "Low stock",
+  "productAvailabilityBackordered": "Backordered",
+  "productLeadTimeSameDay": "Same-day shipping",
+  "productLeadTimeTwoDays": "Ships in 2 days",
+  "productLeadTimeWeek": "Ships in 1 week",
+  "productBadgeBestseller": "Bestseller",
+  "productBadgeNew": "New arrival",
+  "productBadgeSeasonal": "Seasonal pick",
+  "productHighlightAvailabilityNote": "Inventory level synced as of today.",
+  "productHighlightLeadTimeNote": "Standard lead time for wholesale orders.",
+  "productHighlightBadgeNote": "Visible to top-tier retailers."
 }

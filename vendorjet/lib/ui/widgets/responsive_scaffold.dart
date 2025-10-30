@@ -5,7 +5,7 @@ class ResponsiveScaffold extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onIndexChanged;
   final List<NavigationDestination> destinations;
-  final List<Widget> pages;
+  final Widget child;
   final PreferredSizeWidget? appBar;
 
   const ResponsiveScaffold({
@@ -13,7 +13,7 @@ class ResponsiveScaffold extends StatelessWidget {
     required this.currentIndex,
     required this.onIndexChanged,
     required this.destinations,
-    required this.pages,
+    required this.child,
     this.appBar,
   });
 
@@ -34,14 +34,14 @@ class ResponsiveScaffold extends StatelessWidget {
                   onIndexChanged: onIndexChanged,
                 ),
                 const VerticalDivider(width: 1),
-                Expanded(child: pages[currentIndex]),
+                Expanded(child: child),
               ],
             ),
           );
         }
         return Scaffold(
           appBar: appBar,
-          body: pages[currentIndex],
+          body: child,
           bottomNavigationBar: NavigationBar(
             selectedIndex: currentIndex,
             onDestinationSelected: onIndexChanged,

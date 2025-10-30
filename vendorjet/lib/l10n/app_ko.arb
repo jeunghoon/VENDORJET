@@ -9,12 +9,127 @@
   "language": "언어",
   "selectLanguage": "언어를 선택하세요",
   "english": "영어",
-  "korean": "한국어"
-  ,
+  "korean": "한국어",
   "signInTitle": "로그인",
   "email": "이메일",
   "password": "비밀번호",
   "continueLabel": "계속",
   "or": "또는",
-  "signOut": "로그아웃"
+  "signOut": "로그아웃",
+  "edit": "편집",
+  "editComingSoon": "편집 기능은 곧 제공될 예정입니다.",
+  "invalidCredentials": "유효하지 않은 로그인 정보입니다",
+  "ordersSearchHint": "주문 검색",
+  "productsSearchHint": "상품 검색",
+  "ordersDetailTitle": "주문 상세",
+  "orderPlacedOn": "주문 일자",
+  "orderTotal": "주문 금액",
+  "orderItems": "품목 내역",
+  "orderMetaTitle": "주문 메타데이터",
+  "orderMetaPlannedShip": "예정 출고일",
+  "orderMetaLastUpdated": "최종 업데이트",
+  "orderMetaOwner": "담당자",
+  "orderMetaNote": "내부 메모",
+  "dashboardTodayOrders": "오늘 주문",
+  "dashboardOpenOrders": "진행 중 주문",
+  "dashboardLowStock": "재고 부족",
+  "dashboardPreviewSubtitle": "레이아웃 미리보기 항목",
+  "dashboardRecentOrders": "최근 주문",
+  "dashboardRecentOrdersEmpty": "표시할 최근 주문이 없습니다.",
+  "ordersEmptyMessage": "주문을 찾을 수 없습니다.",
+  "ordersEmptyFiltered": "{status} 주문이 없습니다.",
+  "@ordersEmptyFiltered": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "productsEmptyMessage": "상품을 찾을 수 없습니다.",
+  "productsEmptyFiltered": "{category} 분류에 해당하는 상품이 없습니다.",
+  "@productsEmptyFiltered": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "stateErrorMessage": "문제가 발생했습니다.",
+  "stateRetry": "다시 시도",
+  "ordersFilterAll": "전체",
+  "ordersStatusPending": "대기",
+  "ordersStatusConfirmed": "확정",
+  "ordersStatusShipped": "출고",
+  "ordersStatusCompleted": "완료",
+  "ordersStatusCanceled": "취소",
+  "ordersStatusReturned": "반품",
+  "ordersStatusLabel": "주문 상태",
+  "productsFilterAll": "전체",
+  "productsCategoryBeverages": "음료",
+  "productsCategorySnacks": "스낵",
+  "productsCategoryHousehold": "생활용품",
+  "productsCategoryFashion": "패션",
+  "productsCategoryElectronics": "전자제품",
+  "productLowStockTag": "재고 부족",
+  "orderListSubtitle": "{count}개 품목 · {total}",
+  "@orderListSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "orderLinePlaceholder": "샘플 품목 {position}번",
+  "@orderLinePlaceholder": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
+  "notFound": "내용을 찾을 수 없습니다",
+  "productsDetailTitle": "상품 상세",
+  "productSku": "SKU",
+  "productPrice": "기준 단가",
+  "productVariants": "옵션 수",
+  "productHighlights": "주요 정보",
+  "productMetaTitle": "재고 및 속성",
+  "productMetaCategory": "카테고리",
+  "productMetaStockLow": "재고 부족",
+  "productMetaStockHealthy": "재고 양호",
+  "productMetaLastSync": "재고 동기화",
+  "orderEditTitle": "주문 편집",
+  "orderEditStatusLabel": "주문 상태",
+  "orderEditPlannedShip": "예정 출고일",
+  "orderEditNote": "내부 메모",
+  "orderEditNoteHint": "팀 메모를 입력하세요",
+  "orderEditSave": "저장",
+  "orderEditCancel": "취소",
+  "orderEditSaved": "주문이 업데이트되었습니다.",
+  "productCardSummary": "{name} · 옵션 {count}개",
+  "@productCardSummary": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "productAvailabilityInStock": "재고 보유",
+  "productAvailabilityLowStock": "재고 부족",
+  "productAvailabilityBackordered": "백오더 진행",
+  "productLeadTimeSameDay": "당일 출고",
+  "productLeadTimeTwoDays": "2일 내 출고",
+  "productLeadTimeWeek": "1주 이내 출고",
+  "productBadgeBestseller": "베스트셀러",
+  "productBadgeNew": "신상품",
+  "productBadgeSeasonal": "시즌 추천",
+  "productHighlightAvailabilityNote": "오늘 기준 재고 동기화 완료.",
+  "productHighlightLeadTimeNote": "도매 주문 기본 리드타임입니다.",
+  "productHighlightBadgeNote": "상위 파트너에게 노출 중입니다."
 }
