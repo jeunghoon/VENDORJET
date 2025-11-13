@@ -97,18 +97,19 @@
 - 주문/상품 목록에 상태·카테고리 필터와 공통 상태 뷰(StateMessageView) 도입
 - 대시보드 지표·최근 주문 UI 구축 및 DashboardService 계층 분리
 - 주문/상품 상세 화면 확장: 편집 액션, 메타데이터 섹션, 내부 메모/재고 정보 표시
+- 주문/상품 생성·편집·삭제 모의 플로우, CSV(Mock) 업로드 버튼, 테넌시/초대/비밀번호 재설정 시뮬레이션 구축
 
 ## 다음 실행 과정(체크리스트)
-1) 주문 편집 결과를 목록·대시보드에 동기화하는 데이터 리프레시 전략 마련
-2) 상품 상세 편집 플로우(모달/페이지) 설계 및 목업 데이터 연동
-3) DashboardService 인터페이스 확장 및 캐싱/오류 처리 정책 정의
-4) 필터 조건에 맞는 API/쿼리 모델 초안 작성
-5) 핵심 화면 위젯/통합 테스트 시나리오 명세 작성
+1) 고객(Customer) 목록/필터/CRUD UI 연결 및 권한별 표시 정책 정리
+2) 운영 품질 요소 마무리: 빈 상태 카피/접근성 라벨, 다크모드 명암비, 공통 토스트/다이얼로그 컨벤션
+3) 배포 자산 초안 마련: 앱 아이콘/스플래시 시안, 개인정보 처리방침/이용약관, 스토어 스크린샷 플로우/카피 구상
 
 ## 이어하기(작업 포인터)
-- 주문 편집 시트 & 로컬 반영: lib/ui/pages/orders/order_edit_sheet.dart, lib/ui/pages/orders/order_detail_page.dart
-- 대시보드 스냅샷 로직: lib/services/dashboard/dashboard_service.dart, lib/ui/pages/dashboard_page.dart
-- 필터형 목록 화면: lib/ui/pages/orders_page.dart, lib/ui/pages/products_page.dart
+- 로컬 테넌시/계정/권한 시뮬: lib/services/auth/*, lib/ui/pages/auth/*
+- 주문/상품 CRUD & 생성/삭제 UI: lib/repositories/mock_repository.dart, lib/ui/pages/orders_page.dart, lib/ui/pages/products_page.dart
+- CSV 업로드 목업: lib/services/import/mock_import_service.dart, ProductsPage CSV 버튼
+- 운영 품질 공통 컴포넌트: lib/ui/widgets/state_views.dart, lib/theme/*
+- 배포 자산 준비 메모: assets/, docs/ (정책/스토어 자료 위치 예정)
 - 로컬라이즈 리소스: lib/l10n/app_en.arb, lib/l10n/app_ko.arb → flutter gen-l10n
 ## 진행 상황 체크리스트
 - [x] P0 기본 프레임 구축 및 다국어 적용
@@ -117,13 +118,20 @@
 - [x] 대시보드 지표·최근 주문 데이터 반영
 - [x] 주문/상품 상세 편집 UI 및 메타데이터 확장
 - [x] 주문 상태(반품) 추가 및 필터 반영
-- [ ] 주문·상품 편집 결과를 목록/대시보드에 동기화
-- [ ] 상품 상세 편집 플로우 구현
+- [x] 주문·상품 편집 결과를 목록/대시보드에 동기화
+- [x] 상품 상세 편집 플로우 구현
+- [x] 로컬 테넌시/권한 시뮬레이션 (관리자/직원 역할, 초대/비밀번호 재설정 목업)
+- [x] 주문·상품 CRUD/필터/정렬 흐름을 목업 데이터로 완결
+- [x] CSV 업로드/검증/처리 모의 기능 및 UI 연결
+- [ ] 고객 CRUD/필터/정렬 UI 완성
+- [ ] 오류/로딩/빈 상태·접근성·다크모드·공통 알림 등 운영 품질 보강
+- [ ] 앱 아이콘/스플래시/정책 문서/스토어 설명 초안 준비
 
 ## 향후 진행 체크리스트
-- [ ] Firebase/Auth 백엔드 연동 및 가입·재설정 흐름 구현
-- [ ] GoRouter 딥링크/보안 가드 고도화
-- [ ] 주문·상품 편집 기능 실데이터 반영 및 동기화 전략 확립
-- [ ] 주문/상품 빈 결과·오류 메시지 조건별 구체화
-- [ ] 대시보드/목록 데이터 캐싱·자동 새로고침 정책 정의
-- [ ] 실제 백엔드 연동 대비 API 계약·테스트 전략 수립
+- [ ] P1: Firebase Auth + Firestore 기반 인증/테넌시/권한/초대/비밀번호 재설정 연동
+- [ ] P2: Firestore 기반 상품·주문·고객 CRUD, CSV 업로드 Cloud Functions, 동기화 전략 확립
+- [ ] P3: 실데이터 기준 검색/필터/정렬, 오류/캐싱/접근성/다크모드, Analytics·Crashlytics 연동
+- [ ] P4: 패키지명/버전/아이콘/스플래시 확정, 개인정보 처리방침·약관·스토어 자산 완성
+- [ ] P5: 플랫폼별 빌드/코드서명/스토어 제출, 심사 대응 및 배포 파이프라인 정비
+
+

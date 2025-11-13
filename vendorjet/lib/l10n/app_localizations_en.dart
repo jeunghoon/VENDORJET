@@ -295,4 +295,159 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productHighlightBadgeNote => 'Visible to top-tier retailers.';
+
+  @override
+  String get productEditTitle => 'Edit product';
+
+  @override
+  String get productEditName => 'Product name';
+
+  @override
+  String get productEditPrice => 'Unit price';
+
+  @override
+  String get productEditVariants => 'Variants';
+
+  @override
+  String get productEditCategory => 'Category';
+
+  @override
+  String get productEditLowStock => 'Mark as low stock';
+
+  @override
+  String get productEditSave => 'Save';
+
+  @override
+  String get productEditCancel => 'Cancel';
+
+  @override
+  String get productEditSaved => 'Product updated.';
+
+  @override
+  String get productEditNameRequired => 'Enter a product name.';
+
+  @override
+  String get productEditPriceInvalid => 'Enter a valid price.';
+
+  @override
+  String get productEditVariantsInvalid =>
+      'Enter a variant count of at least 1.';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get registerVendor => 'Create vendor account';
+
+  @override
+  String get tenantName => 'Business name';
+
+  @override
+  String get passwordResetSent => 'Password reset instructions sent (mock).';
+
+  @override
+  String get registerSuccess => 'Account created. Sign in to continue.';
+
+  @override
+  String get registerFailed => 'Could not create account.';
+
+  @override
+  String get signInHelperCredentials =>
+      'Try alex@vendorjet.com / welcome1 to explore.';
+
+  @override
+  String get tenantSectionTitle => 'Organization';
+
+  @override
+  String get tenantRoleLabel => 'Role';
+
+  @override
+  String get tenantSwitchTitle => 'Switch workspace';
+
+  @override
+  String get tenantSwitchFailed => 'You cannot access this workspace.';
+
+  @override
+  String get tenantInviteTitle => 'Invite teammate';
+
+  @override
+  String get inviteEmailPlaceholder => 'Teammate email';
+
+  @override
+  String get inviteSend => 'Send invite';
+
+  @override
+  String get inviteSuccess => 'Invitation recorded (mock).';
+
+  @override
+  String get roleOwner => 'Owner';
+
+  @override
+  String get roleManager => 'Manager';
+
+  @override
+  String get roleStaff => 'Staff';
+
+  @override
+  String get ordersCreate => 'Add order';
+
+  @override
+  String get ordersEdit => 'Edit order';
+
+  @override
+  String get ordersDelete => 'Delete order';
+
+  @override
+  String ordersDeleteConfirm(String code) {
+    return 'Delete order $code?';
+  }
+
+  @override
+  String get ordersCreated => 'Order created.';
+
+  @override
+  String get ordersUpdated => 'Order updated.';
+
+  @override
+  String get ordersDeleted => 'Order deleted.';
+
+  @override
+  String get ordersFormCode => 'Order code';
+
+  @override
+  String get ordersFormItems => 'Line items';
+
+  @override
+  String get ordersFormTotal => 'Order total';
+
+  @override
+  String get ordersFormDate => 'Order date';
+
+  @override
+  String get productsCreate => 'Add product';
+
+  @override
+  String get productsDelete => 'Delete product';
+
+  @override
+  String productsDeleteConfirm(String name) {
+    return 'Delete product $name?';
+  }
+
+  @override
+  String get productsDeleted => 'Product deleted.';
+
+  @override
+  String get productsCsvMock => 'Mock CSV upload';
+
+  @override
+  String productsCsvImported(int success, int processed) {
+    return 'Imported $success/$processed rows (mock).';
+  }
+
+  @override
+  String get productEditSku => 'SKU';
+
+  @override
+  String get productsCreated => 'Product created.';
 }

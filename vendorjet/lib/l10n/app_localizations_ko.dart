@@ -293,4 +293,158 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get productHighlightBadgeNote => '상위 파트너에게 노출 중입니다.';
+
+  @override
+  String get productEditTitle => '상품 편집';
+
+  @override
+  String get productEditName => '상품명';
+
+  @override
+  String get productEditPrice => '단가';
+
+  @override
+  String get productEditVariants => '버전 수';
+
+  @override
+  String get productEditCategory => '카테고리';
+
+  @override
+  String get productEditLowStock => '저재고 표시';
+
+  @override
+  String get productEditSave => '저장';
+
+  @override
+  String get productEditCancel => '취소';
+
+  @override
+  String get productEditSaved => '상품 정보가 업데이트되었어요.';
+
+  @override
+  String get productEditNameRequired => '상품명을 입력하세요.';
+
+  @override
+  String get productEditPriceInvalid => '유효한 가격을 입력하세요.';
+
+  @override
+  String get productEditVariantsInvalid => '1 이상의 버전 수를 입력하세요.';
+
+  @override
+  String get forgotPassword => '비밀번호를 잊으셨나요?';
+
+  @override
+  String get registerVendor => '도매 계정 만들기';
+
+  @override
+  String get tenantName => '업체명';
+
+  @override
+  String get passwordResetSent => '비밀번호 재설정 안내를 전송했습니다(모의).';
+
+  @override
+  String get registerSuccess => '계정이 생성되었습니다. 로그인해 주세요.';
+
+  @override
+  String get registerFailed => '계정을 생성할 수 없습니다.';
+
+  @override
+  String get signInHelperCredentials =>
+      '체험용으로 alex@vendorjet.com / welcome1을 입력해 보세요.';
+
+  @override
+  String get tenantSectionTitle => '조직';
+
+  @override
+  String get tenantRoleLabel => '역할';
+
+  @override
+  String get tenantSwitchTitle => '업체 전환';
+
+  @override
+  String get tenantSwitchFailed => '이 업체에 접근할 수 없습니다.';
+
+  @override
+  String get tenantInviteTitle => '팀원 초대';
+
+  @override
+  String get inviteEmailPlaceholder => '팀원 이메일';
+
+  @override
+  String get inviteSend => '초대 전송';
+
+  @override
+  String get inviteSuccess => '초대가 기록되었습니다(모의).';
+
+  @override
+  String get roleOwner => '소유자';
+
+  @override
+  String get roleManager => '관리자';
+
+  @override
+  String get roleStaff => '직원';
+
+  @override
+  String get ordersCreate => '주문 추가';
+
+  @override
+  String get ordersEdit => '주문 편집';
+
+  @override
+  String get ordersDelete => '주문 삭제';
+
+  @override
+  String ordersDeleteConfirm(String code) {
+    return '$code 주문을 삭제할까요?';
+  }
+
+  @override
+  String get ordersCreated => '주문이 생성되었습니다.';
+
+  @override
+  String get ordersUpdated => '주문이 업데이트되었습니다.';
+
+  @override
+  String get ordersDeleted => '주문이 삭제되었습니다.';
+
+  @override
+  String get ordersFormCode => '주문 코드';
+
+  @override
+  String get ordersFormItems => '품목 수';
+
+  @override
+  String get ordersFormTotal => '주문 금액';
+
+  @override
+  String get ordersFormDate => '주문 날짜';
+
+  @override
+  String get productsCreate => '상품 추가';
+
+  @override
+  String get productsDelete => '상품 삭제';
+
+  @override
+  String productsDeleteConfirm(String name) {
+    return '$name 상품을 삭제할까요?';
+  }
+
+  @override
+  String get productsDeleted => '상품이 삭제되었습니다.';
+
+  @override
+  String get productsCsvMock => 'CSV 목업 업로드';
+
+  @override
+  String productsCsvImported(int success, int processed) {
+    return '$processed개 중 $success개가 반영되었습니다(모의).';
+  }
+
+  @override
+  String get productEditSku => 'SKU';
+
+  @override
+  String get productsCreated => '상품이 생성되었습니다.';
 }

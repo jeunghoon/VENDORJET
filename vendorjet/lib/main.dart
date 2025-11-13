@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
 import 'services/auth/auth_controller.dart';
 import 'services/auth/auth_service.dart';
+import 'services/sync/data_refresh_coordinator.dart';
 import 'theme/app_theme.dart';
 import 'ui/pages/auth/sign_in_page.dart';
 import 'ui/pages/dashboard_page.dart';
@@ -145,8 +146,13 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<AuthController>.value(
-      value: _authController,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthController>.value(value: _authController),
+        ChangeNotifierProvider<DataRefreshCoordinator>(
+          create: (_) => DataRefreshCoordinator(),
+        ),
+      ],
       child: Consumer<AuthController>(
         builder: (context, auth, _) {
           return MaterialApp.router(

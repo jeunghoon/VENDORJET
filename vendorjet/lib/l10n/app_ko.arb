@@ -131,5 +131,78 @@
   "productBadgeSeasonal": "시즌 추천",
   "productHighlightAvailabilityNote": "오늘 기준 재고 동기화 완료.",
   "productHighlightLeadTimeNote": "도매 주문 기본 리드타임입니다.",
-  "productHighlightBadgeNote": "상위 파트너에게 노출 중입니다."
+  "productHighlightBadgeNote": "상위 파트너에게 노출 중입니다.",
+  "productEditTitle": "상품 편집",
+  "productEditName": "상품명",
+  "productEditPrice": "단가",
+  "productEditVariants": "버전 수",
+  "productEditCategory": "카테고리",
+  "productEditLowStock": "저재고 표시",
+  "productEditSave": "저장",
+  "productEditCancel": "취소",
+  "productEditSaved": "상품 정보가 업데이트되었어요.",
+  "productEditNameRequired": "상품명을 입력하세요.",
+  "productEditPriceInvalid": "유효한 가격을 입력하세요.",
+  "productEditVariantsInvalid": "1 이상의 버전 수를 입력하세요.",
+  "forgotPassword": "비밀번호를 잊으셨나요?",
+  "registerVendor": "도매 계정 만들기",
+  "tenantName": "업체명",
+  "passwordResetSent": "비밀번호 재설정 안내를 전송했습니다(모의).",
+  "registerSuccess": "계정이 생성되었습니다. 로그인해 주세요.",
+  "registerFailed": "계정을 생성할 수 없습니다.",
+  "signInHelperCredentials": "체험용으로 alex@vendorjet.com / welcome1을 입력해 보세요.",
+  "tenantSectionTitle": "조직",
+  "tenantRoleLabel": "역할",
+  "tenantSwitchTitle": "업체 전환",
+  "tenantSwitchFailed": "이 업체에 접근할 수 없습니다.",
+  "tenantInviteTitle": "팀원 초대",
+  "inviteEmailPlaceholder": "팀원 이메일",
+  "inviteSend": "초대 전송",
+  "inviteSuccess": "초대가 기록되었습니다(모의).",
+  "roleOwner": "소유자",
+  "roleManager": "관리자",
+  "roleStaff": "직원",
+  "ordersCreate": "주문 추가",
+  "ordersEdit": "주문 편집",
+  "ordersDelete": "주문 삭제",
+  "ordersDeleteConfirm": "{code} 주문을 삭제할까요?",
+  "ordersCreated": "주문이 생성되었습니다.",
+  "ordersUpdated": "주문이 업데이트되었습니다.",
+  "ordersDeleted": "주문이 삭제되었습니다.",
+  "ordersFormCode": "주문 코드",
+  "ordersFormItems": "품목 수",
+  "ordersFormTotal": "주문 금액",
+  "ordersFormDate": "주문 날짜",
+  "productsCreate": "상품 추가",
+  "productsDelete": "상품 삭제",
+  "productsDeleteConfirm": "{name} 상품을 삭제할까요?",
+  "productsDeleted": "상품이 삭제되었습니다.",
+  "productsCsvMock": "CSV 목업 업로드",
+  "productsCsvImported": "{processed}개 중 {success}개가 반영되었습니다(모의).",
+  "@ordersDeleteConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@productsDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@productsCsvImported": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "processed": {
+        "type": "int"
+      }
+    }
+  },
+  "productEditSku": "SKU",
+  "productsCreated": "상품이 생성되었습니다."
 }

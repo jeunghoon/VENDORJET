@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
 import 'package:vendorjet/services/dashboard/dashboard_service.dart';
+import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
 // 대시보드: 핵심 지표 + 최근 주문 목록
@@ -16,12 +18,74 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final DashboardService _service = MockDashboardService();
-  late Future<DashboardSnapshot> _future;
+  DataRefreshCoordinator? _refreshCoordinator;
+  int _lastOrdersVersion = 0;
+  int _lastProductsVersion = 0;
+  DashboardSnapshot? _snapshot;
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _future = _service.load();
+    _snapshot = _service.getCachedSnapshot();
+    _loading = _snapshot == null;
+    _load(forceRefresh: _snapshot == null);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final coordinator = context.read<DataRefreshCoordinator>();
+    if (_refreshCoordinator != coordinator) {
+      _refreshCoordinator?.removeListener(_handleRefreshEvent);
+      _refreshCoordinator = coordinator;
+      _lastOrdersVersion = coordinator.ordersVersion;
+      _lastProductsVersion = coordinator.productsVersion;
+      coordinator.addListener(_handleRefreshEvent);
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshCoordinator?.removeListener(_handleRefreshEvent);
+    super.dispose();
+  }
+
+  Future<void> _load({bool forceRefresh = false}) async {
+    setState(() {
+      _error = null;
+      _loading = _snapshot == null || forceRefresh ? true : _loading;
+    });
+    try {
+      final data = await _service.load(forceRefresh: forceRefresh);
+      if (!mounted) return;
+      setState(() {
+        _snapshot = data;
+        _loading = false;
+      });
+    } on DashboardServiceException catch (err) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        if (_snapshot == null) {
+          _error = err.message;
+        }
+      });
+      if (_snapshot != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(err.message)));
+      }
+    } catch (err) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        if (_snapshot == null) {
+          _error = err.toString();
+        }
+      });
+    }
   }
 
   @override
@@ -29,29 +93,34 @@ class _DashboardPageState extends State<DashboardPage> {
     final t = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    return FutureBuilder<DashboardSnapshot>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return StateMessageView(
-            icon: Icons.error_outline,
-            title: t.stateErrorMessage,
-            action: OutlinedButton.icon(
-              onPressed: () => setState(() => _future = _service.load()),
-              icon: const Icon(Icons.refresh),
-              label: Text(t.stateRetry),
-            ),
-          );
-        }
-        final data = snapshot.data!;
+    if (_loading && _snapshot == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    if (_error != null && _snapshot == null) {
+      return StateMessageView(
+        icon: Icons.error_outline,
+        title: t.stateErrorMessage,
+        message: _error,
+        action: OutlinedButton.icon(
+          onPressed: () => _load(forceRefresh: true),
+          icon: const Icon(Icons.refresh),
+          label: Text(t.stateRetry),
+        ),
+      );
+    }
+
+    final data = _snapshot;
+    if (data == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: () => _load(forceRefresh: true),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: [
               Text(
                 t.welcome,
@@ -78,9 +147,28 @@ class _DashboardPageState extends State<DashboardPage> {
               _RecentOrdersList(orders: data.recentOrders),
             ],
           ),
-        );
-      },
+        ),
+        if (_loading && _snapshot != null)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: LinearProgressIndicator(minHeight: 2),
+          ),
+      ],
     );
+  }
+
+  void _handleRefreshEvent() {
+    final coordinator = _refreshCoordinator;
+    if (coordinator == null) return;
+    final ordersChanged = coordinator.ordersVersion != _lastOrdersVersion;
+    final productsChanged = coordinator.productsVersion != _lastProductsVersion;
+    if (ordersChanged || productsChanged) {
+      _lastOrdersVersion = coordinator.ordersVersion;
+      _lastProductsVersion = coordinator.productsVersion;
+      _load(forceRefresh: true);
+    }
   }
 }
 
@@ -158,7 +246,9 @@ class _RecentOrdersList extends StatelessWidget {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${localizations.formatShortDate(order.createdAt)} · ${numberFormat.format(order.total)}'),
+                Text(
+                  '${localizations.formatShortDate(order.createdAt)} · ${numberFormat.format(order.total)}',
+                ),
                 const SizedBox(height: 2),
                 Text(
                   _statusLabel(order.status, t),
@@ -206,9 +296,18 @@ class _StatCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 4),
-                  Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -227,9 +326,9 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
     );
   }
 }

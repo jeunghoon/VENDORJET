@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:vendorjet/models/order.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
 
@@ -15,30 +17,98 @@ class DashboardSnapshot {
   });
 }
 
+class DashboardServiceException implements Exception {
+  final String message;
+
+  DashboardServiceException(this.message);
+
+  @override
+  String toString() => 'DashboardServiceException: $message';
+}
+
 abstract class DashboardService {
-  Future<DashboardSnapshot> load();
+  Future<DashboardSnapshot> load({bool forceRefresh = false});
+  DashboardSnapshot? getCachedSnapshot();
+  void clearCache();
 }
 
 class MockDashboardService implements DashboardService {
   final MockOrderRepository orderRepository;
   final MockProductRepository productRepository;
+  final Duration cacheDuration;
+  final bool simulateFlakyNetwork;
+  final double failureRate;
+
+  DashboardSnapshot? _cache;
+  DateTime? _cacheTimestamp;
+  final _rnd = Random(42);
 
   MockDashboardService({
     MockOrderRepository? orderRepository,
     MockProductRepository? productRepository,
-  })  : orderRepository = orderRepository ?? MockOrderRepository(),
-        productRepository = productRepository ?? MockProductRepository();
+    this.cacheDuration = const Duration(seconds: 30),
+    this.simulateFlakyNetwork = true,
+    this.failureRate = 0.1,
+  }) : orderRepository = orderRepository ?? MockOrderRepository(),
+       productRepository = productRepository ?? MockProductRepository();
 
   @override
-  Future<DashboardSnapshot> load() async {
+  Future<DashboardSnapshot> load({bool forceRefresh = false}) async {
+    final cacheValid =
+        !forceRefresh &&
+        _cache != null &&
+        _cacheTimestamp != null &&
+        DateTime.now().difference(_cacheTimestamp!) < cacheDuration;
+    if (cacheValid) {
+      return _cache!;
+    }
+
+    try {
+      final snapshot = await _fetchSnapshot();
+      _cache = snapshot;
+      _cacheTimestamp = DateTime.now();
+      return snapshot;
+    } catch (err) {
+      if (_cache != null && !forceRefresh) {
+        return _cache!;
+      }
+      throw DashboardServiceException(err.toString());
+    }
+  }
+
+  @override
+  DashboardSnapshot? getCachedSnapshot() => _cache;
+
+  @override
+  void clearCache() {
+    _cache = null;
+    _cacheTimestamp = null;
+  }
+
+  Future<DashboardSnapshot> _fetchSnapshot() async {
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    if (simulateFlakyNetwork && _rnd.nextDouble() < failureRate) {
+      throw DashboardServiceException('Mock service temporary failure');
+    }
+
     final orders = await orderRepository.fetch();
     final products = await productRepository.fetch();
     final now = DateTime.now();
 
-    final todayOrders = orders.where((o) => _isSameDay(o.createdAt, now)).length;
-    final openOrders = orders.where((o) => o.status == OrderStatus.pending || o.status == OrderStatus.confirmed || o.status == OrderStatus.shipped).length;
+    final todayOrders = orders
+        .where((o) => _isSameDay(o.createdAt, now))
+        .length;
+    final openOrders = orders
+        .where(
+          (o) =>
+              o.status == OrderStatus.pending ||
+              o.status == OrderStatus.confirmed ||
+              o.status == OrderStatus.shipped,
+        )
+        .length;
     final lowStock = products.where((p) => p.lowStock).length;
-    final recentOrders = [...orders]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recentOrders = [...orders]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return DashboardSnapshot(
       todayOrders: todayOrders,

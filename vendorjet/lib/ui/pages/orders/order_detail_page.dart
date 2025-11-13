@@ -3,9 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
+import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/orders/order_edit_sheet.dart';
 
 class OrderDetailPage extends StatefulWidget {
@@ -206,19 +208,27 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
     if (!context.mounted || result == null) return;
 
+    final updatedOrder = Order(
+      id: currentOrder.id,
+      code: currentOrder.code,
+      itemCount: currentOrder.itemCount,
+      total: currentOrder.total,
+      createdAt: currentOrder.createdAt,
+      status: result.status,
+    );
+
+    await _repo.save(updatedOrder);
+
+    if (!context.mounted) return;
+
     setState(() {
-      _localOrder = Order(
-        id: currentOrder.id,
-        code: currentOrder.code,
-        itemCount: currentOrder.itemCount,
-        total: currentOrder.total,
-        createdAt: currentOrder.createdAt,
-        status: result.status,
-      );
+      _localOrder = updatedOrder;
       _plannedShipOverride = result.plannedShip;
       _lastUpdatedOverride = DateTime.now();
       _noteOverride = result.note;
     });
+
+    context.read<DataRefreshCoordinator>().notifyOrderChanged(updatedOrder);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(t.orderEditSaved)),

@@ -649,6 +649,300 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Visible to top-tier retailers.'**
   String get productHighlightBadgeNote;
+
+  /// No description provided for @productEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit product'**
+  String get productEditTitle;
+
+  /// No description provided for @productEditName.
+  ///
+  /// In en, this message translates to:
+  /// **'Product name'**
+  String get productEditName;
+
+  /// No description provided for @productEditPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit price'**
+  String get productEditPrice;
+
+  /// No description provided for @productEditVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Variants'**
+  String get productEditVariants;
+
+  /// No description provided for @productEditCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get productEditCategory;
+
+  /// No description provided for @productEditLowStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as low stock'**
+  String get productEditLowStock;
+
+  /// No description provided for @productEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get productEditSave;
+
+  /// No description provided for @productEditCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get productEditCancel;
+
+  /// No description provided for @productEditSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Product updated.'**
+  String get productEditSaved;
+
+  /// No description provided for @productEditNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a product name.'**
+  String get productEditNameRequired;
+
+  /// No description provided for @productEditPriceInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid price.'**
+  String get productEditPriceInvalid;
+
+  /// No description provided for @productEditVariantsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a variant count of at least 1.'**
+  String get productEditVariantsInvalid;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get forgotPassword;
+
+  /// No description provided for @registerVendor.
+  ///
+  /// In en, this message translates to:
+  /// **'Create vendor account'**
+  String get registerVendor;
+
+  /// No description provided for @tenantName.
+  ///
+  /// In en, this message translates to:
+  /// **'Business name'**
+  String get tenantName;
+
+  /// No description provided for @passwordResetSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset instructions sent (mock).'**
+  String get passwordResetSent;
+
+  /// No description provided for @registerSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account created. Sign in to continue.'**
+  String get registerSuccess;
+
+  /// No description provided for @registerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create account.'**
+  String get registerFailed;
+
+  /// No description provided for @signInHelperCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Try alex@vendorjet.com / welcome1 to explore.'**
+  String get signInHelperCredentials;
+
+  /// No description provided for @tenantSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization'**
+  String get tenantSectionTitle;
+
+  /// No description provided for @tenantRoleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get tenantRoleLabel;
+
+  /// No description provided for @tenantSwitchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch workspace'**
+  String get tenantSwitchTitle;
+
+  /// No description provided for @tenantSwitchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot access this workspace.'**
+  String get tenantSwitchFailed;
+
+  /// No description provided for @tenantInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite teammate'**
+  String get tenantInviteTitle;
+
+  /// No description provided for @inviteEmailPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Teammate email'**
+  String get inviteEmailPlaceholder;
+
+  /// No description provided for @inviteSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send invite'**
+  String get inviteSend;
+
+  /// No description provided for @inviteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation recorded (mock).'**
+  String get inviteSuccess;
+
+  /// No description provided for @roleOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get roleOwner;
+
+  /// No description provided for @roleManager.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager'**
+  String get roleManager;
+
+  /// No description provided for @roleStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff'**
+  String get roleStaff;
+
+  /// No description provided for @ordersCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Add order'**
+  String get ordersCreate;
+
+  /// No description provided for @ordersEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit order'**
+  String get ordersEdit;
+
+  /// No description provided for @ordersDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete order'**
+  String get ordersDelete;
+
+  /// No description provided for @ordersDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete order {code}?'**
+  String ordersDeleteConfirm(String code);
+
+  /// No description provided for @ordersCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Order created.'**
+  String get ordersCreated;
+
+  /// No description provided for @ordersUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Order updated.'**
+  String get ordersUpdated;
+
+  /// No description provided for @ordersDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Order deleted.'**
+  String get ordersDeleted;
+
+  /// No description provided for @ordersFormCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Order code'**
+  String get ordersFormCode;
+
+  /// No description provided for @ordersFormItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Line items'**
+  String get ordersFormItems;
+
+  /// No description provided for @ordersFormTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Order total'**
+  String get ordersFormTotal;
+
+  /// No description provided for @ordersFormDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Order date'**
+  String get ordersFormDate;
+
+  /// No description provided for @productsCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Add product'**
+  String get productsCreate;
+
+  /// No description provided for @productsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete product'**
+  String get productsDelete;
+
+  /// No description provided for @productsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete product {name}?'**
+  String productsDeleteConfirm(String name);
+
+  /// No description provided for @productsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Product deleted.'**
+  String get productsDeleted;
+
+  /// No description provided for @productsCsvMock.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock CSV upload'**
+  String get productsCsvMock;
+
+  /// No description provided for @productsCsvImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {success}/{processed} rows (mock).'**
+  String productsCsvImported(int success, int processed);
+
+  /// No description provided for @productEditSku.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU'**
+  String get productEditSku;
+
+  /// No description provided for @productsCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Product created.'**
+  String get productsCreated;
 }
 
 class _AppLocalizationsDelegate

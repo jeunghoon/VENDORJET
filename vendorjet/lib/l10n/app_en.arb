@@ -131,5 +131,78 @@
   "productBadgeSeasonal": "Seasonal pick",
   "productHighlightAvailabilityNote": "Inventory level synced as of today.",
   "productHighlightLeadTimeNote": "Standard lead time for wholesale orders.",
-  "productHighlightBadgeNote": "Visible to top-tier retailers."
+  "productHighlightBadgeNote": "Visible to top-tier retailers.",
+  "productEditTitle": "Edit product",
+  "productEditName": "Product name",
+  "productEditPrice": "Unit price",
+  "productEditVariants": "Variants",
+  "productEditCategory": "Category",
+  "productEditLowStock": "Mark as low stock",
+  "productEditSave": "Save",
+  "productEditCancel": "Cancel",
+  "productEditSaved": "Product updated.",
+  "productEditNameRequired": "Enter a product name.",
+  "productEditPriceInvalid": "Enter a valid price.",
+  "productEditVariantsInvalid": "Enter a variant count of at least 1.",
+  "forgotPassword": "Forgot password?",
+  "registerVendor": "Create vendor account",
+  "tenantName": "Business name",
+  "passwordResetSent": "Password reset instructions sent (mock).",
+  "registerSuccess": "Account created. Sign in to continue.",
+  "registerFailed": "Could not create account.",
+  "signInHelperCredentials": "Try alex@vendorjet.com / welcome1 to explore.",
+  "tenantSectionTitle": "Organization",
+  "tenantRoleLabel": "Role",
+  "tenantSwitchTitle": "Switch workspace",
+  "tenantSwitchFailed": "You cannot access this workspace.",
+  "tenantInviteTitle": "Invite teammate",
+  "inviteEmailPlaceholder": "Teammate email",
+  "inviteSend": "Send invite",
+  "inviteSuccess": "Invitation recorded (mock).",
+  "roleOwner": "Owner",
+  "roleManager": "Manager",
+  "roleStaff": "Staff",
+  "ordersCreate": "Add order",
+  "ordersEdit": "Edit order",
+  "ordersDelete": "Delete order",
+  "ordersDeleteConfirm": "Delete order {code}?",
+  "ordersCreated": "Order created.",
+  "ordersUpdated": "Order updated.",
+  "ordersDeleted": "Order deleted.",
+  "ordersFormCode": "Order code",
+  "ordersFormItems": "Line items",
+  "ordersFormTotal": "Order total",
+  "ordersFormDate": "Order date",
+  "productsCreate": "Add product",
+  "productsDelete": "Delete product",
+  "productsDeleteConfirm": "Delete product {name}?",
+  "productsDeleted": "Product deleted.",
+  "productsCsvMock": "Mock CSV upload",
+  "productsCsvImported": "Imported {success}/{processed} rows (mock).",
+  "@ordersDeleteConfirm": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@productsDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@productsCsvImported": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "processed": {
+        "type": "int"
+      }
+    }
+  },
+  "productEditSku": "SKU",
+  "productsCreated": "Product created."
 }

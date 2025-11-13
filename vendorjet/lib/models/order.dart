@@ -1,11 +1,4 @@
-enum OrderStatus {
-  pending,
-  confirmed,
-  shipped,
-  completed,
-  canceled,
-  returned,
-}
+enum OrderStatus { pending, confirmed, shipped, completed, canceled, returned }
 
 class Order {
   final String id;
@@ -23,4 +16,22 @@ class Order {
     required this.createdAt,
     required this.status,
   });
+
+  Order copyWith({
+    String? id,
+    String? code,
+    int? itemCount,
+    double? total,
+    DateTime? createdAt,
+    OrderStatus? status,
+  }) {
+    return Order(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      itemCount: itemCount ?? this.itemCount,
+      total: total ?? this.total,
+      createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
+    );
+  }
 }
