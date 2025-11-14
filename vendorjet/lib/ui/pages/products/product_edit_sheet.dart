@@ -8,7 +8,8 @@ class ProductEditResult {
   final String name;
   final double price;
   final int variantsCount;
-  final ProductCategory category;
+  final List<String> categoryPath;
+  final Set<ProductTag> tags;
   final bool lowStock;
 
   const ProductEditResult({
@@ -16,7 +17,8 @@ class ProductEditResult {
     required this.name,
     required this.price,
     required this.variantsCount,
-    required this.category,
+    required this.categoryPath,
+    required this.tags,
     required this.lowStock,
   });
 }
@@ -24,29 +26,64 @@ class ProductEditResult {
 class ProductEditSheet extends StatefulWidget {
   final AppLocalizations t;
   final Product product;
+  final List<List<String>> categoryPresets;
 
-  const ProductEditSheet({super.key, required this.t, required this.product});
+  const ProductEditSheet({
+    super.key,
+    required this.t,
+    required this.product,
+    required this.categoryPresets,
+  });
 
   @override
   State<ProductEditSheet> createState() => _ProductEditSheetState();
 }
 
 class _ProductEditSheetState extends State<ProductEditSheet> {
-  late final TextEditingController _skuController = TextEditingController(
-    text: widget.product.sku,
-  );
-  late final TextEditingController _nameController = TextEditingController(
-    text: widget.product.name,
-  );
-  late final TextEditingController _priceController = TextEditingController(
-    text: widget.product.price.toStringAsFixed(2),
-  );
-  late final TextEditingController _variantsController = TextEditingController(
-    text: widget.product.variantsCount.toString(),
-  );
+  late final TextEditingController _skuController;
+  late final TextEditingController _nameController;
+  late final TextEditingController _priceController;
+  late final TextEditingController _variantsController;
+  late final List<TextEditingController> _categoryCtrls;
+  late final bool _useCategoryPresets;
+  List<String?> _selectedCategories = [];
   final _formKey = GlobalKey<FormState>();
-  late ProductCategory _category = widget.product.category;
-  late bool _lowStock = widget.product.lowStock;
+  late bool _lowStock;
+  late final Set<ProductTag> _tags;
+
+  @override
+  void initState() {
+    super.initState();
+    _skuController = TextEditingController(text: widget.product.sku);
+    _nameController = TextEditingController(text: widget.product.name);
+    _priceController = TextEditingController(
+      text: widget.product.price.toStringAsFixed(2),
+    );
+    _variantsController = TextEditingController(
+      text: widget.product.variantsCount.toString(),
+    );
+    _useCategoryPresets = widget.categoryPresets.isNotEmpty;
+    if (_useCategoryPresets) {
+      _categoryCtrls = const [];
+      _selectedCategories = List.generate(
+        3,
+        (index) => index < widget.product.categories.length
+            ? widget.product.categories[index]
+            : null,
+      );
+    } else {
+      _categoryCtrls = List.generate(
+        3,
+        (index) => TextEditingController(
+          text: index < widget.product.categories.length
+              ? widget.product.categories[index]
+              : '',
+        ),
+      );
+    }
+    _lowStock = widget.product.lowStock;
+    _tags = {...widget.product.tags};
+  }
 
   @override
   void dispose() {
@@ -54,6 +91,11 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
     _nameController.dispose();
     _priceController.dispose();
     _variantsController.dispose();
+    if (!_useCategoryPresets) {
+      for (final ctrl in _categoryCtrls) {
+        ctrl.dispose();
+      }
+    }
     super.dispose();
   }
 
@@ -101,14 +143,11 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return t.productEditSku;
-                  }
-                  return null;
-                },
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? t.productEditSku
+                    : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -117,14 +156,11 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return t.productEditNameRequired;
-                  }
-                  return null;
-                },
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? t.productEditNameRequired
+                    : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _priceController,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -147,7 +183,7 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _variantsController,
                 keyboardType: TextInputType.number,
@@ -166,38 +202,86 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<ProductCategory>(
-                initialValue: _category,
-                decoration: InputDecoration(
-                  labelText: t.productEditCategory,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
+              const SizedBox(height: 12),
+              if (_useCategoryPresets)
+                ...List.generate(3, (index) {
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: index == 2 ? 0 : 12),
+                    child: _buildCategoryDropdown(index),
+                  );
+                })
+              else
+                ...List.generate(_categoryCtrls.length, (index) {
+                  final label = t.productCategoryLevel(index + 1);
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index == _categoryCtrls.length - 1 ? 0 : 12,
+                    ),
+                    child: TextFormField(
+                      controller: _categoryCtrls[index],
+                      decoration: InputDecoration(
+                        labelText: label,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (index == 0 &&
+                            (value == null || value.trim().isEmpty)) {
+                          return t.productCategoryLevelRequired;
+                        }
+                        return null;
+                      },
+                    ),
+                  );
+                }),
+              if (_useCategoryPresets)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    t.productCategoriesManageHint,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Theme.of(context).hintColor),
                   ),
                 ),
-                items: [
-                  for (final category in ProductCategory.values)
-                    DropdownMenuItem(
-                      value: category,
-                      child: Text(_categoryLabel(category, t)),
-                    ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _category = value);
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               SwitchListTile.adaptive(
                 value: _lowStock,
                 contentPadding: EdgeInsets.zero,
                 title: Text(t.productEditLowStock),
                 onChanged: (value) => setState(() => _lowStock = value),
+              ),
+              SwitchListTile.adaptive(
+                value: _tags.contains(ProductTag.featured),
+                contentPadding: EdgeInsets.zero,
+                title: Text(t.productTagFeatured),
+                onChanged: (value) => setState(() {
+                  value
+                      ? _tags.add(ProductTag.featured)
+                      : _tags.remove(ProductTag.featured);
+                }),
+              ),
+              SwitchListTile.adaptive(
+                value: _tags.contains(ProductTag.discounted),
+                contentPadding: EdgeInsets.zero,
+                title: Text(t.productTagDiscounted),
+                onChanged: (value) => setState(() {
+                  value
+                      ? _tags.add(ProductTag.discounted)
+                      : _tags.remove(ProductTag.discounted);
+                }),
+              ),
+              SwitchListTile.adaptive(
+                value: _tags.contains(ProductTag.newArrival),
+                contentPadding: EdgeInsets.zero,
+                title: Text(t.productTagNew),
+                onChanged: (value) => setState(() {
+                  value
+                      ? _tags.add(ProductTag.newArrival)
+                      : _tags.remove(ProductTag.newArrival);
+                }),
               ),
               const SizedBox(height: 8),
               SizedBox(
@@ -214,34 +298,105 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
     );
   }
 
+  Widget _buildCategoryDropdown(int level) {
+    final t = widget.t;
+    final label = t.productCategoryLevel(level + 1);
+    final isFirstLevel = level == 0;
+    final parentSelected =
+        level == 0 ? true : (_selectedCategories[level - 1]?.isNotEmpty ?? false);
+    final options = _categoryOptionsForLevel(level);
+    final items = <DropdownMenuItem<String?>>[
+      if (!isFirstLevel)
+        DropdownMenuItem<String?>(
+          value: null,
+          child: Text(t.productCategoryNone),
+        ),
+      for (final option in options)
+        DropdownMenuItem<String?>(
+          value: option,
+          child: Text(option),
+        ),
+    ];
+    return DropdownButtonFormField<String?>(
+      initialValue:
+          _selectedCategories.length > level ? _selectedCategories[level] : null,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      items: items,
+      onChanged: parentSelected ? (value) => _onCategoryChanged(level, value) : null,
+      validator: (value) {
+        if (isFirstLevel && (value == null || value.isEmpty)) {
+          return t.productCategoryLevelRequired;
+        }
+        return null;
+      },
+    );
+  }
+
+  List<String> _categoryOptionsForLevel(int level) {
+    if (level == 0) {
+      final options = widget.categoryPresets.map((path) => path.first).toSet().toList()
+        ..sort();
+      return options;
+    }
+    final options = <String>{};
+    for (final path in widget.categoryPresets) {
+      if (path.length <= level) continue;
+      var matches = true;
+      for (var i = 0; i < level; i++) {
+        final selected = _selectedCategories[i];
+        if (selected == null || selected.isEmpty) {
+          matches = false;
+          break;
+        }
+        if (path.length <= i || path[i] != selected) {
+          matches = false;
+          break;
+        }
+      }
+      if (!matches) continue;
+      options.add(path[level]);
+    }
+    final list = options.toList()..sort();
+    return list;
+  }
+
+  void _onCategoryChanged(int level, String? value) {
+    if (_selectedCategories.length < 3) {
+      _selectedCategories = List<String?>.from(
+        _selectedCategories + List<String?>.filled(3 - _selectedCategories.length, null),
+      );
+    }
+    setState(() {
+      _selectedCategories[level] = value;
+      for (var i = level + 1; i < _selectedCategories.length; i++) {
+        _selectedCategories[i] = null;
+      }
+    });
+  }
+
   void _submit() {
-    if (!_formKey.currentState!.validate()) return;
-    final price = double.parse(_priceController.text.trim());
-    final variants = int.parse(_variantsController.text.trim());
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final categories = _useCategoryPresets
+        ? _selectedCategories.whereType<String>().toList()
+        : _categoryCtrls
+            .map((ctrl) => ctrl.text.trim())
+            .where((value) => value.isNotEmpty)
+            .toList();
     Navigator.of(context).pop(
       ProductEditResult(
         sku: _skuController.text.trim(),
         name: _nameController.text.trim(),
-        price: double.parse(price.toStringAsFixed(2)),
-        variantsCount: variants,
-        category: _category,
+        price: double.parse(
+          double.parse(_priceController.text.trim()).toStringAsFixed(2),
+        ),
+        variantsCount: int.parse(_variantsController.text.trim()),
+        categoryPath: categories,
+        tags: _tags,
         lowStock: _lowStock,
       ),
     );
-  }
-
-  String _categoryLabel(ProductCategory category, AppLocalizations t) {
-    switch (category) {
-      case ProductCategory.beverages:
-        return t.productsCategoryBeverages;
-      case ProductCategory.snacks:
-        return t.productsCategorySnacks;
-      case ProductCategory.household:
-        return t.productsCategoryHousehold;
-      case ProductCategory.fashion:
-        return t.productsCategoryFashion;
-      case ProductCategory.electronics:
-        return t.productsCategoryElectronics;
-    }
   }
 }

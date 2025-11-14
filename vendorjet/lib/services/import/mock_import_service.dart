@@ -1,10 +1,12 @@
-class CsvImportResult {
+import 'package:excel/excel.dart';
+
+class XlsxImportResult {
   final int processed;
   final int success;
   final int failed;
   final List<String> messages;
 
-  const CsvImportResult({
+  const XlsxImportResult({
     required this.processed,
     required this.success,
     required this.failed,
@@ -12,35 +14,49 @@ class CsvImportResult {
   });
 }
 
-class MockCsvImportService {
-  Future<CsvImportResult> importProducts(String csvContent) async {
+class MockXlsxImportService {
+  Future<XlsxImportResult> importProducts(List<int> bytes) async {
     await Future<void>.delayed(const Duration(milliseconds: 400));
-    final lines = csvContent
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-    if (lines.length <= 1) {
-      return const CsvImportResult(
+    try {
+      final excel = Excel.decodeBytes(bytes);
+      if (excel.tables.isEmpty) {
+        return const XlsxImportResult(
+          processed: 0,
+          success: 0,
+          failed: 0,
+          messages: ['No sheets found.'],
+        );
+      }
+      final sheet = excel.tables.values.first;
+      final rows = sheet.rows;
+      final processed = (rows.length - 1).clamp(0, rows.length);
+      if (processed == 0) {
+        return const XlsxImportResult(
+          processed: 0,
+          success: 0,
+          failed: 0,
+          messages: ['Workbook contains no data rows.'],
+        );
+      }
+      final success = (processed * 0.85).round();
+      final failed = processed - success;
+      final messages = <String>[
+        '$success rows imported (mock).',
+        if (failed > 0) '$failed rows skipped after validation.',
+      ];
+      return XlsxImportResult(
+        processed: processed,
+        success: success,
+        failed: failed,
+        messages: messages,
+      );
+    } catch (err) {
+      return XlsxImportResult(
         processed: 0,
         success: 0,
         failed: 0,
-        messages: ['CSV contains no rows.'],
+        messages: ['Failed to read .xlsx: $err'],
       );
     }
-
-    final processed = lines.length - 1;
-    final success = (processed * 0.8).round();
-    final failed = processed - success;
-    final messages = <String>[
-      '$success rows imported (mock).',
-      if (failed > 0) '$failed rows skipped due to validation errors.',
-    ];
-    return CsvImportResult(
-      processed: processed,
-      success: success,
-      failed: failed,
-      messages: messages,
-    );
   }
 }

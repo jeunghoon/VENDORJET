@@ -102,6 +102,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get orderMetaNote => '내부 메모';
 
   @override
+  String get orderBuyerSectionTitle => 'Buyer information';
+
+  @override
+  String get orderBuyerName => 'Store';
+
+  @override
+  String get orderBuyerContact => 'Contact';
+
+  @override
+  String get orderBuyerNote => 'Buyer note';
+
+  @override
+  String get orderBuyerUnknown => 'Not provided';
+
+  @override
   String get orderEditTitle => '주문 편집';
 
   @override
@@ -421,6 +436,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get ordersFormDate => '주문 날짜';
 
   @override
+  String get ordersFormBuyerName => 'Store name';
+
+  @override
+  String get ordersFormBuyerContact => 'Buyer contact';
+
+  @override
+  String get ordersFormBuyerNote => 'Buyer note';
+
+  @override
+  String get ordersFormBuyerNoteHint => 'Notes visible to the seller team.';
+
+  @override
   String get productsCreate => '상품 추가';
 
   @override
@@ -447,4 +474,266 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get productsCreated => '상품이 생성되었습니다.';
+
+  @override
+  String get customersTitle => '고객';
+
+  @override
+  String get customersSearchHint => '고객 검색';
+
+  @override
+  String get customersFilterAll => '전체 등급';
+
+  @override
+  String get customersTierPlatinum => '플래티넘';
+
+  @override
+  String get customersTierGold => '골드';
+
+  @override
+  String get customersTierSilver => '실버';
+
+  @override
+  String get customersCreate => '고객 추가';
+
+  @override
+  String get customersEdit => '고객 편집';
+
+  @override
+  String get customersDelete => '고객 삭제';
+
+  @override
+  String customersDeleteConfirm(String name) {
+    return '$name 고객을 삭제할까요?';
+  }
+
+  @override
+  String get customersCreated => '고객이 생성되었습니다.';
+
+  @override
+  String get customersUpdated => '고객이 업데이트되었습니다.';
+
+  @override
+  String get customersDeleted => '고객이 삭제되었습니다.';
+
+  @override
+  String get customersFormName => '업체명';
+
+  @override
+  String get customersFormContact => '담당자';
+
+  @override
+  String get customersFormEmail => '이메일';
+
+  @override
+  String get customersFormTier => '등급';
+
+  @override
+  String get customersEmptyMessage => '등록된 고객이 없습니다.';
+
+  @override
+  String customersEmptyFiltered(String tier) {
+    return '$tier 고객이 없습니다.';
+  }
+
+  @override
+  String get ordersFilterToday => '오늘';
+
+  @override
+  String get ordersFilterOpen => '진행 중';
+
+  @override
+  String get ordersCodeAutoHint => '저장 시 자동으로 생성됩니다.';
+
+  @override
+  String get productsLowStockFilter => '재고 부족만 보기';
+
+  @override
+  String get productsXlsxUpload => '.xlsx 업로드';
+
+  @override
+  String get productsXlsxNoData => '선택한 파일에 데이터가 없습니다.';
+
+  @override
+  String productsXlsxImported(int success, int processed) {
+    return '$processed개 중 $success개가 반영되었습니다(모의).';
+  }
+
+  @override
+  String get productsManageCategories => '카테고리 관리';
+
+  @override
+  String get productCategoryUnassigned => '카테고리 미지정';
+
+  @override
+  String get productCategoryNone => '없음';
+
+  @override
+  String get productCategoriesManageHint =>
+      '다른 카테고리가 필요하면 시트를 닫고 ‘카테고리 관리’를 열어 추가하세요.';
+
+  @override
+  String get productTagFeatured => '이벤트';
+
+  @override
+  String get productTagDiscounted => '할인';
+
+  @override
+  String get productTagNew => '신제품';
+
+  @override
+  String productCategoryLevel(int level) {
+    return '카테고리 $level단계';
+  }
+
+  @override
+  String get productCategoryLevelRequired => '최소 한 단계 이상의 카테고리를 입력하세요.';
+
+  @override
+  String get productSettingsCategories => '카테고리 구조';
+
+  @override
+  String get productTagsSection => '상품 플래그';
+
+  @override
+  String get productTabOverview => '정보';
+
+  @override
+  String get productTabSettings => '설정';
+
+  @override
+  String get categoryManagerTitle => '카테고리 라이브러리';
+
+  @override
+  String get categoryManagerDescription => '상품에서 재사용할 1~3단계 카테고리를 추가/편집합니다.';
+
+  @override
+  String get categoryManagerAdd => '카테고리 추가';
+
+  @override
+  String get categoryManagerUpdate => '카테고리 수정';
+
+  @override
+  String get categoryManagerCancel => '편집 취소';
+
+  @override
+  String get categoryManagerDelete => '삭제';
+
+  @override
+  String categoryManagerDeleteConfirm(String path) {
+    return '$path을(를) 삭제할까요?';
+  }
+
+  @override
+  String get categoryManagerSaved => '카테고리를 저장했습니다.';
+
+  @override
+  String get categoryManagerDeleted => '카테고리를 삭제했습니다.';
+
+  @override
+  String get categoryManagerEmpty => '등록된 카테고리가 없습니다.';
+
+  @override
+  String get categoryManagerPrimaryRequired => '최소 1단계 카테고리를 입력하세요.';
+
+  @override
+  String get buyerPortalTitle => 'Buyer preview';
+
+  @override
+  String get buyerPortalTabCatalog => 'Catalog';
+
+  @override
+  String get buyerPortalTabCart => 'Cart';
+
+  @override
+  String get buyerPortalTabCheckout => 'Checkout';
+
+  @override
+  String get buyerPreviewTitle => 'Buyer preview';
+
+  @override
+  String get buyerPreviewSubtitle =>
+      'Simulate the retailer-side ordering flow.';
+
+  @override
+  String get buyerCatalogSearchHint => 'Search catalog';
+
+  @override
+  String get buyerCatalogEmptyHint => 'No products match the current filters.';
+
+  @override
+  String buyerCatalogPrice(String price) {
+    return '\$ $price / unit';
+  }
+
+  @override
+  String get buyerCatalogAdd => 'Add to cart';
+
+  @override
+  String buyerCatalogAddWithQty(String count) {
+    return '$count 장바구니 담기';
+  }
+
+  @override
+  String buyerCatalogAdded(String name) {
+    return '$name added to cart.';
+  }
+
+  @override
+  String buyerCartSummary(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get buyerCartEmpty => 'Cart is empty';
+
+  @override
+  String get buyerCartEmptyHint => 'Add products from the catalog tab.';
+
+  @override
+  String buyerCartLineTotal(String amount) {
+    return '\$ $amount';
+  }
+
+  @override
+  String get buyerCartRemove => 'Remove';
+
+  @override
+  String buyerCartTotal(String amount) {
+    return 'Subtotal: \$ $amount';
+  }
+
+  @override
+  String get buyerCartProceed => 'Go to checkout';
+
+  @override
+  String get buyerCartClear => 'Clear cart';
+
+  @override
+  String buyerCheckoutItems(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get buyerCheckoutStore => 'Store name';
+
+  @override
+  String get buyerCheckoutContact => 'Buyer contact';
+
+  @override
+  String get buyerCheckoutNote => 'Buyer note';
+
+  @override
+  String get buyerCheckoutNoteHint => 'Optional message for the seller.';
+
+  @override
+  String get buyerCheckoutSubmit => 'Submit order';
+
+  @override
+  String get buyerCheckoutCartEmpty => 'Add items to the cart first.';
+
+  @override
+  String buyerCheckoutSuccess(String code) {
+    return 'Order submitted. Code $code';
+  }
 }

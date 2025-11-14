@@ -1,12 +1,13 @@
-enum ProductCategory { beverages, snacks, household, fashion, electronics }
+enum ProductTag { featured, discounted, newArrival }
 
 class Product {
   final String id;
   final String sku;
   final String name;
   final int variantsCount;
-  final double price; // 기본 가격(샘플)
-  final ProductCategory category;
+  final double price;
+  final List<String> categories; // 최대 3단계
+  final Set<ProductTag> tags;
   final bool lowStock;
   final String? imageUrl;
 
@@ -16,7 +17,8 @@ class Product {
     required this.name,
     required this.variantsCount,
     required this.price,
-    required this.category,
+    required this.categories,
+    this.tags = const {},
     this.lowStock = false,
     this.imageUrl,
   });
@@ -27,7 +29,8 @@ class Product {
     String? name,
     int? variantsCount,
     double? price,
-    ProductCategory? category,
+    List<String>? categories,
+    Set<ProductTag>? tags,
     bool? lowStock,
     String? imageUrl,
   }) {
@@ -37,7 +40,8 @@ class Product {
       name: name ?? this.name,
       variantsCount: variantsCount ?? this.variantsCount,
       price: price ?? this.price,
-      category: category ?? this.category,
+      categories: categories ?? this.categories,
+      tags: tags ?? this.tags,
       lowStock: lowStock ?? this.lowStock,
       imageUrl: imageUrl ?? this.imageUrl,
     );

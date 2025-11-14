@@ -124,6 +124,41 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
+                        t.orderBuyerSectionTitle,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 12),
+                      _InfoRow(
+                        icon: Icons.store_mall_directory_outlined,
+                        label: t.orderBuyerName,
+                        value: currentOrder.buyerName.isEmpty ? t.orderBuyerUnknown : currentOrder.buyerName,
+                      ),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        icon: Icons.contact_phone_outlined,
+                        label: t.orderBuyerContact,
+                        value: currentOrder.buyerContact.isEmpty ? t.orderBuyerUnknown : currentOrder.buyerContact,
+                      ),
+                      if ((currentOrder.buyerNote ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          icon: Icons.sticky_note_2_outlined,
+                          label: t.orderBuyerNote,
+                          value: currentOrder.buyerNote ?? '',
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
                         t.orderMetaTitle,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                       ),

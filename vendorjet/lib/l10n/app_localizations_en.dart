@@ -102,6 +102,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderMetaNote => 'Internal note';
 
   @override
+  String get orderBuyerSectionTitle => 'Buyer information';
+
+  @override
+  String get orderBuyerName => 'Store';
+
+  @override
+  String get orderBuyerContact => 'Contact';
+
+  @override
+  String get orderBuyerNote => 'Buyer note';
+
+  @override
+  String get orderBuyerUnknown => 'Not provided';
+
+  @override
   String get orderEditTitle => 'Edit order';
 
   @override
@@ -424,6 +439,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ordersFormDate => 'Order date';
 
   @override
+  String get ordersFormBuyerName => 'Store name';
+
+  @override
+  String get ordersFormBuyerContact => 'Buyer contact';
+
+  @override
+  String get ordersFormBuyerNote => 'Buyer note';
+
+  @override
+  String get ordersFormBuyerNoteHint => 'Notes visible to the seller team.';
+
+  @override
   String get productsCreate => 'Add product';
 
   @override
@@ -450,4 +477,269 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productsCreated => 'Product created.';
+
+  @override
+  String get customersTitle => 'Customers';
+
+  @override
+  String get customersSearchHint => 'Search customers';
+
+  @override
+  String get customersFilterAll => 'All tiers';
+
+  @override
+  String get customersTierPlatinum => 'Platinum';
+
+  @override
+  String get customersTierGold => 'Gold';
+
+  @override
+  String get customersTierSilver => 'Silver';
+
+  @override
+  String get customersCreate => 'Add customer';
+
+  @override
+  String get customersEdit => 'Edit customer';
+
+  @override
+  String get customersDelete => 'Delete customer';
+
+  @override
+  String customersDeleteConfirm(String name) {
+    return 'Delete customer $name?';
+  }
+
+  @override
+  String get customersCreated => 'Customer created.';
+
+  @override
+  String get customersUpdated => 'Customer updated.';
+
+  @override
+  String get customersDeleted => 'Customer deleted.';
+
+  @override
+  String get customersFormName => 'Business name';
+
+  @override
+  String get customersFormContact => 'Contact name';
+
+  @override
+  String get customersFormEmail => 'Email';
+
+  @override
+  String get customersFormTier => 'Tier';
+
+  @override
+  String get customersEmptyMessage => 'No customers found.';
+
+  @override
+  String customersEmptyFiltered(String tier) {
+    return 'No $tier customers found.';
+  }
+
+  @override
+  String get ordersFilterToday => 'Today';
+
+  @override
+  String get ordersFilterOpen => 'Open';
+
+  @override
+  String get ordersCodeAutoHint => 'Automatically generated when saved.';
+
+  @override
+  String get productsLowStockFilter => 'Show low stock only';
+
+  @override
+  String get productsXlsxUpload => 'Upload .xlsx';
+
+  @override
+  String get productsXlsxNoData => '.xlsx file contained no data.';
+
+  @override
+  String productsXlsxImported(int success, int processed) {
+    return 'Imported $success/$processed rows (mock).';
+  }
+
+  @override
+  String get productsManageCategories => 'Manage categories';
+
+  @override
+  String get productCategoryUnassigned => 'Uncategorized';
+
+  @override
+  String get productCategoryNone => 'None';
+
+  @override
+  String get productCategoriesManageHint =>
+      'Need another path? Close this sheet and open “Manage categories”.';
+
+  @override
+  String get productTagFeatured => 'Featured';
+
+  @override
+  String get productTagDiscounted => 'Discounted';
+
+  @override
+  String get productTagNew => 'New arrival';
+
+  @override
+  String productCategoryLevel(int level) {
+    return 'Category level $level';
+  }
+
+  @override
+  String get productCategoryLevelRequired =>
+      'Enter at least one category level.';
+
+  @override
+  String get productSettingsCategories => 'Category hierarchy';
+
+  @override
+  String get productTagsSection => 'Product flags';
+
+  @override
+  String get productTabOverview => 'Overview';
+
+  @override
+  String get productTabSettings => 'Settings';
+
+  @override
+  String get categoryManagerTitle => 'Category library';
+
+  @override
+  String get categoryManagerDescription =>
+      'Create up to three nested levels to reuse across products.';
+
+  @override
+  String get categoryManagerAdd => 'Add category';
+
+  @override
+  String get categoryManagerUpdate => 'Update category';
+
+  @override
+  String get categoryManagerCancel => 'Cancel edit';
+
+  @override
+  String get categoryManagerDelete => 'Delete';
+
+  @override
+  String categoryManagerDeleteConfirm(String path) {
+    return 'Delete $path?';
+  }
+
+  @override
+  String get categoryManagerSaved => 'Category saved.';
+
+  @override
+  String get categoryManagerDeleted => 'Category removed.';
+
+  @override
+  String get categoryManagerEmpty => 'No categories registered yet.';
+
+  @override
+  String get categoryManagerPrimaryRequired =>
+      'Enter at least the first level.';
+
+  @override
+  String get buyerPortalTitle => 'Buyer preview';
+
+  @override
+  String get buyerPortalTabCatalog => 'Catalog';
+
+  @override
+  String get buyerPortalTabCart => 'Cart';
+
+  @override
+  String get buyerPortalTabCheckout => 'Checkout';
+
+  @override
+  String get buyerPreviewTitle => 'Buyer preview';
+
+  @override
+  String get buyerPreviewSubtitle =>
+      'Simulate the retailer-side ordering flow.';
+
+  @override
+  String get buyerCatalogSearchHint => 'Search catalog';
+
+  @override
+  String get buyerCatalogEmptyHint => 'No products match the current filters.';
+
+  @override
+  String buyerCatalogPrice(String price) {
+    return '\$ $price / unit';
+  }
+
+  @override
+  String get buyerCatalogAdd => 'Add to cart';
+
+  @override
+  String buyerCatalogAddWithQty(String count) {
+    return '$count Add to cart';
+  }
+
+  @override
+  String buyerCatalogAdded(String name) {
+    return '$name added to cart.';
+  }
+
+  @override
+  String buyerCartSummary(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get buyerCartEmpty => 'Cart is empty';
+
+  @override
+  String get buyerCartEmptyHint => 'Add products from the catalog tab.';
+
+  @override
+  String buyerCartLineTotal(String amount) {
+    return '\$ $amount';
+  }
+
+  @override
+  String get buyerCartRemove => 'Remove';
+
+  @override
+  String buyerCartTotal(String amount) {
+    return 'Subtotal: \$ $amount';
+  }
+
+  @override
+  String get buyerCartProceed => 'Go to checkout';
+
+  @override
+  String get buyerCartClear => 'Clear cart';
+
+  @override
+  String buyerCheckoutItems(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get buyerCheckoutStore => 'Store name';
+
+  @override
+  String get buyerCheckoutContact => 'Buyer contact';
+
+  @override
+  String get buyerCheckoutNote => 'Buyer note';
+
+  @override
+  String get buyerCheckoutNoteHint => 'Optional message for the seller.';
+
+  @override
+  String get buyerCheckoutSubmit => 'Submit order';
+
+  @override
+  String get buyerCheckoutCartEmpty => 'Add items to the cart first.';
+
+  @override
+  String buyerCheckoutSuccess(String code) {
+    return 'Order submitted. Code $code';
+  }
 }

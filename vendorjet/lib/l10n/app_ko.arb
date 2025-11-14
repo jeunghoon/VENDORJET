@@ -1,4 +1,4 @@
-{
+﻿{
   "appTitle": "VendorJet",
   "homeTitle": "대시보드",
   "ordersTitle": "주문",
@@ -204,5 +204,102 @@
     }
   },
   "productEditSku": "SKU",
-  "productsCreated": "상품이 생성되었습니다."
+  "productsCreated": "상품이 생성되었습니다.",
+  "customersTitle": "고객",
+  "customersSearchHint": "고객 검색",
+  "customersFilterAll": "전체 등급",
+  "customersTierPlatinum": "플래티넘",
+  "customersTierGold": "골드",
+  "customersTierSilver": "실버",
+  "customersCreate": "고객 추가",
+  "customersEdit": "고객 편집",
+  "customersDelete": "고객 삭제",
+  "customersDeleteConfirm": "{name} 고객을 삭제할까요?",
+  "customersCreated": "고객이 생성되었습니다.",
+  "customersUpdated": "고객이 업데이트되었습니다.",
+  "customersDeleted": "고객이 삭제되었습니다.",
+  "customersFormName": "업체명",
+  "customersFormContact": "담당자",
+  "customersFormEmail": "이메일",
+  "customersFormTier": "등급",
+  "customersEmptyMessage": "등록된 고객이 없습니다.",
+  "customersEmptyFiltered": "{tier} 고객이 없습니다.",
+  "@customersDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@customersEmptyFiltered": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersFilterToday": "오늘",
+  "ordersFilterOpen": "진행 중",
+  "ordersCodeAutoHint": "저장 시 자동으로 생성됩니다.",
+  "productsLowStockFilter": "재고 부족만 보기",
+  "productsXlsxUpload": ".xlsx 업로드",
+  "productsXlsxNoData": "선택한 파일에 데이터가 없습니다.",
+  "productsXlsxImported": "{processed}개 중 {success}개가 반영되었습니다(모의).",
+  "productTagFeatured": "이벤트",
+  "productTagDiscounted": "할인",
+  "productTagNew": "신제품",
+  "productCategoryLevel": "카테고리 {level}단계",
+  "productCategoryLevelRequired": "최소 한 단계 이상의 카테고리를 입력하세요.",
+  "productSettingsCategories": "카테고리 구조",
+  "productTagsSection": "상품 플래그",
+  "productTabOverview": "정보",
+  "productTabSettings": "설정",
+  "@productCategoryLevel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "@productsXlsxImported": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "processed": {
+        "type": "int"
+      }
+    }
+  }
+,
+  "buyerCatalogAddWithQty": "{count} 장바구니 담기",
+  "@buyerCatalogAddWithQty": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "productsManageCategories": "카테고리 관리",
+  "productCategoryUnassigned": "카테고리 미지정",
+  "productCategoryNone": "없음",
+  "productCategoriesManageHint": "다른 카테고리가 필요하면 시트를 닫고 ‘카테고리 관리’를 열어 추가하세요.",
+  "categoryManagerTitle": "카테고리 라이브러리",
+  "categoryManagerDescription": "상품에서 재사용할 1~3단계 카테고리를 추가/편집합니다.",
+  "categoryManagerAdd": "카테고리 추가",
+  "categoryManagerUpdate": "카테고리 수정",
+  "categoryManagerCancel": "편집 취소",
+  "categoryManagerDelete": "삭제",
+  "categoryManagerDeleteConfirm": "{path}을(를) 삭제할까요?",
+  "@categoryManagerDeleteConfirm": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryManagerSaved": "카테고리를 저장했습니다.",
+  "categoryManagerDeleted": "카테고리를 삭제했습니다.",
+  "categoryManagerEmpty": "등록된 카테고리가 없습니다.",
+  "categoryManagerPrimaryRequired": "최소 1단계 카테고리를 입력하세요."
 }

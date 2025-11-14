@@ -30,6 +30,11 @@
   "orderMetaLastUpdated": "Last updated",
   "orderMetaOwner": "Account owner",
   "orderMetaNote": "Internal note",
+  "orderBuyerSectionTitle": "Buyer information",
+  "orderBuyerName": "Store",
+  "orderBuyerContact": "Contact",
+  "orderBuyerNote": "Buyer note",
+  "orderBuyerUnknown": "Not provided",
   "orderEditTitle": "Edit order",
   "orderEditStatusLabel": "Status",
   "orderEditPlannedShip": "Planned shipment",
@@ -173,6 +178,10 @@
   "ordersFormItems": "Line items",
   "ordersFormTotal": "Order total",
   "ordersFormDate": "Order date",
+  "ordersFormBuyerName": "Store name",
+  "ordersFormBuyerContact": "Buyer contact",
+  "ordersFormBuyerNote": "Buyer note",
+  "ordersFormBuyerNoteHint": "Notes visible to the seller team.",
   "productsCreate": "Add product",
   "productsDelete": "Delete product",
   "productsDeleteConfirm": "Delete product {name}?",
@@ -204,5 +213,177 @@
     }
   },
   "productEditSku": "SKU",
-  "productsCreated": "Product created."
+  "productsCreated": "Product created.",
+  "customersTitle": "Customers",
+  "customersSearchHint": "Search customers",
+  "customersFilterAll": "All tiers",
+  "customersTierPlatinum": "Platinum",
+  "customersTierGold": "Gold",
+  "customersTierSilver": "Silver",
+  "customersCreate": "Add customer",
+  "customersEdit": "Edit customer",
+  "customersDelete": "Delete customer",
+  "customersDeleteConfirm": "Delete customer {name}?",
+  "customersCreated": "Customer created.",
+  "customersUpdated": "Customer updated.",
+  "customersDeleted": "Customer deleted.",
+  "customersFormName": "Business name",
+  "customersFormContact": "Contact name",
+  "customersFormEmail": "Email",
+  "customersFormTier": "Tier",
+  "customersEmptyMessage": "No customers found.",
+  "customersEmptyFiltered": "No {tier} customers found.",
+  "@customersDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@customersEmptyFiltered": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersFilterToday": "Today",
+  "ordersFilterOpen": "Open",
+  "ordersCodeAutoHint": "Automatically generated when saved.",
+  "productsLowStockFilter": "Show low stock only",
+  "productsXlsxUpload": "Upload .xlsx",
+  "productsXlsxNoData": ".xlsx file contained no data.",
+  "productsXlsxImported": "Imported {success}/{processed} rows (mock).",
+  "productsManageCategories": "Manage categories",
+  "productCategoryUnassigned": "Uncategorized",
+  "productCategoryNone": "None",
+  "productCategoriesManageHint": "Need another path? Close this sheet and open “Manage categories”.",
+  "productTagFeatured": "Featured",
+  "productTagDiscounted": "Discounted",
+  "productTagNew": "New arrival",
+  "productCategoryLevel": "Category level {level}",
+  "productCategoryLevelRequired": "Enter at least one category level.",
+  "productSettingsCategories": "Category hierarchy",
+  "productTagsSection": "Product flags",
+  "productTabOverview": "Overview",
+  "productTabSettings": "Settings",
+  "@productCategoryLevel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "categoryManagerTitle": "Category library",
+  "categoryManagerDescription": "Create up to three nested levels to reuse across products.",
+  "categoryManagerAdd": "Add category",
+  "categoryManagerUpdate": "Update category",
+  "categoryManagerCancel": "Cancel edit",
+  "categoryManagerDelete": "Delete",
+  "categoryManagerDeleteConfirm": "Delete {path}?",
+  "@categoryManagerDeleteConfirm": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryManagerSaved": "Category saved.",
+  "categoryManagerDeleted": "Category removed.",
+  "categoryManagerEmpty": "No categories registered yet.",
+  "categoryManagerPrimaryRequired": "Enter at least the first level.",
+  "buyerPortalTitle": "Buyer preview",
+  "buyerPortalTabCatalog": "Catalog",
+  "buyerPortalTabCart": "Cart",
+  "buyerPortalTabCheckout": "Checkout",
+  "buyerPreviewTitle": "Buyer preview",
+  "buyerPreviewSubtitle": "Simulate the retailer-side ordering flow.",
+  "buyerCatalogSearchHint": "Search catalog",
+  "buyerCatalogEmptyHint": "No products match the current filters.",
+  "buyerCatalogPrice": "$ {price} / unit",
+  "@buyerCatalogPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "buyerCatalogAdd": "Add to cart",
+  "buyerCatalogAddWithQty": "{count} Add to cart",
+  "@buyerCatalogAddWithQty": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "buyerCatalogAdded": "{name} added to cart.",
+  "@buyerCatalogAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buyerCartSummary": "{count} items",
+  "@buyerCartSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerCartEmpty": "Cart is empty",
+  "buyerCartEmptyHint": "Add products from the catalog tab.",
+  "buyerCartLineTotal": "$ {amount}",
+  "@buyerCartLineTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "buyerCartRemove": "Remove",
+  "buyerCartTotal": "Subtotal: $ {amount}",
+  "@buyerCartTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "buyerCartProceed": "Go to checkout",
+  "buyerCartClear": "Clear cart",
+  "buyerCheckoutItems": "{count} items",
+  "@buyerCheckoutItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerCheckoutStore": "Store name",
+  "buyerCheckoutContact": "Buyer contact",
+  "buyerCheckoutNote": "Buyer note",
+  "buyerCheckoutNoteHint": "Optional message for the seller.",
+  "buyerCheckoutSubmit": "Submit order",
+  "buyerCheckoutCartEmpty": "Add items to the cart first.",
+  "buyerCheckoutSuccess": "Order submitted. Code {code}",
+  "@buyerCheckoutSuccess": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@productsXlsxImported": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "processed": {
+        "type": "int"
+      }
+    }
+  }
 }

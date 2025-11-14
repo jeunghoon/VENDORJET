@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
@@ -141,6 +142,16 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const Divider(height: 32),
         ],
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.shopping_cart_checkout_outlined),
+            title: Text(t.buyerPreviewTitle),
+            subtitle: Text(t.buyerPreviewSubtitle),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => GoRouter.of(context).push('/buyer'),
+          ),
+        ),
+        const SizedBox(height: 24),
         Text(
           t.language,
           style: Theme.of(

@@ -284,6 +284,36 @@ abstract class AppLocalizations {
   /// **'Internal note'**
   String get orderMetaNote;
 
+  /// No description provided for @orderBuyerSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer information'**
+  String get orderBuyerSectionTitle;
+
+  /// No description provided for @orderBuyerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Store'**
+  String get orderBuyerName;
+
+  /// No description provided for @orderBuyerContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get orderBuyerContact;
+
+  /// No description provided for @orderBuyerNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer note'**
+  String get orderBuyerNote;
+
+  /// No description provided for @orderBuyerUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Not provided'**
+  String get orderBuyerUnknown;
+
   /// No description provided for @orderEditTitle.
   ///
   /// In en, this message translates to:
@@ -896,6 +926,30 @@ abstract class AppLocalizations {
   /// **'Order date'**
   String get ordersFormDate;
 
+  /// No description provided for @ordersFormBuyerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Store name'**
+  String get ordersFormBuyerName;
+
+  /// No description provided for @ordersFormBuyerContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer contact'**
+  String get ordersFormBuyerContact;
+
+  /// No description provided for @ordersFormBuyerNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer note'**
+  String get ordersFormBuyerNote;
+
+  /// No description provided for @ordersFormBuyerNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes visible to the seller team.'**
+  String get ordersFormBuyerNoteHint;
+
   /// No description provided for @productsCreate.
   ///
   /// In en, this message translates to:
@@ -943,6 +997,474 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Product created.'**
   String get productsCreated;
+
+  /// No description provided for @customersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get customersTitle;
+
+  /// No description provided for @customersSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search customers'**
+  String get customersSearchHint;
+
+  /// No description provided for @customersFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All tiers'**
+  String get customersFilterAll;
+
+  /// No description provided for @customersTierPlatinum.
+  ///
+  /// In en, this message translates to:
+  /// **'Platinum'**
+  String get customersTierPlatinum;
+
+  /// No description provided for @customersTierGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get customersTierGold;
+
+  /// No description provided for @customersTierSilver.
+  ///
+  /// In en, this message translates to:
+  /// **'Silver'**
+  String get customersTierSilver;
+
+  /// No description provided for @customersCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Add customer'**
+  String get customersCreate;
+
+  /// No description provided for @customersEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit customer'**
+  String get customersEdit;
+
+  /// No description provided for @customersDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete customer'**
+  String get customersDelete;
+
+  /// No description provided for @customersDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete customer {name}?'**
+  String customersDeleteConfirm(String name);
+
+  /// No description provided for @customersCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer created.'**
+  String get customersCreated;
+
+  /// No description provided for @customersUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer updated.'**
+  String get customersUpdated;
+
+  /// No description provided for @customersDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer deleted.'**
+  String get customersDeleted;
+
+  /// No description provided for @customersFormName.
+  ///
+  /// In en, this message translates to:
+  /// **'Business name'**
+  String get customersFormName;
+
+  /// No description provided for @customersFormContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact name'**
+  String get customersFormContact;
+
+  /// No description provided for @customersFormEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get customersFormEmail;
+
+  /// No description provided for @customersFormTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier'**
+  String get customersFormTier;
+
+  /// No description provided for @customersEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers found.'**
+  String get customersEmptyMessage;
+
+  /// No description provided for @customersEmptyFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'No {tier} customers found.'**
+  String customersEmptyFiltered(String tier);
+
+  /// No description provided for @ordersFilterToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get ordersFilterToday;
+
+  /// No description provided for @ordersFilterOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get ordersFilterOpen;
+
+  /// No description provided for @ordersCodeAutoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically generated when saved.'**
+  String get ordersCodeAutoHint;
+
+  /// No description provided for @productsLowStockFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Show low stock only'**
+  String get productsLowStockFilter;
+
+  /// No description provided for @productsXlsxUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload .xlsx'**
+  String get productsXlsxUpload;
+
+  /// No description provided for @productsXlsxNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'.xlsx file contained no data.'**
+  String get productsXlsxNoData;
+
+  /// No description provided for @productsXlsxImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {success}/{processed} rows (mock).'**
+  String productsXlsxImported(int success, int processed);
+
+  /// No description provided for @productsManageCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage categories'**
+  String get productsManageCategories;
+
+  /// No description provided for @productCategoryUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get productCategoryUnassigned;
+
+  /// No description provided for @productCategoryNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get productCategoryNone;
+
+  /// No description provided for @productCategoriesManageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Need another path? Close this sheet and open “Manage categories”.'**
+  String get productCategoriesManageHint;
+
+  /// No description provided for @productTagFeatured.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get productTagFeatured;
+
+  /// No description provided for @productTagDiscounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Discounted'**
+  String get productTagDiscounted;
+
+  /// No description provided for @productTagNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New arrival'**
+  String get productTagNew;
+
+  /// No description provided for @productCategoryLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category level {level}'**
+  String productCategoryLevel(int level);
+
+  /// No description provided for @productCategoryLevelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one category level.'**
+  String get productCategoryLevelRequired;
+
+  /// No description provided for @productSettingsCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Category hierarchy'**
+  String get productSettingsCategories;
+
+  /// No description provided for @productTagsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Product flags'**
+  String get productTagsSection;
+
+  /// No description provided for @productTabOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get productTabOverview;
+
+  /// No description provided for @productTabSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get productTabSettings;
+
+  /// No description provided for @categoryManagerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Category library'**
+  String get categoryManagerTitle;
+
+  /// No description provided for @categoryManagerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Create up to three nested levels to reuse across products.'**
+  String get categoryManagerDescription;
+
+  /// No description provided for @categoryManagerAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add category'**
+  String get categoryManagerAdd;
+
+  /// No description provided for @categoryManagerUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Update category'**
+  String get categoryManagerUpdate;
+
+  /// No description provided for @categoryManagerCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel edit'**
+  String get categoryManagerCancel;
+
+  /// No description provided for @categoryManagerDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get categoryManagerDelete;
+
+  /// No description provided for @categoryManagerDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {path}?'**
+  String categoryManagerDeleteConfirm(String path);
+
+  /// No description provided for @categoryManagerSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Category saved.'**
+  String get categoryManagerSaved;
+
+  /// No description provided for @categoryManagerDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Category removed.'**
+  String get categoryManagerDeleted;
+
+  /// No description provided for @categoryManagerEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories registered yet.'**
+  String get categoryManagerEmpty;
+
+  /// No description provided for @categoryManagerPrimaryRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least the first level.'**
+  String get categoryManagerPrimaryRequired;
+
+  /// No description provided for @buyerPortalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer preview'**
+  String get buyerPortalTitle;
+
+  /// No description provided for @buyerPortalTabCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalog'**
+  String get buyerPortalTabCatalog;
+
+  /// No description provided for @buyerPortalTabCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart'**
+  String get buyerPortalTabCart;
+
+  /// No description provided for @buyerPortalTabCheckout.
+  ///
+  /// In en, this message translates to:
+  /// **'Checkout'**
+  String get buyerPortalTabCheckout;
+
+  /// No description provided for @buyerPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer preview'**
+  String get buyerPreviewTitle;
+
+  /// No description provided for @buyerPreviewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulate the retailer-side ordering flow.'**
+  String get buyerPreviewSubtitle;
+
+  /// No description provided for @buyerCatalogSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search catalog'**
+  String get buyerCatalogSearchHint;
+
+  /// No description provided for @buyerCatalogEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No products match the current filters.'**
+  String get buyerCatalogEmptyHint;
+
+  /// No description provided for @buyerCatalogPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'\$ {price} / unit'**
+  String buyerCatalogPrice(String price);
+
+  /// No description provided for @buyerCatalogAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to cart'**
+  String get buyerCatalogAdd;
+
+  /// No description provided for @buyerCatalogAddWithQty.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Add to cart'**
+  String buyerCatalogAddWithQty(String count);
+
+  /// No description provided for @buyerCatalogAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} added to cart.'**
+  String buyerCatalogAdded(String name);
+
+  /// No description provided for @buyerCartSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String buyerCartSummary(int count);
+
+  /// No description provided for @buyerCartEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart is empty'**
+  String get buyerCartEmpty;
+
+  /// No description provided for @buyerCartEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add products from the catalog tab.'**
+  String get buyerCartEmptyHint;
+
+  /// No description provided for @buyerCartLineTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'\$ {amount}'**
+  String buyerCartLineTotal(String amount);
+
+  /// No description provided for @buyerCartRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get buyerCartRemove;
+
+  /// No description provided for @buyerCartTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtotal: \$ {amount}'**
+  String buyerCartTotal(String amount);
+
+  /// No description provided for @buyerCartProceed.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to checkout'**
+  String get buyerCartProceed;
+
+  /// No description provided for @buyerCartClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear cart'**
+  String get buyerCartClear;
+
+  /// No description provided for @buyerCheckoutItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String buyerCheckoutItems(int count);
+
+  /// No description provided for @buyerCheckoutStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Store name'**
+  String get buyerCheckoutStore;
+
+  /// No description provided for @buyerCheckoutContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer contact'**
+  String get buyerCheckoutContact;
+
+  /// No description provided for @buyerCheckoutNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer note'**
+  String get buyerCheckoutNote;
+
+  /// No description provided for @buyerCheckoutNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional message for the seller.'**
+  String get buyerCheckoutNoteHint;
+
+  /// No description provided for @buyerCheckoutSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit order'**
+  String get buyerCheckoutSubmit;
+
+  /// No description provided for @buyerCheckoutCartEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add items to the cart first.'**
+  String get buyerCheckoutCartEmpty;
+
+  /// No description provided for @buyerCheckoutSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Order submitted. Code {code}'**
+  String buyerCheckoutSuccess(String code);
 }
 
 class _AppLocalizationsDelegate

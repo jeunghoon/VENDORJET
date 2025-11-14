@@ -140,6 +140,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 today: data.todayOrders,
                 open: data.openOrders,
                 lowStock: data.lowStockProducts,
+                onTodayTap: () => context.go('/orders?filter=today'),
+                onOpenTap: () => context.go('/orders?filter=open'),
+                onLowStockTap: () => context.go('/products?lowStock=1'),
               ),
               const SizedBox(height: 20),
               _SectionTitle(title: t.dashboardRecentOrders),
@@ -176,11 +179,17 @@ class _Overview extends StatelessWidget {
   final int today;
   final int open;
   final int lowStock;
+  final VoidCallback onTodayTap;
+  final VoidCallback onOpenTap;
+  final VoidCallback onLowStockTap;
 
   const _Overview({
     required this.today,
     required this.open,
     required this.lowStock,
+    required this.onTodayTap,
+    required this.onOpenTap,
+    required this.onLowStockTap,
   });
 
   @override
@@ -200,9 +209,21 @@ class _Overview extends StatelessWidget {
           mainAxisSpacing: 12,
           childAspectRatio: isWide ? 3.2 : 2.6,
           children: [
-            _StatCard(title: t.dashboardTodayOrders, value: today.toString()),
-            _StatCard(title: t.dashboardOpenOrders, value: open.toString()),
-            _StatCard(title: t.dashboardLowStock, value: lowStock.toString()),
+            _StatCard(
+              title: t.dashboardTodayOrders,
+              value: today.toString(),
+              onTap: onTodayTap,
+            ),
+            _StatCard(
+              title: t.dashboardOpenOrders,
+              value: open.toString(),
+              onTap: onOpenTap,
+            ),
+            _StatCard(
+              title: t.dashboardLowStock,
+              value: lowStock.toString(),
+              onTap: onLowStockTap,
+            ),
           ],
         );
       },
@@ -246,6 +267,12 @@ class _RecentOrdersList extends StatelessWidget {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (order.buyerName.isNotEmpty)
+                  Text(
+                    order.buyerName,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                const SizedBox(height: 2),
                 Text(
                   '${localizations.formatShortDate(order.createdAt)} · ${numberFormat.format(order.total)}',
                 ),
@@ -272,46 +299,51 @@ class _RecentOrdersList extends StatelessWidget {
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
-  const _StatCard({required this.title, required this.value});
+  final VoidCallback onTap;
+  const _StatCard({required this.title, required this.value, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.secondary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.secondary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.analytics_outlined, color: color.secondary),
               ),
-              child: Icon(Icons.analytics_outlined, color: color.secondary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

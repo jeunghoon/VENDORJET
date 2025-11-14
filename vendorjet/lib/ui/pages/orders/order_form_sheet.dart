@@ -3,18 +3,22 @@ import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
 
 class OrderFormResult {
-  final String code;
   final int itemCount;
   final double total;
   final DateTime createdAt;
   final OrderStatus status;
+  final String buyerName;
+  final String buyerContact;
+  final String? buyerNote;
 
   const OrderFormResult({
-    required this.code,
     required this.itemCount,
     required this.total,
     required this.createdAt,
     required this.status,
+    required this.buyerName,
+    required this.buyerContact,
+    this.buyerNote,
   });
 }
 
@@ -29,14 +33,20 @@ class OrderFormSheet extends StatefulWidget {
 }
 
 class _OrderFormSheetState extends State<OrderFormSheet> {
-  late final TextEditingController _codeCtrl = TextEditingController(
-    text: widget.initial?.code ?? '',
-  );
   late final TextEditingController _itemsCtrl = TextEditingController(
     text: widget.initial?.itemCount.toString() ?? '1',
   );
   late final TextEditingController _totalCtrl = TextEditingController(
     text: widget.initial?.total.toStringAsFixed(2) ?? '100.00',
+  );
+  late final TextEditingController _buyerNameCtrl = TextEditingController(
+    text: widget.initial?.buyerName ?? '',
+  );
+  late final TextEditingController _buyerContactCtrl = TextEditingController(
+    text: widget.initial?.buyerContact ?? '',
+  );
+  late final TextEditingController _buyerNoteCtrl = TextEditingController(
+    text: widget.initial?.buyerNote ?? '',
   );
   final _formKey = GlobalKey<FormState>();
   late DateTime _date = widget.initial?.createdAt ?? DateTime.now();
@@ -44,15 +54,18 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
 
   @override
   void dispose() {
-    _codeCtrl.dispose();
     _itemsCtrl.dispose();
     _totalCtrl.dispose();
+    _buyerNameCtrl.dispose();
+    _buyerContactCtrl.dispose();
+    _buyerNoteCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final t = widget.t;
+    final codePreview = widget.initial?.code ?? t.ordersCodeAutoHint;
 
     return SafeArea(
       child: Padding(
@@ -74,8 +87,8 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
                     child: Text(
                       widget.initial == null ? t.ordersCreate : t.ordersEdit,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                   ),
                   IconButton(
@@ -84,18 +97,50 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(t.ordersFormCode),
+                subtitle: Text(codePreview),
+              ),
+              const SizedBox(height: 8),
               TextFormField(
-                controller: _codeCtrl,
+                controller: _buyerNameCtrl,
                 decoration: InputDecoration(
-                  labelText: t.ordersFormCode,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  labelText: t.ordersFormBuyerName,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? t.ordersFormCode
-                    : null,
+                validator: (value) {
+                  if ((value ?? '').trim().isEmpty) {
+                    return t.ordersFormBuyerName;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _buyerContactCtrl,
+                decoration: InputDecoration(
+                  labelText: t.ordersFormBuyerContact,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (value) {
+                  if ((value ?? '').trim().isEmpty) {
+                    return t.ordersFormBuyerContact;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _buyerNoteCtrl,
+                minLines: 2,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: t.ordersFormBuyerNote,
+                  hintText: t.ordersFormBuyerNoteHint,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -123,9 +168,7 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
                   Expanded(
                     child: TextFormField(
                       controller: _totalCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         labelText: t.ordersFormTotal,
                         border: OutlineInputBorder(
@@ -176,9 +219,7 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _submit,
-                  child: Text(
-                    widget.initial == null ? t.ordersCreate : t.ordersEdit,
-                  ),
+                  child: Text(widget.initial == null ? t.ordersCreate : t.ordersEdit),
                 ),
               ),
             ],
@@ -212,13 +253,15 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     Navigator.of(context).pop(
       OrderFormResult(
-        code: _codeCtrl.text.trim(),
         itemCount: int.parse(_itemsCtrl.text.trim()),
         total: double.parse(
           double.parse(_totalCtrl.text.trim()).toStringAsFixed(2),
         ),
         createdAt: _date,
         status: _status,
+        buyerName: _buyerNameCtrl.text.trim(),
+        buyerContact: _buyerContactCtrl.text.trim(),
+        buyerNote: _buyerNoteCtrl.text.trim().isEmpty ? null : _buyerNoteCtrl.text.trim(),
       ),
     );
   }

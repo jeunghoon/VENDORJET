@@ -1,3 +1,4 @@
+﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -6,11 +7,27 @@ import 'package:vendorjet/models/product.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
 import 'package:vendorjet/services/import/mock_import_service.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
+import 'package:vendorjet/ui/pages/products/category_manager_sheet.dart';
 import 'package:vendorjet/ui/pages/products/product_edit_sheet.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
+class ProductsPagePreset {
+  final bool lowStockOnly;
+  final String? topCategory;
+
+  const ProductsPagePreset({this.lowStockOnly = false, this.topCategory});
+
+  factory ProductsPagePreset.fromQuery(Map<String, String> query) {
+    final category = query['category'];
+    final lowStock = query['lowStock'] == '1';
+    return ProductsPagePreset(lowStockOnly: lowStock, topCategory: category);
+  }
+}
+
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key});
+  final ProductsPagePreset preset;
+
+  const ProductsPage({super.key, this.preset = const ProductsPagePreset()});
 
   @override
   State<ProductsPage> createState() => _ProductsPageState();
@@ -18,20 +35,41 @@ class ProductsPage extends StatefulWidget {
 
 class _ProductsPageState extends State<ProductsPage> {
   final _repo = MockProductRepository();
-  final _importService = MockCsvImportService();
+  final _importService = MockXlsxImportService();
   final _queryCtrl = TextEditingController();
+
   List<Product> _items = const [];
+  List<String> _availableCategories = const [];
+  List<List<String>> _categoryPresets = const [];
   bool _loading = true;
   String? _error;
-  ProductCategory? _categoryFilter;
+  bool _lowStockOnly = false;
+  String? _topCategoryFilter;
+
   DataRefreshCoordinator? _refreshCoordinator;
   int _lastProductsVersion = 0;
 
   @override
   void initState() {
     super.initState();
+    _applyPreset(widget.preset);
     _load();
     _queryCtrl.addListener(_onQuery);
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.preset.lowStockOnly != widget.preset.lowStockOnly ||
+        oldWidget.preset.topCategory != widget.preset.topCategory) {
+      _applyPreset(widget.preset);
+      _load();
+    }
+  }
+
+  void _applyPreset(ProductsPagePreset preset) {
+    _lowStockOnly = preset.lowStockOnly;
+    _topCategoryFilter = preset.topCategory;
   }
 
   @override
@@ -61,10 +99,18 @@ class _ProductsPageState extends State<ProductsPage> {
       _error = null;
     });
     try {
-      final items = await _repo.fetch(query: query, category: _categoryFilter);
+      final items = await _repo.fetch(
+        query: query,
+        topCategory: _topCategoryFilter,
+        lowStockOnly: _lowStockOnly,
+      );
+      final categories = _repo.topCategories();
+      final presets = await _repo.fetchCategoryPresets();
       if (!mounted) return;
       setState(() {
         _items = items;
+        _availableCategories = categories;
+        _categoryPresets = presets;
         _loading = false;
       });
     } catch (err) {
@@ -76,9 +122,7 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 
-  void _onQuery() {
-    _load();
-  }
+  void _onQuery() => _load();
 
   void _handleRefreshEvent() {
     final coordinator = _refreshCoordinator;
@@ -113,20 +157,41 @@ class _ProductsPageState extends State<ProductsPage> {
               ),
               const SizedBox(height: 12),
               _CategoryChips(
-                selected: _categoryFilter,
+                categories: _availableCategories,
+                selected: _topCategoryFilter,
                 onSelected: (value) {
-                  setState(() => _categoryFilter = value);
+                  setState(() => _topCategoryFilter = value);
                   _load();
                 },
               ),
               const SizedBox(height: 12),
               Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  onPressed: _runCsvImport,
-                  icon: const Icon(Icons.upload_file),
-                  label: Text(t.productsCsvMock),
+                alignment: Alignment.centerLeft,
+                child: FilterChip(
+                  label: Text(t.productsLowStockFilter),
+                  selected: _lowStockOnly,
+                  onSelected: (value) {
+                    setState(() => _lowStockOnly = value);
+                    _load();
+                  },
                 ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _runXlsxImport,
+                    icon: const Icon(Icons.upload_file),
+                    label: Text(t.productsXlsxUpload),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: _openCategoryManager,
+                    icon: const Icon(Icons.category_outlined),
+                    label: Text(t.productsManageCategories),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -147,15 +212,12 @@ class _ProductsPageState extends State<ProductsPage> {
                       );
                     }
                     if (_items.isEmpty) {
-                      final filterLabel = _categoryFilter == null
-                          ? null
-                          : _categoryLabel(_categoryFilter!, t);
                       return StateMessageView(
                         icon: Icons.inventory_outlined,
                         title: t.productsEmptyMessage,
-                        message: filterLabel == null
+                        message: _topCategoryFilter == null
                             ? null
-                            : t.productsEmptyFiltered(filterLabel),
+                            : t.productsEmptyFiltered(_topCategoryFilter!),
                       );
                     }
                     return RefreshIndicator(
@@ -171,6 +233,10 @@ class _ProductsPageState extends State<ProductsPage> {
                         itemCount: _items.length,
                         itemBuilder: (context, i) {
                           final p = _items[i];
+                          final categoryLabel = p.categories.isEmpty
+                              ? t.productCategoryUnassigned
+                              : p.categories.join(' > ');
+                          final tagLabels = _tagLabels(p.tags, t);
                           return Card(
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
@@ -205,60 +271,68 @@ class _ProductsPageState extends State<ProductsPage> {
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            t.productCardSummary(
-                                              p.name,
-                                              p.variantsCount,
-                                            ),
-                                            style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.7),
+                                    Text(
+                                      p.name,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      categoryLabel,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: color.onSurface.withValues(
+                                              alpha: 0.6,
                                             ),
                                           ),
-                                        ),
-                                        PopupMenuButton<String>(
-                                          onSelected: (value) {
-                                            switch (value) {
-                                              case 'edit':
-                                                _openProductForm(initial: p);
-                                                break;
-                                              case 'delete':
-                                                _confirmDelete(p);
-                                                break;
-                                            }
-                                          },
-                                          itemBuilder: (context) => [
-                                            PopupMenuItem(
-                                              value: 'edit',
-                                              child: Text(t.edit),
-                                            ),
-                                            PopupMenuItem(
-                                              value: 'delete',
-                                              child: Text(t.productsDelete),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 8),
                                     Wrap(
                                       spacing: 6,
                                       runSpacing: -6,
                                       children: [
-                                        _Tag(
-                                          label: _categoryLabel(p.category, t),
-                                        ),
                                         if (p.lowStock)
                                           _Tag(
                                             label: t.productLowStockTag,
                                             highlight: true,
                                           ),
+                                        for (final label in tagLabels)
+                                          _Tag(label: label),
                                       ],
+                                    ),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: PopupMenuButton<String>(
+                                        onSelected: (value) {
+                                          switch (value) {
+                                            case 'edit':
+                                              _openProductForm(initial: p);
+                                              break;
+                                            case 'delete':
+                                              _confirmDelete(p);
+                                              break;
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          PopupMenuItem(
+                                            value: 'edit',
+                                            child: Text(t.edit),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text(t.productsDelete),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -287,13 +361,42 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
+  List<String> _tagLabels(Set<ProductTag> tags, AppLocalizations t) {
+    final labels = <String>[];
+    if (tags.contains(ProductTag.featured)) {
+      labels.add(t.productTagFeatured);
+    }
+    if (tags.contains(ProductTag.discounted)) {
+      labels.add(t.productTagDiscounted);
+    }
+    if (tags.contains(ProductTag.newArrival)) {
+      labels.add(t.productTagNew);
+    }
+    return labels;
+  }
+
   Future<void> _openProductForm({Product? initial}) async {
     final t = AppLocalizations.of(context)!;
-    final base = initial ?? _emptyProduct();
+    final base =
+        initial ??
+        Product(
+          id: '',
+          sku: 'SKU-${DateTime.now().millisecondsSinceEpoch}',
+          name: '',
+          variantsCount: 1,
+          price: 10,
+          categories: const [],
+          tags: const {},
+          lowStock: false,
+        );
     final result = await showModalBottomSheet<ProductEditResult>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => ProductEditSheet(t: t, product: base),
+      builder: (_) => ProductEditSheet(
+        t: t,
+        product: base,
+        categoryPresets: _categoryPresets,
+      ),
     );
     if (result == null) return;
     final product = base.copyWith(
@@ -301,7 +404,8 @@ class _ProductsPageState extends State<ProductsPage> {
       name: result.name,
       price: result.price,
       variantsCount: result.variantsCount,
-      category: result.category,
+      categories: result.categoryPath,
+      tags: result.tags,
       lowStock: result.lowStock,
     );
     final saved = await _repo.save(product);
@@ -348,67 +452,70 @@ class _ProductsPageState extends State<ProductsPage> {
     ).showSnackBar(SnackBar(content: Text(t.productsDeleted)));
   }
 
-  Future<void> _runCsvImport() async {
+  Future<void> _runXlsxImport() async {
     final t = AppLocalizations.of(context)!;
-    const mockCsv =
-        'sku,name,price,variants,category\nSKU-9001,Citrus Soda,14.5,2,beverages\nSKU-9002,Urban Snack Mix,9.99,3,snacks';
-    final result = await _importService.importProducts(mockCsv);
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx'],
+    );
+    if (result == null) return;
+    final file = result.files.single;
+    final bytes = file.bytes;
+    if (bytes == null) {
+      messenger.showSnackBar(SnackBar(content: Text(t.productsXlsxNoData)));
+      return;
+    }
+    final importResult = await _importService.importProducts(bytes);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    await _load();
+    if (!mounted) return;
+    messenger.showSnackBar(
       SnackBar(
-        content: Text(t.productsCsvImported(result.success, result.processed)),
+        content: Text(
+          t.productsXlsxImported(importResult.success, importResult.processed),
+        ),
       ),
     );
   }
 
-  Product _emptyProduct() {
-    return Product(
-      id: '',
-      sku: 'SKU-${DateTime.now().millisecondsSinceEpoch}',
-      name: '',
-      variantsCount: 1,
-      price: 10,
-      category: ProductCategory.values.first,
-      lowStock: false,
+  Future<void> _openCategoryManager() async {
+    final t = AppLocalizations.of(context)!;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => CategoryManagerSheet(t: t, repository: _repo),
     );
-  }
-
-  String _categoryLabel(ProductCategory category, AppLocalizations t) {
-    switch (category) {
-      case ProductCategory.beverages:
-        return t.productsCategoryBeverages;
-      case ProductCategory.snacks:
-        return t.productsCategorySnacks;
-      case ProductCategory.household:
-        return t.productsCategoryHousehold;
-      case ProductCategory.fashion:
-        return t.productsCategoryFashion;
-      case ProductCategory.electronics:
-        return t.productsCategoryElectronics;
-    }
+    if (!mounted) return;
+    await _load();
   }
 }
 
 class _CategoryChips extends StatelessWidget {
-  final ProductCategory? selected;
-  final ValueChanged<ProductCategory?> onSelected;
+  final List<String> categories;
+  final String? selected;
+  final ValueChanged<String?> onSelected;
 
-  const _CategoryChips({required this.selected, required this.onSelected});
+  const _CategoryChips({
+    required this.categories,
+    required this.selected,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-    final items = <ProductCategory?>[null, ...ProductCategory.values];
+    final chips = [null, ...categories];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         children: [
-          for (final category in items)
+          for (final category in chips)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ChoiceChip(
-                label: Text(_label(category, t)),
+                label: Text(category ?? t.productCategoryUnassigned),
                 selected: selected == category,
                 onSelected: (_) => onSelected(category),
               ),
@@ -416,22 +523,6 @@ class _CategoryChips extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _label(ProductCategory? category, AppLocalizations t) {
-    if (category == null) return t.productsFilterAll;
-    switch (category) {
-      case ProductCategory.beverages:
-        return t.productsCategoryBeverages;
-      case ProductCategory.snacks:
-        return t.productsCategorySnacks;
-      case ProductCategory.household:
-        return t.productsCategoryHousehold;
-      case ProductCategory.fashion:
-        return t.productsCategoryFashion;
-      case ProductCategory.electronics:
-        return t.productsCategoryElectronics;
-    }
   }
 }
 
@@ -465,3 +556,5 @@ class _Tag extends StatelessWidget {
     );
   }
 }
+
+

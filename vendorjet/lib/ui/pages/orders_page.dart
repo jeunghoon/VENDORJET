@@ -8,9 +8,25 @@ import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/orders/order_form_sheet.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
-// 주문 목록 화면(플레이스홀더)
+class OrderListPreset {
+  final bool todayOnly;
+  final bool openOnly;
+
+  const OrderListPreset({this.todayOnly = false, this.openOnly = false});
+
+  factory OrderListPreset.fromQuery(Map<String, String> query) {
+    final filter = query['filter'];
+    return OrderListPreset(
+      todayOnly: filter == 'today',
+      openOnly: filter == 'open',
+    );
+  }
+}
+
 class OrdersPage extends StatefulWidget {
-  const OrdersPage({super.key});
+  final OrderListPreset preset;
+
+  const OrdersPage({super.key, this.preset = const OrderListPreset()});
 
   @override
   State<OrdersPage> createState() => _OrdersPageState();
@@ -19,18 +35,38 @@ class OrdersPage extends StatefulWidget {
 class _OrdersPageState extends State<OrdersPage> {
   final _repo = MockOrderRepository();
   final _queryCtrl = TextEditingController();
+
   List<Order> _items = const [];
   bool _loading = true;
   String? _error;
   OrderStatus? _statusFilter;
+  bool _presetToday = false;
+  bool _presetOpen = false;
+
   DataRefreshCoordinator? _refreshCoordinator;
   int _lastOrdersVersion = 0;
 
   @override
   void initState() {
     super.initState();
+    _applyPreset(widget.preset);
     _load();
     _queryCtrl.addListener(_onQuery);
+  }
+
+  @override
+  void didUpdateWidget(covariant OrdersPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.preset.todayOnly != widget.preset.todayOnly ||
+        oldWidget.preset.openOnly != widget.preset.openOnly) {
+      _applyPreset(widget.preset);
+      _load();
+    }
+  }
+
+  void _applyPreset(OrderListPreset preset) {
+    _presetToday = preset.todayOnly;
+    _presetOpen = preset.openOnly;
   }
 
   @override
@@ -60,7 +96,13 @@ class _OrdersPageState extends State<OrdersPage> {
       _error = null;
     });
     try {
-      final items = await _repo.fetch(query: query, status: _statusFilter);
+      final dateFilter = _presetToday ? DateTime.now() : null;
+      final items = await _repo.fetch(
+        query: query,
+        status: _statusFilter,
+        openOnly: _presetOpen,
+        dateEquals: dateFilter,
+      );
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -75,9 +117,7 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
-  void _onQuery() {
-    _load();
-  }
+  void _onQuery() => _load();
 
   void _handleRefreshEvent() {
     final coordinator = _refreshCoordinator;
@@ -111,6 +151,19 @@ class _OrdersPageState extends State<OrdersPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              _QuickFilterRow(
+                todaySelected: _presetToday,
+                openSelected: _presetOpen,
+                onTodayChanged: (value) {
+                  setState(() => _presetToday = value);
+                  _load();
+                },
+                onOpenChanged: (value) {
+                  setState(() => _presetOpen = value);
+                  _load();
+                },
+              ),
+              const SizedBox(height: 12),
               _StatusChips(
                 selected: _statusFilter,
                 onSelected: (value) {
@@ -137,15 +190,20 @@ class _OrdersPageState extends State<OrdersPage> {
                       );
                     }
                     if (_items.isEmpty) {
-                      final filterLabel = _statusFilter == null
-                          ? null
-                          : _statusLabel(_statusFilter!, t);
+                      String? message;
+                      if (_presetToday) {
+                        message = t.ordersEmptyFiltered(t.ordersFilterToday);
+                      } else if (_presetOpen) {
+                        message = t.ordersEmptyFiltered(t.ordersFilterOpen);
+                      } else if (_statusFilter != null) {
+                        message = t.ordersEmptyFiltered(
+                          _statusLabel(_statusFilter!, t),
+                        );
+                      }
                       return StateMessageView(
                         icon: Icons.inbox_outlined,
                         title: t.ordersEmptyMessage,
-                        message: filterLabel == null
-                            ? null
-                            : t.ordersEmptyFiltered(filterLabel),
+                        message: message,
                       );
                     }
                     return RefreshIndicator(
@@ -168,6 +226,25 @@ class _OrdersPageState extends State<OrdersPage> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  if (o.buyerName.isNotEmpty)
+                                    Text(
+                                      o.buyerName,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: color.onSurface,
+                                      ),
+                                    ),
+                                  if (o.buyerContact.isNotEmpty)
+                                    Text(
+                                      o.buyerContact,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: color.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  const SizedBox(height: 4),
                                   Text(
                                     t.orderListSubtitle(
                                       o.itemCount,
@@ -185,31 +262,25 @@ class _OrdersPageState extends State<OrdersPage> {
                                   ),
                                 ],
                               ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.chevron_right_rounded),
-                                  PopupMenuButton<String>(
-                                    onSelected: (value) {
-                                      switch (value) {
-                                        case 'edit':
-                                          _openOrderForm(initial: o);
-                                          break;
-                                        case 'delete':
-                                          _confirmDelete(o);
-                                          break;
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Text(t.ordersEdit),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Text(t.ordersDelete),
-                                      ),
-                                    ],
+                              trailing: PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  switch (value) {
+                                    case 'edit':
+                                      _openOrderForm(initial: o);
+                                      break;
+                                    case 'delete':
+                                      _confirmDelete(o);
+                                      break;
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text(t.ordersEdit),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text(t.ordersDelete),
                                   ),
                                 ],
                               ),
@@ -265,13 +336,27 @@ class _OrdersPageState extends State<OrdersPage> {
       builder: (_) => OrderFormSheet(t: t, initial: initial),
     );
     if (result == null) return;
-    final order = Order(
-      id: initial?.id ?? '',
-      code: result.code,
+    final base =
+        initial ??
+        Order(
+          id: '',
+          code: '',
+          itemCount: 0,
+          total: 0,
+          createdAt: DateTime.now(),
+          status: OrderStatus.pending,
+          buyerName: '',
+          buyerContact: '',
+        );
+    final order = base.copyWith(
       itemCount: result.itemCount,
       total: result.total,
       createdAt: result.createdAt,
       status: result.status,
+      code: base.code,
+      buyerName: result.buyerName,
+      buyerContact: result.buyerContact,
+      buyerNote: result.buyerNote,
     );
     final saved = await _repo.save(order);
     if (!mounted) return;
@@ -363,5 +448,39 @@ class _StatusChips extends StatelessWidget {
       case OrderStatus.returned:
         return t.ordersStatusReturned;
     }
+  }
+}
+
+class _QuickFilterRow extends StatelessWidget {
+  final bool todaySelected;
+  final bool openSelected;
+  final ValueChanged<bool> onTodayChanged;
+  final ValueChanged<bool> onOpenChanged;
+
+  const _QuickFilterRow({
+    required this.todaySelected,
+    required this.openSelected,
+    required this.onTodayChanged,
+    required this.onOpenChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    return Row(
+      children: [
+        FilterChip(
+          label: Text(t.ordersFilterToday),
+          selected: todaySelected,
+          onSelected: onTodayChanged,
+        ),
+        const SizedBox(width: 8),
+        FilterChip(
+          label: Text(t.ordersFilterOpen),
+          selected: openSelected,
+          onSelected: onOpenChanged,
+        ),
+      ],
+    );
   }
 }

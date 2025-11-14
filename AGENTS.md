@@ -97,20 +97,20 @@
 - 주문/상품 목록에 상태·카테고리 필터와 공통 상태 뷰(StateMessageView) 도입
 - 대시보드 지표·최근 주문 UI 구축 및 DashboardService 계층 분리
 - 주문/상품 상세 화면 확장: 편집 액션, 메타데이터 섹션, 내부 메모/재고 정보 표시
-- 주문/상품 생성·편집·삭제 모의 플로우, CSV(Mock) 업로드 버튼, 테넌시/초대/비밀번호 재설정 시뮬레이션 구축
-
+- 주문 상태(반품) 추가 및 필터 반영
+- 구매자 미리보기 플로우(BuyerPortal) 추가: 카탈로그·장바구니·주문 제출과 판매자 데이터 동기화 시뮬레이션
+- 주문 모델/목록/대시보드에 buyerName·buyerContact·buyerNote 노출
+- Firebase Auth·Firestore 통합 계획 문서 초안 작성(docs/backend/firebase_plan.md)
 ## 다음 실행 과정(체크리스트)
-1) 고객(Customer) 목록/필터/CRUD UI 연결 및 권한별 표시 정책 정리
-2) 운영 품질 요소 마무리: 빈 상태 카피/접근성 라벨, 다크모드 명암비, 공통 토스트/다이얼로그 컨벤션
-3) 배포 자산 초안 마련: 앱 아이콘/스플래시 시안, 개인정보 처리방침/이용약관, 스토어 스크린샷 플로우/카피 구상
-
+1) Firebase Auth SDK 연동 준비: AuthController에 Firebase 모드 스위치 추가 및 커스텀 클레임 발급 Function 스켈레톤 작성
+2) Firestore Repository 1차 구현: 주문/상품/고객 read-only 계층 도입 후 UI 병행 주입
+3) BuyerPortal v2 설계: 구매자 주문 내역/재주문 템플릿/배송지 캡처 흐름 정의 및 UI 목업 반영
 ## 이어하기(작업 포인터)
-- 로컬 테넌시/계정/권한 시뮬: lib/services/auth/*, lib/ui/pages/auth/*
-- 주문/상품 CRUD & 생성/삭제 UI: lib/repositories/mock_repository.dart, lib/ui/pages/orders_page.dart, lib/ui/pages/products_page.dart
-- CSV 업로드 목업: lib/services/import/mock_import_service.dart, ProductsPage CSV 버튼
-- 운영 품질 공통 컴포넌트: lib/ui/widgets/state_views.dart, lib/theme/*
-- 배포 자산 준비 메모: assets/, docs/ (정책/스토어 자료 위치 예정)
-- 로컬라이즈 리소스: lib/l10n/app_en.arb, lib/l10n/app_ko.arb → flutter gen-l10n
+- Firebase Auth 연동: lib/services/auth/*, lib/ui/pages/auth/*
+- Firestore Repository 인터페이스 전환: lib/repositories/mock_repository.dart, lib/services/dashboard/dashboard_service.dart
+- BuyerPortal 확장: lib/ui/pages/buyer/buyer_portal_page.dart, lib/ui/pages/buyer/buyer_cart_controller.dart
+- 주문 buyer 메타 유지보수: lib/ui/pages/orders_page.dart, lib/ui/pages/orders/order_detail_page.dart, lib/ui/pages/orders/order_form_sheet.dart
+- 문서/운영 자료: docs/backend/firebase_plan.md, docs/*
 ## 진행 상황 체크리스트
 - [x] P0 기본 프레임 구축 및 다국어 적용
 - [x] GoRouter 기반 라우팅과 주문/상품 상세 페이지 초안
@@ -123,15 +123,18 @@
 - [x] 로컬 테넌시/권한 시뮬레이션 (관리자/직원 역할, 초대/비밀번호 재설정 목업)
 - [x] 주문·상품 CRUD/필터/정렬 흐름을 목업 데이터로 완결
 - [x] CSV 업로드/검증/처리 모의 기능 및 UI 연결
-- [ ] 고객 CRUD/필터/정렬 UI 완성
-- [ ] 오류/로딩/빈 상태·접근성·다크모드·공통 알림 등 운영 품질 보강
-- [ ] 앱 아이콘/스플래시/정책 문서/스토어 설명 초안 준비
-
+- [x] 고객 CRUD/필터/정렬 UI 완성
+- [x] 대시보드 카드 딥링크 및 주문번호 자동 생성
+- [x] 상품 다단계 카테고리/태그 설정 + XLSX 업로드 플로우
+- [x] 고객 CRUD/필터/정렬 UI 완성
+- [x] 오류/로딩/빈 상태·접근성·다크모드·공통 알림 등 운영 품질 보강
+- [x] 앱 아이콘/스플래시/정책 문서/스토어 설명 초안 준비
+- [x] 구매자 미리보기(카탈로그·장바구니·주문 제출) 플로우 구현
+- [x] 주문 데이터에 buyerName/contact/note 추가 및 UI 연동
+- [x] Firebase Auth·Firestore 통합 계획 문서화
 ## 향후 진행 체크리스트
-- [ ] P1: Firebase Auth + Firestore 기반 인증/테넌시/권한/초대/비밀번호 재설정 연동
-- [ ] P2: Firestore 기반 상품·주문·고객 CRUD, CSV 업로드 Cloud Functions, 동기화 전략 확립
-- [ ] P3: 실데이터 기준 검색/필터/정렬, 오류/캐싱/접근성/다크모드, Analytics·Crashlytics 연동
-- [ ] P4: 패키지명/버전/아이콘/스플래시 확정, 개인정보 처리방침·약관·스토어 자산 완성
-- [ ] P5: 플랫폼별 빌드/코드서명/스토어 제출, 심사 대응 및 배포 파이프라인 정비
-
-
+- [ ] Firebase Auth SDK 연동 및 커스텀 클레임 발급 Function 작성
+- [ ] Firestore Repository(주문/상품/고객) read-only 계층 도입 및 캐싱 전략 검증
+- [ ] BuyerPortal v2: 구매자 주문 내역/배송지/템플릿 설계 및 UI 반영
+- [ ] Cloud Functions 기반 주문 코드 생성·XLSX 업로드 파이프라인 설계
+- [ ] 핵심 플로우 위젯/통합 테스트 시나리오 명세

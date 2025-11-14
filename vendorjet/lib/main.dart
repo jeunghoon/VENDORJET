@@ -9,11 +9,13 @@ import 'services/auth/auth_service.dart';
 import 'services/sync/data_refresh_coordinator.dart';
 import 'theme/app_theme.dart';
 import 'ui/pages/auth/sign_in_page.dart';
+import 'ui/pages/buyer/buyer_portal_page.dart';
+import 'ui/pages/customers_page.dart';
 import 'ui/pages/dashboard_page.dart';
 import 'ui/pages/orders/order_detail_page.dart';
 import 'ui/pages/orders_page.dart';
-import 'ui/pages/products_page.dart';
 import 'ui/pages/products/product_detail_page.dart';
+import 'ui/pages/products_page.dart';
 import 'ui/pages/settings_page.dart';
 import 'ui/widgets/responsive_scaffold.dart';
 
@@ -77,10 +79,7 @@ class _MyAppState extends State<MyApp> {
         return null;
       },
       routes: [
-        GoRoute(
-          path: '/',
-          redirect: (_, __) => '/dashboard',
-        ),
+        GoRoute(path: '/', redirect: (_, __) => '/dashboard'),
         GoRoute(
           path: '/sign-in',
           name: 'sign-in',
@@ -102,28 +101,35 @@ class _MyAppState extends State<MyApp> {
             GoRoute(
               path: '/orders',
               name: 'orders',
-              builder: (context, state) => const OrdersPage(),
+              builder: (context, state) => OrdersPage(
+                preset: OrderListPreset.fromQuery(state.uri.queryParameters),
+              ),
               routes: [
                 GoRoute(
                   path: ':id',
                   name: 'order-detail',
-                  builder: (context, state) => OrderDetailPage(
-                    orderId: state.pathParameters['id']!,
-                  ),
+                  builder: (context, state) =>
+                      OrderDetailPage(orderId: state.pathParameters['id']!),
                 ),
               ],
             ),
             GoRoute(
+              path: '/customers',
+              name: 'customers',
+              builder: (context, state) => const CustomersPage(),
+            ),
+            GoRoute(
               path: '/products',
               name: 'products',
-              builder: (context, state) => const ProductsPage(),
+              builder: (context, state) => ProductsPage(
+                preset: ProductsPagePreset.fromQuery(state.uri.queryParameters),
+              ),
               routes: [
                 GoRoute(
                   path: ':id',
                   name: 'product-detail',
-                  builder: (context, state) => ProductDetailPage(
-                    productId: state.pathParameters['id']!,
-                  ),
+                  builder: (context, state) =>
+                      ProductDetailPage(productId: state.pathParameters['id']!),
                 ),
               ],
             ),
@@ -139,6 +145,11 @@ class _MyAppState extends State<MyApp> {
               ),
             ),
           ],
+        ),
+        GoRoute(
+          path: '/buyer',
+          name: 'buyer-preview',
+          builder: (context, state) => const BuyerPortalPage(),
         ),
       ],
     );
@@ -190,14 +201,16 @@ class _HomeShell extends StatelessWidget {
   static const _paths = [
     '/dashboard',
     '/orders',
+    '/customers',
     '/products',
     '/settings',
   ];
 
   int _indexForLocation(String location) {
     if (location.startsWith('/orders')) return 1;
-    if (location.startsWith('/products')) return 2;
-    if (location.startsWith('/settings')) return 3;
+    if (location.startsWith('/customers')) return 2;
+    if (location.startsWith('/products')) return 3;
+    if (location.startsWith('/settings')) return 4;
     return 0;
   }
 
@@ -215,7 +228,9 @@ class _HomeShell extends StatelessWidget {
     final state = GoRouterState.of(context);
     final location = state.uri.toString();
     final segments = state.uri.pathSegments;
-    final isDetail = segments.length > 1 && (segments.first == 'orders' || segments.first == 'products');
+    final isDetail =
+        segments.length > 1 &&
+        (segments.first == 'orders' || segments.first == 'products');
     final currentIndex = _indexForLocation(location);
 
     final destinations = [
@@ -228,6 +243,11 @@ class _HomeShell extends StatelessWidget {
         icon: const Icon(Icons.receipt_long_outlined),
         selectedIcon: const Icon(Icons.receipt_long),
         label: t.ordersTitle,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.people_alt_outlined),
+        selectedIcon: const Icon(Icons.people_alt),
+        label: t.customersTitle,
       ),
       NavigationDestination(
         icon: const Icon(Icons.inventory_2_outlined),
@@ -256,8 +276,6 @@ class _Splash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

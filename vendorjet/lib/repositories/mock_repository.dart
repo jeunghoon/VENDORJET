@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:intl/intl.dart';
+
 import '../models/customer.dart';
 import '../models/order.dart';
 import '../models/product.dart';
@@ -13,28 +15,47 @@ class MockProductRepository {
   factory MockProductRepository() => _instance;
 
   final _rnd = Random(2025);
-  final _categories = ProductCategory.values;
   final List<Product> _items = [];
+  List<List<String>> _categoryPresets = [];
   final _idCounter = _IdCounter(prefix: 'p_');
 
+  static const _sampleCategories = [
+    ['Beverages', 'Sparkling'],
+    ['Snacks', 'Chips'],
+    ['Household', 'Cleaning'],
+    ['Fashion', 'Apparel', 'Outerwear'],
+    ['Electronics', 'Accessories'],
+  ];
+
+  void _ensureCategoryPresets() {
+    if (_categoryPresets.isNotEmpty) return;
+    _categoryPresets = _sampleCategories
+        .map((path) => List<String>.from(path))
+        .toList();
+  }
+
   void _seed() {
+    _ensureCategoryPresets();
     if (_items.isNotEmpty) return;
     for (var i = 0; i < 40; i++) {
-      final id = 'p_${i + 1}';
-      final sku = 'SKU-${1000 + i}';
-      final variants = 1 + _rnd.nextInt(5);
-      final price = (_rnd.nextDouble() * 90) + 10; // 10~100
-      final category = _categories[i % _categories.length];
-      final lowStock = _rnd.nextBool() && _rnd.nextBool();
+      final baseCategories = _sampleCategories[i % _sampleCategories.length];
+      final depth = 1 + _rnd.nextInt(baseCategories.length.clamp(1, 3));
+      final categories = baseCategories.take(depth).toList();
+      final tags = <ProductTag>{};
+      if (_rnd.nextBool()) tags.add(ProductTag.featured);
+      if (_rnd.nextBool()) tags.add(ProductTag.discounted);
+      if (_rnd.nextBool()) tags.add(ProductTag.newArrival);
+      final price = (_rnd.nextDouble() * 90) + 10;
       _items.add(
         Product(
-          id: id,
-          sku: sku,
+          id: 'p_${i + 1}',
+          sku: 'SKU-${1000 + i}',
           name: 'Sample Product ${i + 1}',
-          variantsCount: variants,
+          variantsCount: 1 + _rnd.nextInt(4),
           price: double.parse(price.toStringAsFixed(2)),
-          category: category,
-          lowStock: lowStock,
+          categories: categories,
+          tags: tags,
+          lowStock: _rnd.nextBool() && _rnd.nextBool(),
         ),
       );
     }
@@ -43,14 +64,16 @@ class MockProductRepository {
 
   Future<List<Product>> fetch({
     String query = '',
-    ProductCategory? category,
+    String? topCategory,
     bool lowStockOnly = false,
   }) async {
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     Iterable<Product> result = _items;
-    if (category != null) {
-      result = result.where((p) => p.category == category);
+    if (topCategory != null && topCategory.isNotEmpty) {
+      result = result.where(
+        (p) => p.categories.isNotEmpty && p.categories.first == topCategory,
+      );
     }
     if (lowStockOnly) {
       result = result.where((p) => p.lowStock);
@@ -59,7 +82,9 @@ class MockProductRepository {
       final q = query.toLowerCase();
       result = result.where(
         (p) =>
-            p.name.toLowerCase().contains(q) || p.sku.toLowerCase().contains(q),
+            p.name.toLowerCase().contains(q) ||
+            p.sku.toLowerCase().contains(q) ||
+            p.categories.any((c) => c.toLowerCase().contains(q)),
       );
     }
     return result.toList();
@@ -94,6 +119,85 @@ class MockProductRepository {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     _items.removeWhere((item) => item.id == id);
   }
+
+  List<String> topCategories() {
+    _seed();
+    _ensureCategoryPresets();
+    final set = <String>{};
+    for (final product in _items) {
+      if (product.categories.isNotEmpty) {
+        set.add(product.categories.first);
+      }
+    }
+    for (final path in _categoryPresets) {
+      if (path.isNotEmpty) set.add(path.first);
+    }
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  Future<List<List<String>>> fetchCategoryPresets() async {
+    _ensureCategoryPresets();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    return _categoryPresets
+        .map((path) => List<String>.from(path))
+        .toList();
+  }
+
+  Future<void> saveCategory(
+    List<String> path, {
+    List<String>? originalPath,
+  }) async {
+    _ensureCategoryPresets();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    final normalized = path.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (normalized.isEmpty) {
+      throw ArgumentError('Category path cannot be empty');
+    }
+    if (originalPath != null) {
+      final originalKey = _pathKey(originalPath);
+      final index = _categoryPresets.indexWhere((p) => _pathKey(p) == originalKey);
+      if (index != -1) {
+        _categoryPresets[index] = normalized;
+      } else {
+        _insertOrReplaceCategory(normalized);
+      }
+    } else {
+      _insertOrReplaceCategory(normalized);
+    }
+    _categoryPresets.sort(_comparePaths);
+  }
+
+  Future<void> deleteCategory(List<String> path) async {
+    _ensureCategoryPresets();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    final key = _pathKey(path);
+    _categoryPresets.removeWhere((element) => _pathKey(element) == key);
+  }
+
+  void _insertOrReplaceCategory(List<String> path) {
+    final key = _pathKey(path);
+    final existing = _categoryPresets.indexWhere((p) => _pathKey(p) == key);
+    if (existing != -1) {
+      _categoryPresets[existing] = path;
+    } else {
+      _categoryPresets.add(path);
+    }
+  }
+
+  String _pathKey(List<String> path) =>
+      path.map((segment) => segment.trim()).join('>');
+
+  int _comparePaths(List<String> a, List<String> b) {
+    final maxLength = max(a.length, b.length);
+    for (var i = 0; i < maxLength; i++) {
+      final left = i < a.length ? a[i] : '';
+      final right = i < b.length ? b[i] : '';
+      final comp = left.compareTo(right);
+      if (comp != 0) return comp;
+    }
+    return a.length.compareTo(b.length);
+  }
 }
 
 class MockOrderRepository {
@@ -105,25 +209,57 @@ class MockOrderRepository {
 
   final _rnd = Random(2026);
   final _statuses = OrderStatus.values;
+  final List<String> _buyerNames = [
+    'Sunrise Mart',
+    'Harbor Lane Retail',
+    'Metro Mini',
+    'Evergreen Shop',
+    'Bluebird Boutique',
+    'Willow Corner',
+  ];
+  final List<String> _buyerContacts = [
+    'Alex Kim',
+    'Morgan Lee',
+    'Taylor Choi',
+    'Jamie Park',
+    'Jordan Han',
+    'Eun Seo',
+  ];
+  final List<String> _buyerNotes = [
+    '요청: 다음 주 월요일 납품',
+    '단가 확인 후 확정 예정',
+    '선결제 완료, 출고만 남음',
+    '신제품 실물 샘플 동봉 요청',
+    '택배 대신 화물배송 희망',
+  ];
   final List<Order> _items = [];
   final _idCounter = _IdCounter(prefix: 'o_');
+  final Map<String, int> _sequenceByDate = {};
 
   void _seed() {
     if (_items.isNotEmpty) return;
     for (var i = 0; i < 30; i++) {
-      final id = 'o_${i + 1}';
-      final code = 'PO-2025-${1001 + i}';
-      final itemCount = 1 + _rnd.nextInt(8);
-      final total = (_rnd.nextDouble() * 900) + 100; // 100~1000
+      final createdAt = DateTime.now().subtract(
+        Duration(days: _rnd.nextInt(30)),
+      );
+      final code = _generateCodeForDate(createdAt);
       final status = _statuses[i % _statuses.length];
+      final total = (_rnd.nextDouble() * 900) + 100;
+      final buyerName = _buyerNames[i % _buyerNames.length];
+      final buyerContact = _buyerContacts[i % _buyerContacts.length];
+      final buyerNote =
+          i.isEven ? _buyerNotes[i % _buyerNotes.length] : null;
       _items.add(
         Order(
-          id: id,
+          id: 'o_${i + 1}',
           code: code,
-          itemCount: itemCount,
+          itemCount: 1 + _rnd.nextInt(8),
           total: double.parse(total.toStringAsFixed(2)),
-          createdAt: DateTime.now().subtract(Duration(days: _rnd.nextInt(30))),
+          createdAt: createdAt,
           status: status,
+          buyerName: buyerName,
+          buyerContact: buyerContact,
+          buyerNote: buyerNote,
         ),
       );
     }
@@ -134,6 +270,7 @@ class MockOrderRepository {
     String query = '',
     OrderStatus? status,
     bool openOnly = false,
+    DateTime? dateEquals,
   }) async {
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
@@ -149,9 +286,22 @@ class MockOrderRepository {
             o.status == OrderStatus.shipped,
       );
     }
+    if (dateEquals != null) {
+      result = result.where(
+        (o) =>
+            o.createdAt.year == dateEquals.year &&
+            o.createdAt.month == dateEquals.month &&
+            o.createdAt.day == dateEquals.day,
+      );
+    }
     if (query.isNotEmpty) {
       final q = query.toLowerCase();
-      result = result.where((o) => o.code.toLowerCase().contains(q));
+      result = result.where(
+        (o) =>
+            o.code.toLowerCase().contains(q) ||
+            o.buyerName.toLowerCase().contains(q) ||
+            o.buyerContact.toLowerCase().contains(q),
+      );
     }
     return result.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
@@ -169,22 +319,36 @@ class MockOrderRepository {
   Future<Order> save(Order order) async {
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
+    final isNew = order.id.isEmpty;
     final index = _items.indexWhere((element) => element.id == order.id);
+    final assignedId = isNew ? _idCounter.next() : order.id;
+    final assignedCode = order.code.isEmpty
+        ? _generateCodeForDate(DateTime.now())
+        : order.code;
+    final normalized = order.copyWith(
+      id: assignedId,
+      code: assignedCode,
+      createdAt: isNew ? DateTime.now() : order.createdAt,
+    );
     if (index == -1) {
-      final created = order.copyWith(
-        id: order.id.isEmpty ? _idCounter.next() : order.id,
-        createdAt: order.createdAt,
-      );
-      _items.add(created);
-      return created;
+      _items.add(normalized);
+    } else {
+      _items[index] = normalized;
     }
-    _items[index] = order;
-    return order;
+    return normalized;
   }
 
   Future<void> delete(String id) async {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     _items.removeWhere((element) => element.id == id);
+  }
+
+  String _generateCodeForDate(DateTime date) {
+    final datePart = DateFormat('yyMMdd').format(date);
+    final current = _sequenceByDate[datePart] ?? 0;
+    final next = current + 1;
+    _sequenceByDate[datePart] = next;
+    return 'PO$datePart${next.toString().padLeft(4, '0')}';
   }
 }
 
