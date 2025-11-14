@@ -1100,6 +1100,12 @@ abstract class AppLocalizations {
   /// **'Tier'**
   String get customersFormTier;
 
+  /// No description provided for @customersFormSegment.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer segment'**
+  String get customersFormSegment;
+
   /// No description provided for @customersEmptyMessage.
   ///
   /// In en, this message translates to:
@@ -1111,6 +1117,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No {tier} customers found.'**
   String customersEmptyFiltered(String tier);
+
+  /// No description provided for @customersManageSegments.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage segments'**
+  String get customersManageSegments;
+
+  /// No description provided for @customersSegmentFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All segments'**
+  String get customersSegmentFilterAll;
+
+  /// No description provided for @customersSegmentNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Unclassified'**
+  String get customersSegmentNone;
+
+  /// No description provided for @customersNoSegmentsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create segments to group customers (Restaurant, Hotel, Mart...).'**
+  String get customersNoSegmentsHint;
+
+  /// No description provided for @customersSegmentManagerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer segments'**
+  String get customersSegmentManagerTitle;
+
+  /// No description provided for @customersSegmentManagerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add or update the retailer types you work with.'**
+  String get customersSegmentManagerDescription;
 
   /// No description provided for @ordersFilterToday.
   ///

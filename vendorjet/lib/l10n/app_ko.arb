@@ -1,4 +1,4 @@
-﻿{
+{
   "appTitle": "VendorJet",
   "homeTitle": "대시보드",
   "ordersTitle": "주문",
@@ -222,7 +222,14 @@
   "customersFormContact": "담당자",
   "customersFormEmail": "이메일",
   "customersFormTier": "등급",
-  "customersEmptyMessage": "등록된 고객이 없습니다.",
+
+  "customersFormSegment": "고객 분류",
+  "customersManageSegments": "분류 관리",
+  "customersSegmentFilterAll": "전체 분류",
+  "customersSegmentNone": "분류 없음",
+  "customersNoSegmentsHint": "식당·호텔·마트 등 분류를 추가해 관리하세요.",
+  "customersSegmentManagerTitle": "고객 분류",
+  "customersSegmentManagerDescription": "거래처 유형을 추가하거나 수정합니다.",  "customersEmptyMessage": "등록된 고객이 없습니다.",
   "customersEmptyFiltered": "{tier} 고객이 없습니다.",
   "@customersDeleteConfirm": {
     "placeholders": {
@@ -301,5 +308,34 @@
   "categoryManagerSaved": "카테고리를 저장했습니다.",
   "categoryManagerDeleted": "카테고리를 삭제했습니다.",
   "categoryManagerEmpty": "등록된 카테고리가 없습니다.",
-  "categoryManagerPrimaryRequired": "최소 1단계 카테고리를 입력하세요."
+  "categoryManagerPrimaryRequired": "최소 1단계 카테고리를 입력하세요.",
+  "buyerPortalTitle": "구매자 미리보기",
+  "buyerPortalTabCatalog": "카탈로그",
+  "buyerPortalTabCart": "장바구니",
+  "buyerPortalTabCheckout": "주문서",
+  "buyerPreviewTitle": "구매자 미리보기",
+  "buyerPreviewSubtitle": "소매상 화면에서 상품 탐색과 주문을 테스트합니다.",
+  "buyerCatalogSearchHint": "상품 검색",
+  "buyerCatalogEmptyHint": "조건에 맞는 상품이 없습니다.",
+  "buyerCatalogPrice": "₩ {price} / 단위",
+  "buyerCatalogAdd": "장바구니 담기",
+  "buyerCatalogAdded": "{name}을(를) 장바구니에 담았습니다.",
+  "buyerCartSummary": "{count}개",
+  "buyerCartEmpty": "장바구니가 비었습니다",
+  "buyerCartEmptyHint": "카탈로그에서 상품을 추가하세요.",
+  "buyerCartLineTotal": "₩ {amount}",
+  "buyerCartRemove": "제거",
+  "buyerCartTotal": "소계: ₩ {amount}",
+  "buyerCartProceed": "주문서로 이동",
+  "buyerCartClear": "장바구니 비우기",
+  "buyerCheckoutItems": "{count}개 품목",
+  "buyerCheckoutStore": "매장명",
+  "buyerCheckoutContact": "구매 담당자",
+  "buyerCheckoutNote": "구매자 메모",
+  "buyerCheckoutNoteHint": "판매자에게 전달할 선택 메모",
+  "buyerCheckoutSubmit": "주문 제출",
+  "buyerCheckoutCartEmpty": "먼저 장바구니에 상품을 추가하세요.",
+  "buyerCheckoutSuccess": "주문이 접수되었습니다. 코드 {code}"
 }
+
+

@@ -7,20 +7,28 @@ class CustomerFormResult {
   final String contactName;
   final String email;
   final CustomerTier tier;
+  final String? segment;
 
   const CustomerFormResult({
     required this.name,
     required this.contactName,
     required this.email,
     required this.tier,
+    this.segment,
   });
 }
 
 class CustomerFormSheet extends StatefulWidget {
   final AppLocalizations t;
   final Customer customer;
+  final List<String> segments;
 
-  const CustomerFormSheet({super.key, required this.t, required this.customer});
+  const CustomerFormSheet({
+    super.key,
+    required this.t,
+    required this.customer,
+    required this.segments,
+  });
 
   @override
   State<CustomerFormSheet> createState() => _CustomerFormSheetState();
@@ -38,6 +46,7 @@ class _CustomerFormSheetState extends State<CustomerFormSheet> {
   );
   final _formKey = GlobalKey<FormState>();
   late CustomerTier _tier = widget.customer.tier;
+  String? _segment;
 
   @override
   void dispose() {
@@ -50,6 +59,7 @@ class _CustomerFormSheetState extends State<CustomerFormSheet> {
   @override
   Widget build(BuildContext context) {
     final t = widget.t;
+    _segment ??= widget.customer.segment.isEmpty ? null : widget.customer.segment;
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -143,6 +153,39 @@ class _CustomerFormSheetState extends State<CustomerFormSheet> {
                   if (value != null) setState(() => _tier = value);
                 },
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                initialValue: _segment,
+                decoration: InputDecoration(
+                  labelText: t.customersFormSegment,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: null,
+                    child: Text(t.customersSegmentNone),
+                  ),
+                  for (final segment in widget.segments)
+                    DropdownMenuItem(
+                      value: segment,
+                      child: Text(segment),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _segment = value),
+              ),
+              if (widget.segments.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    t.customersNoSegmentsHint,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Theme.of(context).hintColor),
+                  ),
+                ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -170,6 +213,7 @@ class _CustomerFormSheetState extends State<CustomerFormSheet> {
         contactName: _contactCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         tier: _tier,
+        segment: _segment,
       ),
     );
   }

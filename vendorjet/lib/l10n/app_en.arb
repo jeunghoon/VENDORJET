@@ -231,8 +231,15 @@
   "customersFormContact": "Contact name",
   "customersFormEmail": "Email",
   "customersFormTier": "Tier",
+  "customersFormSegment": "Customer segment",
   "customersEmptyMessage": "No customers found.",
   "customersEmptyFiltered": "No {tier} customers found.",
+  "customersManageSegments": "Manage segments",
+  "customersSegmentFilterAll": "All segments",
+  "customersSegmentNone": "Unclassified",
+  "customersNoSegmentsHint": "Create segments to group customers (Restaurant, Hotel, Mart...).",
+  "customersSegmentManagerTitle": "Customer segments",
+  "customersSegmentManagerDescription": "Add or update the retailer types you work with.",
   "@customersDeleteConfirm": {
     "placeholders": {
       "name": {

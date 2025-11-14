@@ -532,12 +532,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customersFormTier => 'Tier';
 
   @override
+  String get customersFormSegment => 'Customer segment';
+
+  @override
   String get customersEmptyMessage => 'No customers found.';
 
   @override
   String customersEmptyFiltered(String tier) {
     return 'No $tier customers found.';
   }
+
+  @override
+  String get customersManageSegments => 'Manage segments';
+
+  @override
+  String get customersSegmentFilterAll => 'All segments';
+
+  @override
+  String get customersSegmentNone => 'Unclassified';
+
+  @override
+  String get customersNoSegmentsHint =>
+      'Create segments to group customers (Restaurant, Hotel, Mart...).';
+
+  @override
+  String get customersSegmentManagerTitle => 'Customer segments';
+
+  @override
+  String get customersSegmentManagerDescription =>
+      'Add or update the retailer types you work with.';
 
   @override
   String get ordersFilterToday => 'Today';

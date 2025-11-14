@@ -7,6 +7,7 @@ class Customer {
   final String email;
   final CustomerTier tier;
   final DateTime createdAt;
+  final String segment;
 
   const Customer({
     required this.id,
@@ -15,6 +16,7 @@ class Customer {
     required this.email,
     required this.tier,
     required this.createdAt,
+    this.segment = '',
   });
 
   Customer copyWith({
@@ -24,6 +26,7 @@ class Customer {
     String? email,
     CustomerTier? tier,
     DateTime? createdAt,
+    String? segment,
   }) {
     return Customer(
       id: id ?? this.id,
@@ -32,6 +35,7 @@ class Customer {
       email: email ?? this.email,
       tier: tier ?? this.tier,
       createdAt: createdAt ?? this.createdAt,
+      segment: segment ?? this.segment,
     );
   }
 }

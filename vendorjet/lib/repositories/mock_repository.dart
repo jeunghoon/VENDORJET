@@ -362,8 +362,15 @@ class MockCustomerRepository {
 
   final List<Customer> _items = [];
   final _idCounter = _IdCounter(prefix: 'c_');
+  final List<String> _segments = [];
+
+  void _ensureSegments() {
+    if (_segments.isNotEmpty) return;
+    _segments.addAll(['Restaurant', 'Hotel', 'Mart', 'Cafe']);
+  }
 
   void _seed() {
+    _ensureSegments();
     if (_items.isNotEmpty) return;
     final tiers = CustomerTier.values;
     final names = [
@@ -383,18 +390,26 @@ class MockCustomerRepository {
           email: 'buyer${i + 1}@retail.com',
           tier: tiers[i % tiers.length],
           createdAt: DateTime.now().subtract(Duration(days: (i + 1) * 12)),
+          segment: _segments[i % _segments.length],
         ),
       );
     }
     _idCounter.seed(_items.map((e) => e.id));
   }
 
-  Future<List<Customer>> fetch({String query = '', CustomerTier? tier}) async {
+  Future<List<Customer>> fetch({
+    String query = '',
+    CustomerTier? tier,
+    String? segment,
+  }) async {
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     Iterable<Customer> result = _items;
     if (tier != null) {
       result = result.where((c) => c.tier == tier);
+    }
+    if (segment != null && segment.isNotEmpty) {
+      result = result.where((c) => c.segment == segment);
     }
     if (query.isNotEmpty) {
       final q = query.toLowerCase();
@@ -412,20 +427,71 @@ class MockCustomerRepository {
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final index = _items.indexWhere((element) => element.id == customer.id);
+    final normalized = customer.segment.trim();
+    final segment = normalized.isEmpty ? '' : normalized;
+    final updatedCustomer = customer.copyWith(segment: segment);
     if (index == -1) {
       final created = customer.copyWith(
         id: customer.id.isEmpty ? _idCounter.next() : customer.id,
+        segment: segment,
       );
       _items.add(created);
       return created;
     }
-    _items[index] = customer;
-    return customer;
+    _items[index] = updatedCustomer;
+    return updatedCustomer;
   }
 
   Future<void> delete(String id) async {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     _items.removeWhere((element) => element.id == id);
+  }
+
+  Future<List<String>> fetchSegments() async {
+    _ensureSegments();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    return List<String>.from(_segments)..sort();
+  }
+
+  Future<void> upsertSegment(String name, {String? original}) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('Segment cannot be empty');
+    }
+    _ensureSegments();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (original != null) {
+      final index = _segments.indexWhere(
+        (element) => element.toLowerCase() == original.toLowerCase(),
+      );
+      if (index != -1) {
+        _segments[index] = trimmed;
+        _reassignSegment(original, trimmed);
+        return;
+      }
+    }
+    if (!_segments.contains(trimmed)) {
+      _segments.add(trimmed);
+    }
+  }
+
+  Future<void> deleteSegment(String name) async {
+    _ensureSegments();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    _segments.remove(name);
+    for (var i = 0; i < _items.length; i++) {
+      if (_items[i].segment == name) {
+        _items[i] = _items[i].copyWith(segment: '');
+      }
+    }
+  }
+
+  void _reassignSegment(String from, String to) {
+    for (var i = 0; i < _items.length; i++) {
+      if (_items[i].segment == from) {
+        _items[i] = _items[i].copyWith(segment: to);
+      }
+    }
   }
 }
 

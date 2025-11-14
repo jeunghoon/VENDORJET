@@ -21,6 +21,7 @@ class _SignInPageState extends State<SignInPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
+  final _pwFocusNode = FocusNode();
   bool _obscure = true;
   bool _signingIn = false;
 
@@ -28,6 +29,7 @@ class _SignInPageState extends State<SignInPage> {
   void dispose() {
     _emailCtrl.dispose();
     _pwCtrl.dispose();
+    _pwFocusNode.dispose();
     super.dispose();
   }
 
@@ -70,6 +72,7 @@ class _SignInPageState extends State<SignInPage> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _emailCtrl,
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: t.email,
                         prefixIcon: const Icon(Icons.alternate_email),
@@ -78,13 +81,17 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                       ),
                       keyboardType: TextInputType.emailAddress,
+                      onFieldSubmitted: (_) =>
+                          FocusScope.of(context).requestFocus(_pwFocusNode),
                       validator: (v) =>
                           (v == null || v.isEmpty) ? t.email : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _pwCtrl,
+                      focusNode: _pwFocusNode,
                       obscureText: _obscure,
+                      textInputAction: TextInputAction.done,
                       decoration: InputDecoration(
                         labelText: t.password,
                         prefixIcon: const Icon(Icons.lock_outline),
@@ -98,6 +105,7 @@ class _SignInPageState extends State<SignInPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      onFieldSubmitted: (_) => _handleSignIn(),
                       validator: (v) =>
                           (v == null || v.isEmpty) ? t.password : null,
                     ),

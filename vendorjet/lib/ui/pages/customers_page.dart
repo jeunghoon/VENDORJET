@@ -5,6 +5,7 @@ import 'package:vendorjet/models/customer.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/customers/customer_form_sheet.dart';
+import 'package:vendorjet/ui/pages/customers/customer_segment_manager_sheet.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
 class CustomersPage extends StatefulWidget {
@@ -21,6 +22,8 @@ class _CustomersPageState extends State<CustomersPage> {
   bool _loading = true;
   String? _error;
   CustomerTier? _tierFilter;
+  String? _segmentFilter;
+  List<String> _segments = const [];
   DataRefreshCoordinator? _refreshCoordinator;
   int _lastCustomersVersion = 0;
 
@@ -58,10 +61,16 @@ class _CustomersPageState extends State<CustomersPage> {
       _error = null;
     });
     try {
-      final items = await _repo.fetch(query: query, tier: _tierFilter);
+      final items = await _repo.fetch(
+        query: query,
+        tier: _tierFilter,
+        segment: _segmentFilter,
+      );
+      final segments = await _repo.fetchSegments();
       if (!mounted) return;
       setState(() {
         _items = items;
+        _segments = segments;
         _loading = false;
       });
     } catch (err) {
@@ -113,6 +122,27 @@ class _CustomersPageState extends State<CustomersPage> {
                   _load();
                 },
               ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SegmentChips(
+                      segments: _segments,
+                      selected: _segmentFilter,
+                      onSelected: (value) {
+                        setState(() => _segmentFilter = value);
+                        _load();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: _openSegmentManager,
+                    icon: const Icon(Icons.category_outlined),
+                    label: Text(t.customersManageSegments),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               Expanded(
                 child: Builder(
@@ -156,8 +186,23 @@ class _CustomersPageState extends State<CustomersPage> {
                                 ),
                               ),
                               title: Text(customer.name),
-                              subtitle: Text(
-                                '${customer.contactName} · ${customer.email}',
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${customer.contactName} · ${customer.email}',
+                                  ),
+                                  if (customer.segment.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Chip(
+                                        label: Text(customer.segment),
+                                        visualDensity: VisualDensity.compact,
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                    ),
+                                ],
                               ),
                               trailing: PopupMenuButton<String>(
                                 onSelected: (value) {
@@ -219,11 +264,16 @@ class _CustomersPageState extends State<CustomersPage> {
           email: '',
           tier: CustomerTier.platinum,
           createdAt: DateTime.now(),
+          segment: '',
         );
     final result = await showModalBottomSheet<CustomerFormResult>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => CustomerFormSheet(t: t, customer: base),
+      builder: (_) => CustomerFormSheet(
+        t: t,
+        customer: base,
+        segments: _segments,
+      ),
     );
     if (result == null) return;
     final updated = base.copyWith(
@@ -231,6 +281,7 @@ class _CustomersPageState extends State<CustomersPage> {
       contactName: result.contactName,
       email: result.email,
       tier: result.tier,
+      segment: result.segment ?? '',
     );
     await _repo.save(updated);
     if (!mounted) return;
@@ -244,6 +295,20 @@ class _CustomersPageState extends State<CustomersPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _openSegmentManager() async {
+    final t = AppLocalizations.of(context)!;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => CustomerSegmentManagerSheet(
+        t: t,
+        repository: _repo,
+      ),
+    );
+    if (!mounted) return;
+    await _load();
   }
 
   Future<void> _confirmDelete(Customer customer) async {
@@ -329,5 +394,49 @@ class _TierChips extends StatelessWidget {
       case CustomerTier.silver:
         return t.customersTierSilver;
     }
+  }
+}
+
+class _SegmentChips extends StatelessWidget {
+  final List<String> segments;
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+
+  const _SegmentChips({
+    required this.segments,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    if (segments.isEmpty) {
+      return Text(
+        t.customersNoSegmentsHint,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).hintColor,
+            ),
+      );
+    }
+    final options = <String?>[null, ...segments];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final segment in options)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: ChoiceChip(
+                label: Text(
+                  segment ?? t.customersSegmentFilterAll,
+                ),
+                selected: segment == selected,
+                onSelected: (_) => onSelected(segment),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
