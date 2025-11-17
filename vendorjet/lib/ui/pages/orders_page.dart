@@ -268,6 +268,9 @@ class _OrdersPageState extends State<OrdersPage> {
                                     case 'edit':
                                       _openOrderForm(initial: o);
                                       break;
+                                    case 'status':
+                                      _changeStatus(o);
+                                      break;
                                     case 'delete':
                                       _confirmDelete(o);
                                       break;
@@ -277,6 +280,10 @@ class _OrdersPageState extends State<OrdersPage> {
                                   PopupMenuItem(
                                     value: 'edit',
                                     child: Text(t.ordersEdit),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'status',
+                                    child: Text(t.ordersChangeStatus),
                                   ),
                                   PopupMenuItem(
                                     value: 'delete',
@@ -348,15 +355,19 @@ class _OrdersPageState extends State<OrdersPage> {
           buyerName: '',
           buyerContact: '',
         );
+    final now = DateTime.now();
     final order = base.copyWith(
       itemCount: result.itemCount,
       total: result.total,
       createdAt: result.createdAt,
       status: result.status,
       code: base.code,
-      buyerName: result.buyerName,
-      buyerContact: result.buyerContact,
-      buyerNote: result.buyerNote,
+      buyerName: base.buyerName.isNotEmpty ? base.buyerName : result.buyerName,
+      buyerContact:
+          base.buyerContact.isNotEmpty ? base.buyerContact : result.buyerContact,
+      buyerNote: result.buyerNote ?? base.buyerNote,
+      updatedAt: now,
+      updateNote: initial == null ? t.ordersCreated : t.ordersUpdated,
     );
     final saved = await _repo.save(order);
     if (!mounted) return;
@@ -367,6 +378,57 @@ class _OrdersPageState extends State<OrdersPage> {
       SnackBar(
         content: Text(initial == null ? t.ordersCreated : t.ordersUpdated),
       ),
+    );
+  }
+
+  Future<void> _changeStatus(Order order) async {
+    final t = AppLocalizations.of(context)!;
+    final selected = await showModalBottomSheet<OrderStatus>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.ordersChangeStatus,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                for (final status in OrderStatus.values)
+                  ListTile(
+                    title: Text(_statusLabel(status, t)),
+                    trailing: order.status == status
+                        ? const Icon(Icons.check, color: Colors.green)
+                        : null,
+                    onTap: () => Navigator.of(context).pop(status),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (selected == null || selected == order.status) return;
+    final updated = order.copyWith(status: selected);
+    final now = DateTime.now();
+    await _repo.save(
+      updated.copyWith(
+        updatedAt: now,
+        updateNote: t.ordersStatusUpdated,
+      ),
+    );
+    if (!mounted) return;
+    context.read<DataRefreshCoordinator>().notifyOrderChanged(updated);
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(t.ordersStatusUpdated)),
     );
   }
 

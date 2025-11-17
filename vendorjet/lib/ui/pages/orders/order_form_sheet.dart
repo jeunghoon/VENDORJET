@@ -51,6 +51,10 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late DateTime _date = widget.initial?.createdAt ?? DateTime.now();
   late OrderStatus _status = widget.initial?.status ?? OrderStatus.pending;
+  late final bool _lockBuyer =
+      widget.initial != null && widget.initial!.id.isNotEmpty;
+  late final bool _lockLines =
+      widget.initial != null && widget.initial!.id.isNotEmpty;
 
   @override
   void dispose() {
@@ -106,11 +110,15 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _buyerNameCtrl,
+                readOnly: _lockBuyer,
                 decoration: InputDecoration(
                   labelText: t.ordersFormBuyerName,
+                  helperText: _lockBuyer ? t.ordersFormBuyerLockedHint : null,
+                  prefixIcon: _lockBuyer ? const Icon(Icons.lock_outline) : null,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (value) {
+                  if (_lockBuyer) return null;
                   if ((value ?? '').trim().isEmpty) {
                     return t.ordersFormBuyerName;
                   }
@@ -120,11 +128,15 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _buyerContactCtrl,
+                readOnly: _lockBuyer,
                 decoration: InputDecoration(
                   labelText: t.ordersFormBuyerContact,
+                  helperText: _lockBuyer ? t.ordersFormBuyerLockedHint : null,
+                  prefixIcon: _lockBuyer ? const Icon(Icons.lock_outline) : null,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (value) {
+                  if (_lockBuyer) return null;
                   if ((value ?? '').trim().isEmpty) {
                     return t.ordersFormBuyerContact;
                   }
@@ -148,14 +160,17 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
                   Expanded(
                     child: TextFormField(
                       controller: _itemsCtrl,
+                      readOnly: _lockLines,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: t.ordersFormItems,
+                        helperText: _lockLines ? t.ordersFormQuantityLockedHint : null,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       validator: (value) {
+                        if (_lockLines) return null;
                         final parsed = int.tryParse(value ?? '');
                         if (parsed == null || parsed < 1) {
                           return t.ordersFormItems;
@@ -168,14 +183,17 @@ class _OrderFormSheetState extends State<OrderFormSheet> {
                   Expanded(
                     child: TextFormField(
                       controller: _totalCtrl,
+                      readOnly: _lockLines,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         labelText: t.ordersFormTotal,
+                        helperText: _lockLines ? t.ordersFormQuantityLockedHint : null,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       validator: (value) {
+                        if (_lockLines) return null;
                         final parsed = double.tryParse(value ?? '');
                         if (parsed == null || parsed <= 0) {
                           return t.ordersFormTotal;

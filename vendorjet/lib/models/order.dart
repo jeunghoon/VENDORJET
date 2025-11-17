@@ -10,6 +10,8 @@ class Order {
   final String buyerName;
   final String buyerContact;
   final String? buyerNote;
+  final DateTime? updatedAt;
+  final String? updateNote;
 
   const Order({
     required this.id,
@@ -21,6 +23,8 @@ class Order {
     this.buyerName = '',
     this.buyerContact = '',
     this.buyerNote,
+    this.updatedAt,
+    this.updateNote,
   });
 
   Order copyWith({
@@ -33,6 +37,8 @@ class Order {
     String? buyerName,
     String? buyerContact,
     String? buyerNote,
+    DateTime? updatedAt,
+    String? updateNote,
   }) {
     return Order(
       id: id ?? this.id,
@@ -44,6 +50,8 @@ class Order {
       buyerName: buyerName ?? this.buyerName,
       buyerContact: buyerContact ?? this.buyerContact,
       buyerNote: buyerNote ?? this.buyerNote,
+      updatedAt: updatedAt ?? this.updatedAt,
+      updateNote: updateNote ?? this.updateNote,
     );
   }
 }

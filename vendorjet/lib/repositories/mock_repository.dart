@@ -260,6 +260,8 @@ class MockOrderRepository {
           buyerName: buyerName,
           buyerContact: buyerContact,
           buyerNote: buyerNote,
+          updatedAt: createdAt.add(const Duration(hours: 2)),
+          updateNote: 'Auto-generated mock order',
         ),
       );
     }
@@ -329,6 +331,8 @@ class MockOrderRepository {
       id: assignedId,
       code: assignedCode,
       createdAt: isNew ? DateTime.now() : order.createdAt,
+      updatedAt: order.updatedAt,
+      updateNote: order.updateNote,
     );
     if (index == -1) {
       _items.add(normalized);

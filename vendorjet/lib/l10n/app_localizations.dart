@@ -284,6 +284,12 @@ abstract class AppLocalizations {
   /// **'Internal note'**
   String get orderMetaNote;
 
+  /// No description provided for @orderUpdateNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Update note'**
+  String get orderUpdateNote;
+
   /// No description provided for @orderBuyerSectionTitle.
   ///
   /// In en, this message translates to:
@@ -902,6 +908,18 @@ abstract class AppLocalizations {
   /// **'Order deleted.'**
   String get ordersDeleted;
 
+  /// No description provided for @ordersChangeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Change status'**
+  String get ordersChangeStatus;
+
+  /// No description provided for @ordersStatusUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Status updated.'**
+  String get ordersStatusUpdated;
+
   /// No description provided for @ordersFormCode.
   ///
   /// In en, this message translates to:
@@ -949,6 +967,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notes visible to the seller team.'**
   String get ordersFormBuyerNoteHint;
+
+  /// No description provided for @ordersFormBuyerLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer provided during checkout; seller cannot edit.'**
+  String get ordersFormBuyerLockedHint;
+
+  /// No description provided for @ordersFormQuantityLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculated from items; not editable.'**
+  String get ordersFormQuantityLockedHint;
 
   /// No description provided for @productsCreate.
   ///

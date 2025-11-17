@@ -172,8 +172,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       _InfoRow(
                         icon: Icons.update_outlined,
                         label: t.orderMetaLastUpdated,
-                        value: localizations.formatMediumDate(lastUpdated),
+                        value: '${localizations.formatMediumDate(lastUpdated)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(lastUpdated))}',
                       ),
+                      if (order.updateNote != null && order.updateNote!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          icon: Icons.history,
+                          label: t.orderUpdateNote,
+                          value: order.updateNote!,
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       _InfoRow(
                         icon: Icons.person_outline,

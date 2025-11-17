@@ -102,6 +102,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get orderMetaNote => '내부 메모';
 
   @override
+  String get orderUpdateNote => '업데이트 메모';
+
+  @override
   String get orderBuyerSectionTitle => 'Buyer information';
 
   @override
@@ -424,6 +427,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get ordersDeleted => '주문이 삭제되었습니다.';
 
   @override
+  String get ordersChangeStatus => '상태 변경';
+
+  @override
+  String get ordersStatusUpdated => '상태가 업데이트되었습니다.';
+
+  @override
   String get ordersFormCode => '주문 코드';
 
   @override
@@ -446,6 +455,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get ordersFormBuyerNoteHint => 'Notes visible to the seller team.';
+
+  @override
+  String get ordersFormBuyerLockedHint => '구매자가 작성한 정보로 판매자가 수정할 수 없습니다.';
+
+  @override
+  String get ordersFormQuantityLockedHint => '상품에서 자동 계산됩니다.';
 
   @override
   String get productsCreate => '상품 추가';

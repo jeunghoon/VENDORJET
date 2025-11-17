@@ -102,6 +102,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderMetaNote => 'Internal note';
 
   @override
+  String get orderUpdateNote => 'Update note';
+
+  @override
   String get orderBuyerSectionTitle => 'Buyer information';
 
   @override
@@ -427,6 +430,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ordersDeleted => 'Order deleted.';
 
   @override
+  String get ordersChangeStatus => 'Change status';
+
+  @override
+  String get ordersStatusUpdated => 'Status updated.';
+
+  @override
   String get ordersFormCode => 'Order code';
 
   @override
@@ -449,6 +458,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ordersFormBuyerNoteHint => 'Notes visible to the seller team.';
+
+  @override
+  String get ordersFormBuyerLockedHint =>
+      'Buyer provided during checkout; seller cannot edit.';
+
+  @override
+  String get ordersFormQuantityLockedHint =>
+      'Calculated from items; not editable.';
 
   @override
   String get productsCreate => 'Add product';

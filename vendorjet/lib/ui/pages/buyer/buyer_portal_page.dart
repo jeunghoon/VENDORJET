@@ -703,6 +703,12 @@ class _QuantityFieldState extends State<_QuantityField> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           isDense: true,
         ),
+        onChanged: (value) {
+          final parsed = int.tryParse(value);
+          if (parsed != null) {
+            widget.onSubmitted(parsed.clamp(1, 999));
+          }
+        },
         onSubmitted: (_) => _commit(),
         onEditingComplete: _commit,
       ),

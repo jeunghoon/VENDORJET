@@ -105,12 +105,41 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
               ...List.generate(_levelCtrls.length, (index) {
                 return Padding(
                   padding: EdgeInsets.only(bottom: index == _levelCtrls.length - 1 ? 0 : 12),
-                  child: TextField(
-                    controller: _levelCtrls[index],
-                    decoration: InputDecoration(
-                      labelText: t.productCategoryLevel(index + 1),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _levelCtrls[index],
+                        decoration: InputDecoration(
+                          labelText: t.productCategoryLevel(index + 1),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final option in _optionsForLevel(index))
+                            ChoiceChip(
+                              label: Text(option),
+                              selected: _levelCtrls[index].text.trim() == option,
+                              onSelected: (_) => setState(() {
+                                _levelCtrls[index].text = option;
+                                _clearDeeper(index);
+                              }),
+                            ),
+                          if (_optionsForLevel(index).isEmpty)
+                            Text(
+                              t.productCategoryNone,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(color: Theme.of(context).hintColor),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 );
               }),
@@ -223,6 +252,33 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
       SnackBar(content: Text(t.categoryManagerSaved)),
     );
     await _load();
+  }
+
+  List<String> _optionsForLevel(int level) {
+    final options = <String>{};
+    for (final path in _categories) {
+      if (path.length <= level) continue;
+      if (level > 0) {
+        bool matches = true;
+        for (var i = 0; i < level; i++) {
+          final parent = _levelCtrls[i].text.trim();
+          if (parent.isEmpty || path.length <= i || path[i] != parent) {
+            matches = false;
+            break;
+          }
+        }
+        if (!matches) continue;
+      }
+      options.add(path[level]);
+    }
+    final list = options.toList()..sort();
+    return list;
+  }
+
+  void _clearDeeper(int level) {
+    for (var i = level + 1; i < _levelCtrls.length; i++) {
+      _levelCtrls[i].clear();
+    }
   }
 
   void _startEdit(int index) {
