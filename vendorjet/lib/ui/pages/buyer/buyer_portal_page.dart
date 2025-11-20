@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
 import 'package:vendorjet/models/product.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
+import 'package:vendorjet/services/auth/auth_controller.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/buyer/buyer_cart_controller.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
@@ -18,22 +20,55 @@ class BuyerPortalPage extends StatefulWidget {
 }
 
 class _BuyerPortalPageState extends State<BuyerPortalPage> {
+  static const _catalogTabIndex = 1;
+  static const _orderTabIndex = 2;
+
   final _productsRepo = MockProductRepository();
   final _ordersRepo = MockOrderRepository();
+  final _customersRepo = MockCustomerRepository();
   final _searchCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+  final _contactCtrl = TextEditingController();
+  final _orderFormKey = GlobalKey<FormState>();
   final Map<String, int> _quantityDrafts = {};
 
   List<Product> _products = const [];
   List<String> _categories = const [];
-  bool _loading = true;
-  String? _error;
+  List<Order> _history = const [];
+  List<String> _storeOptions = const [];
+  DateTime _deliveryDate = _defaultDeliveryDate();
+  bool _productsLoading = true;
+  bool _historyLoading = true;
+  bool _storesLoading = true;
+  bool _submitting = false;
+  bool _contactPrefilled = false;
+  String? _productsError;
+  String? _historyError;
+  String? _storesError;
   String? _selectedCategory;
+  String? _selectedStore;
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _loadHistory();
+    _loadStores();
     _searchCtrl.addListener(_handleQueryChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_contactPrefilled) return;
+    final auth = context.read<AuthController?>();
+    _contactCtrl.text = _deriveContactName(auth?.email);
+    _contactPrefilled = true;
+  }
+
+  static DateTime _defaultDeliveryDate() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
   }
 
   @override
@@ -41,13 +76,15 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     _searchCtrl
       ..removeListener(_handleQueryChanged)
       ..dispose();
+    _noteCtrl.dispose();
+    _contactCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _loadProducts() async {
     setState(() {
-      _loading = true;
-      _error = null;
+      _productsLoading = true;
+      _productsError = null;
     });
     try {
       final items = await _productsRepo.fetch(
@@ -59,13 +96,59 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       setState(() {
         _products = items;
         _categories = categories;
-        _loading = false;
+        _productsLoading = false;
       });
     } catch (err) {
       if (!mounted) return;
       setState(() {
-        _loading = false;
-        _error = err.toString();
+        _productsLoading = false;
+        _productsError = err.toString();
+      });
+    }
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() {
+      _historyLoading = true;
+      _historyError = null;
+    });
+    try {
+      final items = await _ordersRepo.fetch();
+      if (!mounted) return;
+      setState(() {
+        _history = items;
+        _historyLoading = false;
+      });
+    } catch (err) {
+      if (!mounted) return;
+      setState(() {
+        _historyLoading = false;
+        _historyError = err.toString();
+      });
+    }
+  }
+
+  Future<void> _loadStores() async {
+    setState(() {
+      _storesLoading = true;
+      _storesError = null;
+    });
+    try {
+      final customers = await _customersRepo.fetch();
+      final names = customers.map((c) => c.name).toSet().toList()..sort();
+      if (!mounted) return;
+      setState(() {
+        _storeOptions = names;
+        _storesLoading = false;
+        if (_selectedStore != null && !_storeOptions.contains(_selectedStore)) {
+          _selectedStore = null;
+        }
+      });
+    } catch (err) {
+      if (!mounted) return;
+      setState(() {
+        _storesLoading = false;
+        _storesError = err.toString();
       });
     }
   }
@@ -90,6 +173,189 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     });
   }
 
+  String _deliveryDateLabel(AppLocalizations t) {
+    final localeName = Localizations.localeOf(context).toString();
+    final formatter = DateFormat.yMMMd(localeName);
+    return formatter.format(_deliveryDate);
+  }
+
+  Future<void> _pickDeliveryDate() async {
+    final t = AppLocalizations.of(context)!;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final initialDate = _deliveryDate.isBefore(today)
+        ? _defaultDeliveryDate()
+        : _deliveryDate;
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 365)),
+      helpText: t.buyerDeliveryDatePick,
+    );
+    if (selected != null) {
+      setState(() => _deliveryDate = selected);
+    }
+  }
+
+  void _handleStoreChanged(String? value) {
+    setState(() => _selectedStore = value);
+  }
+
+  String _deriveContactName(String? email) {
+    if (email == null || email.isEmpty) {
+      return 'Buyer';
+    }
+    final lower = email.toLowerCase();
+    const known = {
+      'alex@vendorjet.com': 'Alex Kim',
+      'morgan@vendorjet.com': 'Morgan Lee',
+      'jamie@vendorjet.com': 'Jamie Park',
+    };
+    final preset = known[lower];
+    if (preset != null) return preset;
+    final local = lower.split('@').first;
+    final parts = local
+        .split(RegExp(r'[._-]+'))
+        .where((part) => part.isNotEmpty);
+    final formatted = parts
+        .map((part) => part[0].toUpperCase() + part.substring(1))
+        .join(' ');
+    return formatted.isEmpty ? 'Buyer' : formatted;
+  }
+
+  Future<void> _handleLoadFromHistory(
+    BuildContext providerContext,
+    Order order,
+    TabController? tabController,
+  ) async {
+    final success = await _prefillCartFromOrder(providerContext, order);
+    if (!mounted) return;
+    final t = AppLocalizations.of(providerContext)!;
+    if (!success) {
+      ScaffoldMessenger.of(
+        providerContext,
+      ).showSnackBar(SnackBar(content: Text(t.buyerOrderPrefillMissing)));
+      return;
+    }
+    setState(() {
+      _noteCtrl.text = order.buyerNote ?? '';
+      final storeName = order.buyerName.trim();
+      if (storeName.isNotEmpty && !_storeOptions.contains(storeName)) {
+        _storeOptions = [..._storeOptions, storeName]..sort();
+      }
+      if (storeName.isNotEmpty) {
+        _selectedStore = storeName;
+      }
+      final candidate = order.desiredDeliveryDate;
+      if (candidate != null) {
+        final today = DateTime.now();
+        final normalizedToday = DateTime(today.year, today.month, today.day);
+        _deliveryDate = candidate.isBefore(normalizedToday)
+            ? _defaultDeliveryDate()
+            : candidate;
+      } else {
+        _deliveryDate = _defaultDeliveryDate();
+      }
+    });
+    tabController?.animateTo(_orderTabIndex);
+    final label = order.code.isEmpty ? order.buyerName : order.code;
+    ScaffoldMessenger.of(
+      providerContext,
+    ).showSnackBar(SnackBar(content: Text(t.buyerDashboardLoaded(label))));
+  }
+
+  Future<bool> _prefillCartFromOrder(
+    BuildContext providerContext,
+    Order order,
+  ) async {
+    final cart = providerContext.read<BuyerCartController>();
+    final items = <BuyerCartItem>[];
+    for (final line in order.lines) {
+      final product = await _productsRepo.findById(line.productId);
+      if (product != null) {
+        items.add(BuyerCartItem(product: product, quantity: line.quantity));
+      }
+    }
+    if (items.isEmpty) {
+      return false;
+    }
+    cart.replaceWith(items);
+    return true;
+  }
+
+  Future<void> _submitOrder(BuyerCartController cart) async {
+    final t = AppLocalizations.of(context)!;
+    if (cart.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.buyerCheckoutCartEmpty)));
+      return;
+    }
+    if (!(_orderFormKey.currentState?.validate() ?? false)) {
+      return;
+    }
+    setState(() => _submitting = true);
+    final storeName = _selectedStore ?? '';
+    final note = _noteCtrl.text.trim();
+    final lines = cart.items
+        .map(
+          (item) => OrderLine(
+            productId: item.product.id,
+            productName: item.product.name,
+            quantity: item.quantity,
+            unitPrice: item.product.price,
+          ),
+        )
+        .toList();
+    final total = double.parse(
+      lines
+          .fold<double>(0, (sum, line) => sum + line.lineTotal)
+          .toStringAsFixed(2),
+    );
+    final order = Order(
+      id: '',
+      code: '',
+      itemCount: cart.totalQuantity,
+      total: total,
+      createdAt: DateTime.now(),
+      status: OrderStatus.pending,
+      buyerName: storeName,
+      buyerContact: _contactCtrl.text.trim(),
+      buyerNote: note.isEmpty ? null : note,
+      lines: lines,
+      desiredDeliveryDate: _deliveryDate,
+    );
+    try {
+      final saved = await _ordersRepo.save(order);
+      if (!mounted) return;
+      context.read<DataRefreshCoordinator>().notifyOrderChanged(saved);
+      cart.clear();
+      setState(() {
+        _selectedStore = null;
+        _noteCtrl.clear();
+      });
+      await _loadHistory();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.buyerCheckoutSuccess(saved.code))),
+      );
+    } catch (err) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(err.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  void _navigateToTab(BuildContext context, int index) {
+    final controller = DefaultTabController.of(context);
+    controller.animateTo(index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -99,6 +365,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
         child: Builder(
           builder: (context) {
             final t = AppLocalizations.of(context)!;
+            final tabController = DefaultTabController.of(context);
             return Scaffold(
               appBar: AppBar(
                 leading: IconButton(
@@ -109,45 +376,68 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                 bottom: TabBar(
                   isScrollable: true,
                   tabs: [
+                    Tab(text: t.buyerPortalTabDashboard),
                     Tab(text: t.buyerPortalTabCatalog),
-                    Tab(text: t.buyerPortalTabCart),
-                    Tab(text: t.buyerPortalTabCheckout),
+                    Tab(text: t.buyerPortalTabOrder),
                   ],
                 ),
                 actions: [
-                  Consumer<BuyerCartController>(
-                    builder: (context, cart, _) {
-                      final label = t.buyerCartSummary(cart.totalQuantity);
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 16),
-                        child: Chip(
-                          label: Text(label),
-                          avatar: const Icon(Icons.shopping_bag_outlined, size: 18),
-                        ),
-                      );
-                    },
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: TextButton.icon(
+                      onPressed: _pickDeliveryDate,
+                      icon: const Icon(Icons.event_outlined),
+                      label: Text(
+                        '${t.buyerDeliveryDateLabel}: ${_deliveryDateLabel(t)}',
+                      ),
+                    ),
                   ),
                 ],
               ),
               body: TabBarView(
                 children: [
+                  _BuyerDashboardTab(
+                    loading: _historyLoading,
+                    error: _historyError,
+                    orders: _history,
+                    onRefresh: _loadHistory,
+                    onLoadOrder: (order) =>
+                        _handleLoadFromHistory(context, order, tabController),
+                  ),
                   _BuyerCatalogTab(
                     searchController: _searchCtrl,
                     products: _products,
                     categories: _categories,
                     selectedCategory: _selectedCategory,
-                    loading: _loading,
-                    error: _error,
+                    loading: _productsLoading,
+                    error: _productsError,
                     onRefresh: _loadProducts,
                     onCategorySelected: _handleCategorySelected,
                     quantityFor: _quantityForProduct,
                     onQuantityChanged: _setQuantity,
                     onAddToCart: (product, quantity) {
-                      context.read<BuyerCartController>().addWithQuantity(product, quantity);
+                      context.read<BuyerCartController>().addWithQuantity(
+                        product,
+                        quantity,
+                      );
                     },
                   ),
-                  const _BuyerCartTab(),
-                  _BuyerCheckoutTab(orderRepository: _ordersRepo),
+                  _BuyerOrderSheetTab(
+                    formKey: _orderFormKey,
+                    storeOptions: _storeOptions,
+                    selectedStore: _selectedStore,
+                    storeLoading: _storesLoading,
+                    storeError: _storesError,
+                    onStoreChanged: _handleStoreChanged,
+                    contactController: _contactCtrl,
+                    noteController: _noteCtrl,
+                    submitting: _submitting,
+                    onSubmit: _submitOrder,
+                    onBrowseCatalog: () =>
+                        _navigateToTab(context, _catalogTabIndex),
+                    onDeliveryTap: _pickDeliveryDate,
+                    deliveryDate: _deliveryDate,
+                  ),
                 ],
               ),
             );
@@ -201,7 +491,9 @@ class _BuyerCatalogTab extends StatelessWidget {
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search),
               labelText: t.buyerCatalogSearchHint,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -266,21 +558,28 @@ class _BuyerCatalogTab extends StatelessWidget {
                               children: [
                                 Text(
                                   product.name,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
+                                  style: Theme.of(context).textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(product.sku, style: Theme.of(context).textTheme.labelSmall),
+                                Text(
+                                  product.sku,
+                                  style: Theme.of(context).textTheme.labelSmall,
+                                ),
                               ],
                             ),
                           ),
                           if (product.lowStock)
                             Chip(
-                              avatar: const Icon(Icons.warning_amber_rounded, size: 16),
+                              avatar: const Icon(
+                                Icons.warning_amber_rounded,
+                                size: 16,
+                              ),
                               label: Text(t.productLowStockTag),
-                              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                              labelStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                               backgroundColor: scheme.errorContainer,
                             ),
                         ],
@@ -307,34 +606,40 @@ class _BuyerCatalogTab extends StatelessWidget {
                       const SizedBox(height: 12),
                       Text(
                         t.buyerCatalogPrice(product.price.toStringAsFixed(2)),
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                        _QuantitySelector(
-                          value: quantityFor(product.id),
-                          onChanged: (value) => onQuantityChanged(product, value),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () {
-                              final qty = quantityFor(product.id);
-                              onAddToCart(product, qty);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(t.buyerCatalogAdded(product.name))),
-                              );
-                            },
-                            icon: const Icon(Icons.add_shopping_cart_outlined),
-                            label: Text(
-                              t.buyerCatalogAddWithQty(
-                                _formatQuantity(quantityFor(product.id)),
+                          _QuantitySelector(
+                            value: quantityFor(product.id),
+                            onChanged: (value) =>
+                                onQuantityChanged(product, value),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () {
+                                final qty = quantityFor(product.id);
+                                onAddToCart(product, qty);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      t.buyerCatalogAdded(product.name),
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.add_shopping_cart_outlined,
+                              ),
+                              label: Text(
+                                t.buyerCatalogAddWithQty(
+                                  _formatQuantity(quantityFor(product.id)),
+                                ),
                               ),
                             ),
-                          ),
                           ),
                         ],
                       ),
@@ -349,11 +654,172 @@ class _BuyerCatalogTab extends StatelessWidget {
       ),
     );
   }
-
 }
 
-class _BuyerCartTab extends StatelessWidget {
-  const _BuyerCartTab();
+class _BuyerDashboardTab extends StatelessWidget {
+  final bool loading;
+  final String? error;
+  final List<Order> orders;
+  final Future<void> Function() onRefresh;
+  final ValueChanged<Order> onLoadOrder;
+
+  const _BuyerDashboardTab({
+    required this.loading,
+    required this.error,
+    required this.orders,
+    required this.onRefresh,
+    required this.onLoadOrder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (error != null) {
+      return Center(
+        child: StateMessageView(
+          icon: Icons.error_outline,
+          title: t.stateErrorMessage,
+          message: error,
+          action: OutlinedButton.icon(
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh),
+            label: Text(t.stateRetry),
+          ),
+        ),
+      );
+    }
+    final locale = Localizations.localeOf(context);
+    final localeName = locale.toString();
+    final now = DateTime.now();
+    final monthlySpend = orders
+        .where(
+          (o) => o.createdAt.year == now.year && o.createdAt.month == now.month,
+        )
+        .fold<double>(0, (sum, o) => sum + o.total);
+    final currency = NumberFormat.simpleCurrency(locale: localeName);
+    final monthlyValue = currency.format(monthlySpend);
+    final totalOrders = orders.length.toString();
+    final lastOrder = orders.isEmpty ? null : orders.first;
+    final dateFormatter = DateFormat.yMMMd(localeName);
+    final timeFormatter = DateFormat.Hm(localeName);
+    final lastOrderLabel = lastOrder == null
+        ? t.buyerDashboardMetricEmptyValue
+        : '${dateFormatter.format(lastOrder.createdAt)} · ${timeFormatter.format(lastOrder.createdAt)}';
+    final storeCounts = <String, int>{};
+    for (final order in orders) {
+      final name = order.buyerName.trim();
+      if (name.isEmpty) continue;
+      storeCounts[name] = (storeCounts[name] ?? 0) + 1;
+    }
+    final topStoreLabel = storeCounts.isEmpty
+        ? t.buyerDashboardMetricEmptyValue
+        : storeCounts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+    final recentOrders = orders.take(6).toList();
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          Text(
+            t.buyerDashboardGreeting,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _DashboardMetricCard(
+                icon: Icons.auto_graph_outlined,
+                label: t.buyerDashboardMetricTotalOrdersLabel,
+                value: totalOrders,
+              ),
+              _DashboardMetricCard(
+                icon: Icons.payments_outlined,
+                label: t.buyerDashboardMetricMonthlySpendLabel,
+                value: monthlyValue,
+              ),
+              _DashboardMetricCard(
+                icon: Icons.history_toggle_off,
+                label: t.buyerDashboardMetricLastOrderLabel,
+                value: lastOrderLabel,
+              ),
+              _DashboardMetricCard(
+                icon: Icons.store_mall_directory_outlined,
+                label: t.buyerDashboardMetricTopStoreLabel,
+                value: topStoreLabel,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            t.buyerDashboardHistoryTitle,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          if (orders.isEmpty)
+            StateMessageView(
+              icon: Icons.receipt_long_outlined,
+              title: t.buyerDashboardHistoryEmpty,
+              message: t.buyerDashboardHistoryEmptyHint,
+              action: OutlinedButton.icon(
+                onPressed: onRefresh,
+                icon: const Icon(Icons.refresh),
+                label: Text(t.stateRetry),
+              ),
+            )
+          else ...[
+            for (final order in recentOrders) ...[
+              _DashboardOrderCard(
+                order: order,
+                onLoad: () => onLoadOrder(order),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BuyerOrderSheetTab extends StatelessWidget {
+  final GlobalKey<FormState> formKey;
+  final List<String> storeOptions;
+  final String? selectedStore;
+  final bool storeLoading;
+  final String? storeError;
+  final ValueChanged<String?> onStoreChanged;
+  final TextEditingController contactController;
+  final TextEditingController noteController;
+  final bool submitting;
+  final Future<void> Function(BuyerCartController cart) onSubmit;
+  final VoidCallback onBrowseCatalog;
+  final VoidCallback onDeliveryTap;
+  final DateTime deliveryDate;
+
+  const _BuyerOrderSheetTab({
+    required this.formKey,
+    required this.storeOptions,
+    required this.selectedStore,
+    required this.storeLoading,
+    required this.storeError,
+    required this.onStoreChanged,
+    required this.contactController,
+    required this.noteController,
+    required this.submitting,
+    required this.onSubmit,
+    required this.onBrowseCatalog,
+    required this.onDeliveryTap,
+    required this.deliveryDate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -363,249 +829,389 @@ class _BuyerCartTab extends StatelessWidget {
         if (cart.isEmpty) {
           return Center(
             child: StateMessageView(
-              icon: Icons.shopping_basket_outlined,
+              icon: Icons.assignment_outlined,
               title: t.buyerCartEmpty,
-              message: t.buyerCartEmptyHint,
+              message: t.buyerOrderEmptyHint,
+              action: FilledButton.icon(
+                onPressed: onBrowseCatalog,
+                icon: const Icon(Icons.storefront_outlined),
+                label: Text(t.buyerOrderBrowseCatalog),
+              ),
             ),
           );
         }
-        final items = cart.items;
-        final TabController tabController = DefaultTabController.of(context);
-        return Column(
-          children: [
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.product.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(item.product.sku, style: Theme.of(context).textTheme.labelSmall),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _QuantitySelector(
-                                value: item.quantity,
-                                onChanged: (value) =>
-                                    cart.setQuantity(item.product.id, value),
-                              ),
-                              const Spacer(),
-                              Text(
-                                t.buyerCartLineTotal(
-                                  item.lineTotal.toStringAsFixed(2),
-                                ),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ],
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: () => cart.remove(item.product.id),
-                              icon: const Icon(Icons.delete_outline),
-                              label: Text(t.buyerCartRemove),
-                            ),
-                          ),
-                        ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 900;
+            final body = isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _CartItemsList(cart: cart)),
+                      const SizedBox(width: 24),
+                      SizedBox(
+                        width: 360,
+                        child: _OrderFormSection(
+                          cart: cart,
+                          storeOptions: storeOptions,
+                          selectedStore: selectedStore,
+                          storeLoading: storeLoading,
+                          storeError: storeError,
+                          onStoreChanged: onStoreChanged,
+                          contactController: contactController,
+                          noteController: noteController,
+                          submitting: submitting,
+                          onSubmit: onSubmit,
+                          onDeliveryTap: onDeliveryTap,
+                          deliveryDate: deliveryDate,
+                        ),
                       ),
-                    ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _CartItemsList(cart: cart),
+                      const SizedBox(height: 24),
+                      _OrderFormSection(
+                        cart: cart,
+                        storeOptions: storeOptions,
+                        selectedStore: selectedStore,
+                        storeLoading: storeLoading,
+                        storeError: storeError,
+                        onStoreChanged: onStoreChanged,
+                        contactController: contactController,
+                        noteController: noteController,
+                        submitting: submitting,
+                        onSubmit: onSubmit,
+                        onDeliveryTap: onDeliveryTap,
+                        deliveryDate: deliveryDate,
+                      ),
+                    ],
                   );
-                },
-              ),
-            ),
-            Padding(
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    t.buyerCartTotal(cart.totalAmount.toStringAsFixed(2)),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: () => tabController.animateTo(2),
-                    icon: const Icon(Icons.assignment_outlined),
-                    label: Text(t.buyerCartProceed),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: cart.clear,
-                    child: Text(t.buyerCartClear),
-                  ),
-                ],
-              ),
-            ),
-          ],
+              child: Form(key: formKey, child: body),
+            );
+          },
         );
       },
     );
   }
 }
 
-class _BuyerCheckoutTab extends StatefulWidget {
-  final MockOrderRepository orderRepository;
+class _CartItemsList extends StatelessWidget {
+  final BuyerCartController cart;
 
-  const _BuyerCheckoutTab({required this.orderRepository});
-
-  @override
-  State<_BuyerCheckoutTab> createState() => _BuyerCheckoutTabState();
-}
-
-class _BuyerCheckoutTabState extends State<_BuyerCheckoutTab> {
-  final _formKey = GlobalKey<FormState>();
-  final _storeCtrl = TextEditingController();
-  final _contactCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
-  bool _submitting = false;
-
-  @override
-  void dispose() {
-    _storeCtrl.dispose();
-    _contactCtrl.dispose();
-    _noteCtrl.dispose();
-    super.dispose();
-  }
+  const _CartItemsList({required this.cart});
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-    final cart = context.watch<BuyerCartController>();
-    final totalLabel = t.buyerCartTotal(cart.totalAmount.toStringAsFixed(2));
+    final items = cart.items;
+    return Column(
+      children: [
+        for (final item in items) ...[
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.product.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.product.sku,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _QuantitySelector(
+                        value: item.quantity,
+                        onChanged: (value) =>
+                            cart.setQuantity(item.product.id, value),
+                      ),
+                      const Spacer(),
+                      Text(
+                        t.buyerCartLineTotal(item.lineTotal.toStringAsFixed(2)),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => cart.remove(item.product.id),
+                      icon: const Icon(Icons.delete_outline),
+                      label: Text(t.buyerCartRemove),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+}
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: ListView(
-          children: [
-            Card(
-              child: ListTile(
+class _OrderFormSection extends StatelessWidget {
+  final BuyerCartController cart;
+  final List<String> storeOptions;
+  final String? selectedStore;
+  final bool storeLoading;
+  final String? storeError;
+  final ValueChanged<String?> onStoreChanged;
+  final TextEditingController contactController;
+  final TextEditingController noteController;
+  final bool submitting;
+  final Future<void> Function(BuyerCartController cart) onSubmit;
+  final VoidCallback onDeliveryTap;
+  final DateTime deliveryDate;
+
+  const _OrderFormSection({
+    required this.cart,
+    required this.storeOptions,
+    required this.selectedStore,
+    required this.storeLoading,
+    required this.storeError,
+    required this.onStoreChanged,
+    required this.contactController,
+    required this.noteController,
+    required this.submitting,
+    required this.onSubmit,
+    required this.onDeliveryTap,
+    required this.deliveryDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final totalLabel = t.buyerCartTotal(cart.totalAmount.toStringAsFixed(2));
+    final summaryLabel = t.buyerOrderSummary(
+      cart.uniqueItemCount,
+      cart.totalQuantity,
+    );
+    final localeName = Localizations.localeOf(context).toString();
+    final deliveryLabel = DateFormat.yMMMd(localeName).format(deliveryDate);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          child: Column(
+            children: [
+              ListTile(
                 leading: const Icon(Icons.receipt_long_outlined),
                 title: Text(totalLabel),
-                subtitle: Text(t.buyerCheckoutItems(cart.totalQuantity)),
+                subtitle: Text(summaryLabel),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _storeCtrl,
-              decoration: InputDecoration(
-                labelText: t.buyerCheckoutStore,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              const Divider(height: 0),
+              ListTile(
+                leading: const Icon(Icons.event_outlined),
+                title: Text(t.buyerDeliveryDateLabel),
+                subtitle: Text(deliveryLabel),
+                trailing: TextButton(
+                  onPressed: onDeliveryTap,
+                  child: Text(t.buyerDeliveryDateEdit),
+                ),
               ),
-              validator: (value) {
-                if ((value ?? '').trim().isEmpty) {
-                  return t.buyerCheckoutStore;
-                }
-                return null;
-              },
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (storeLoading) const LinearProgressIndicator(),
+        if (storeError != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            t.buyerOrderStoreLoadError(storeError!),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+        DropdownButtonFormField<String>(
+          value: selectedStore,
+          onChanged: storeOptions.isEmpty ? null : onStoreChanged,
+          decoration: InputDecoration(
+            labelText: t.buyerCheckoutStore,
+            helperText: storeOptions.isEmpty
+                ? t.buyerOrderStoreEmptyHint
+                : null,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          items: storeOptions
+              .map((name) => DropdownMenuItem(value: name, child: Text(name)))
+              .toList(),
+          validator: (_) {
+            if (storeOptions.isEmpty) {
+              return t.buyerOrderStoreEmptyHint;
+            }
+            if ((selectedStore ?? '').isEmpty) {
+              return t.buyerCheckoutStore;
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: contactController,
+          decoration: InputDecoration(
+            labelText: t.buyerCheckoutContact,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          textCapitalization: TextCapitalization.words,
+          validator: (value) {
+            if ((value ?? '').trim().isEmpty) {
+              return t.buyerCheckoutContact;
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: noteController,
+          minLines: 3,
+          maxLines: 5,
+          decoration: InputDecoration(
+            labelText: t.buyerCheckoutNote,
+            hintText: t.buyerCheckoutNoteHint,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        const SizedBox(height: 20),
+        FilledButton.icon(
+          onPressed: submitting ? null : () => onSubmit(cart),
+          icon: submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.send),
+          label: Text(t.buyerCheckoutSubmit),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: cart.clear,
+          icon: const Icon(Icons.clear_all),
+          label: Text(t.buyerCartClear),
+        ),
+      ],
+    );
+  }
+}
+
+class _DashboardMetricCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _DashboardMetricCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: scheme.surfaceVariant,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: scheme.primary),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardOrderCard extends StatelessWidget {
+  final Order order;
+  final VoidCallback onLoad;
+
+  const _DashboardOrderCard({required this.order, required this.onLoad});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final material = MaterialLocalizations.of(context);
+    final dateLabel =
+        '${material.formatMediumDate(order.createdAt)} · ${material.formatTimeOfDay(TimeOfDay.fromDateTime(order.createdAt))}';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    order.buyerName,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Chip(label: Text(order.status.name.toUpperCase())),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _contactCtrl,
-              decoration: InputDecoration(
-                labelText: t.buyerCheckoutContact,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            const SizedBox(height: 4),
+            Text(
+              '${order.code} · $dateLabel',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              t.buyerCartTotal(order.total.toStringAsFixed(2)),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            Text(t.buyerCheckoutItems(order.itemCount)),
+            if (order.buyerNote != null && order.buyerNote!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                order.buyerNote!,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-              validator: (value) {
-                if ((value ?? '').trim().isEmpty) {
-                  return t.buyerCheckoutContact;
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _noteCtrl,
-              minLines: 3,
-              maxLines: 5,
-              decoration: InputDecoration(
-                labelText: t.buyerCheckoutNote,
-                hintText: t.buyerCheckoutNoteHint,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onLoad,
+                icon: const Icon(Icons.assignment_returned_outlined),
+                label: Text(t.buyerDashboardHistoryLoad),
               ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _submitting ? null : () => _submit(cart),
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.send),
-              label: Text(t.buyerCheckoutSubmit),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _submit(BuyerCartController cart) async {
-    final t = AppLocalizations.of(context)!;
-    if (cart.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.buyerCheckoutCartEmpty)),
-      );
-      return;
-    }
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
-    setState(() => _submitting = true);
-    final now = DateTime.now();
-    final order = Order(
-      id: '',
-      code: '',
-      itemCount: cart.totalQuantity,
-      total: cart.totalAmount,
-      createdAt: now,
-      status: OrderStatus.pending,
-      buyerName: _storeCtrl.text.trim(),
-      buyerContact: _contactCtrl.text.trim(),
-      buyerNote: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-    );
-    try {
-      final saved = await widget.orderRepository.save(order);
-      if (!mounted) return;
-      context.read<DataRefreshCoordinator>().notifyOrderChanged(saved);
-      cart.clear();
-      _formKey.currentState?.reset();
-      _storeCtrl.clear();
-      _contactCtrl.clear();
-      _noteCtrl.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.buyerCheckoutSuccess(saved.code))),
-      );
-    } catch (err) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err.toString())),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _submitting = false);
-      }
-    }
   }
 }
 
@@ -622,7 +1228,9 @@ class _QuantitySelector extends StatelessWidget {
       children: [
         IconButton(
           icon: const Icon(Icons.remove_circle_outline),
-          onPressed: value > 1 ? () => onChanged((value - 1).clamp(1, 999)) : null,
+          onPressed: value > 1
+              ? () => onChanged((value - 1).clamp(1, 999))
+              : null,
         ),
         _QuantityField(
           value: value,
@@ -641,10 +1249,7 @@ class _QuantityField extends StatefulWidget {
   final int value;
   final ValueChanged<int> onSubmitted;
 
-  const _QuantityField({
-    required this.value,
-    required this.onSubmitted,
-  });
+  const _QuantityField({required this.value, required this.onSubmitted});
 
   @override
   State<_QuantityField> createState() => _QuantityFieldState();

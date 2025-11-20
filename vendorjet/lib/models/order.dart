@@ -1,5 +1,35 @@
 enum OrderStatus { pending, confirmed, shipped, completed, canceled, returned }
 
+class OrderLine {
+  final String productId;
+  final String productName;
+  final int quantity;
+  final double unitPrice;
+
+  const OrderLine({
+    required this.productId,
+    required this.productName,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  double get lineTotal => unitPrice * quantity;
+
+  OrderLine copyWith({
+    String? productId,
+    String? productName,
+    int? quantity,
+    double? unitPrice,
+  }) {
+    return OrderLine(
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+    );
+  }
+}
+
 class Order {
   final String id;
   final String code; // POyymmdd####
@@ -12,6 +42,8 @@ class Order {
   final String? buyerNote;
   final DateTime? updatedAt;
   final String? updateNote;
+  final List<OrderLine> lines;
+  final DateTime? desiredDeliveryDate;
 
   const Order({
     required this.id,
@@ -25,6 +57,8 @@ class Order {
     this.buyerNote,
     this.updatedAt,
     this.updateNote,
+    this.lines = const [],
+    this.desiredDeliveryDate,
   });
 
   Order copyWith({
@@ -39,6 +73,8 @@ class Order {
     String? buyerNote,
     DateTime? updatedAt,
     String? updateNote,
+    List<OrderLine>? lines,
+    DateTime? desiredDeliveryDate,
   }) {
     return Order(
       id: id ?? this.id,
@@ -52,6 +88,8 @@ class Order {
       buyerNote: buyerNote ?? this.buyerNote,
       updatedAt: updatedAt ?? this.updatedAt,
       updateNote: updateNote ?? this.updateNote,
+      lines: lines ?? this.lines,
+      desiredDeliveryDate: desiredDeliveryDate ?? this.desiredDeliveryDate,
     );
   }
 }

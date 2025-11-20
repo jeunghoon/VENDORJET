@@ -686,13 +686,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buyerPortalTitle => 'Buyer preview';
 
   @override
+  String get buyerPortalTabDashboard => 'Dashboard';
+
+  @override
   String get buyerPortalTabCatalog => 'Catalog';
 
   @override
-  String get buyerPortalTabCart => 'Cart';
-
-  @override
-  String get buyerPortalTabCheckout => 'Checkout';
+  String get buyerPortalTabOrder => 'Order sheet';
 
   @override
   String get buyerPreviewTitle => 'Buyer preview';
@@ -750,10 +750,58 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get buyerCartProceed => 'Go to checkout';
+  String get buyerCartClear => 'Clear cart';
 
   @override
-  String get buyerCartClear => 'Clear cart';
+  String get buyerDeliveryDateLabel => 'Delivery date';
+
+  @override
+  String get buyerDeliveryDatePick => 'Select delivery date';
+
+  @override
+  String get buyerDeliveryDateEdit => 'Change';
+
+  @override
+  String buyerOrderSummary(int uniqueCount, int totalCount) {
+    return '$uniqueCount items : total qty $totalCount';
+  }
+
+  @override
+  String get buyerDashboardGreeting =>
+      'Plan your next purchase using your recent activity.';
+
+  @override
+  String get buyerDashboardMetricTotalOrdersLabel => 'Total orders';
+
+  @override
+  String get buyerDashboardMetricMonthlySpendLabel => 'Spend this month';
+
+  @override
+  String get buyerDashboardMetricLastOrderLabel => 'Last order';
+
+  @override
+  String get buyerDashboardMetricTopStoreLabel => 'Most active store';
+
+  @override
+  String get buyerDashboardMetricEmptyValue => 'None';
+
+  @override
+  String get buyerDashboardHistoryTitle => 'Past orders';
+
+  @override
+  String get buyerDashboardHistoryEmpty => 'No past orders yet';
+
+  @override
+  String get buyerDashboardHistoryEmptyHint =>
+      'Submit your first order to see it here.';
+
+  @override
+  String get buyerDashboardHistoryLoad => 'Load into order';
+
+  @override
+  String buyerDashboardLoaded(String label) {
+    return '$label copied to the order sheet.';
+  }
 
   @override
   String buyerCheckoutItems(int count) {
@@ -781,5 +829,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String buyerCheckoutSuccess(String code) {
     return 'Order submitted. Code $code';
+  }
+
+  @override
+  String get buyerOrderEmptyHint =>
+      'Use the catalog to add items before filling out the form.';
+
+  @override
+  String get buyerOrderBrowseCatalog => 'Browse catalog';
+
+  @override
+  String get buyerOrderPrefillMissing =>
+      'This order has no item snapshot, so it cannot be copied.';
+
+  @override
+  String get buyerOrderStoreEmptyHint => 'Select a store you have registered.';
+
+  @override
+  String buyerOrderStoreLoadError(String error) {
+    return 'Store list failed to load: $error';
   }
 }

@@ -1376,23 +1376,23 @@ abstract class AppLocalizations {
   /// **'Buyer preview'**
   String get buyerPortalTitle;
 
+  /// No description provided for @buyerPortalTabDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get buyerPortalTabDashboard;
+
   /// No description provided for @buyerPortalTabCatalog.
   ///
   /// In en, this message translates to:
   /// **'Catalog'**
   String get buyerPortalTabCatalog;
 
-  /// No description provided for @buyerPortalTabCart.
+  /// No description provided for @buyerPortalTabOrder.
   ///
   /// In en, this message translates to:
-  /// **'Cart'**
-  String get buyerPortalTabCart;
-
-  /// No description provided for @buyerPortalTabCheckout.
-  ///
-  /// In en, this message translates to:
-  /// **'Checkout'**
-  String get buyerPortalTabCheckout;
+  /// **'Order sheet'**
+  String get buyerPortalTabOrder;
 
   /// No description provided for @buyerPreviewTitle.
   ///
@@ -1478,17 +1478,101 @@ abstract class AppLocalizations {
   /// **'Subtotal: \$ {amount}'**
   String buyerCartTotal(String amount);
 
-  /// No description provided for @buyerCartProceed.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to checkout'**
-  String get buyerCartProceed;
-
   /// No description provided for @buyerCartClear.
   ///
   /// In en, this message translates to:
   /// **'Clear cart'**
   String get buyerCartClear;
+
+  /// No description provided for @buyerDeliveryDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery date'**
+  String get buyerDeliveryDateLabel;
+
+  /// No description provided for @buyerDeliveryDatePick.
+  ///
+  /// In en, this message translates to:
+  /// **'Select delivery date'**
+  String get buyerDeliveryDatePick;
+
+  /// No description provided for @buyerDeliveryDateEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get buyerDeliveryDateEdit;
+
+  /// No description provided for @buyerOrderSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{uniqueCount} items : total qty {totalCount}'**
+  String buyerOrderSummary(int uniqueCount, int totalCount);
+
+  /// No description provided for @buyerDashboardGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan your next purchase using your recent activity.'**
+  String get buyerDashboardGreeting;
+
+  /// No description provided for @buyerDashboardMetricTotalOrdersLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total orders'**
+  String get buyerDashboardMetricTotalOrdersLabel;
+
+  /// No description provided for @buyerDashboardMetricMonthlySpendLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Spend this month'**
+  String get buyerDashboardMetricMonthlySpendLabel;
+
+  /// No description provided for @buyerDashboardMetricLastOrderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last order'**
+  String get buyerDashboardMetricLastOrderLabel;
+
+  /// No description provided for @buyerDashboardMetricTopStoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Most active store'**
+  String get buyerDashboardMetricTopStoreLabel;
+
+  /// No description provided for @buyerDashboardMetricEmptyValue.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get buyerDashboardMetricEmptyValue;
+
+  /// No description provided for @buyerDashboardHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Past orders'**
+  String get buyerDashboardHistoryTitle;
+
+  /// No description provided for @buyerDashboardHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No past orders yet'**
+  String get buyerDashboardHistoryEmpty;
+
+  /// No description provided for @buyerDashboardHistoryEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit your first order to see it here.'**
+  String get buyerDashboardHistoryEmptyHint;
+
+  /// No description provided for @buyerDashboardHistoryLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Load into order'**
+  String get buyerDashboardHistoryLoad;
+
+  /// No description provided for @buyerDashboardLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} copied to the order sheet.'**
+  String buyerDashboardLoaded(String label);
 
   /// No description provided for @buyerCheckoutItems.
   ///
@@ -1537,6 +1621,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Order submitted. Code {code}'**
   String buyerCheckoutSuccess(String code);
+
+  /// No description provided for @buyerOrderEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the catalog to add items before filling out the form.'**
+  String get buyerOrderEmptyHint;
+
+  /// No description provided for @buyerOrderBrowseCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse catalog'**
+  String get buyerOrderBrowseCatalog;
+
+  /// No description provided for @buyerOrderPrefillMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This order has no item snapshot, so it cannot be copied.'**
+  String get buyerOrderPrefillMissing;
+
+  /// No description provided for @buyerOrderStoreEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a store you have registered.'**
+  String get buyerOrderStoreEmptyHint;
+
+  /// No description provided for @buyerOrderStoreLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Store list failed to load: {error}'**
+  String buyerOrderStoreLoadError(String error);
 }
 
 class _AppLocalizationsDelegate

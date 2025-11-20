@@ -305,9 +305,9 @@
   "categoryManagerEmpty": "No categories registered yet.",
   "categoryManagerPrimaryRequired": "Enter at least the first level.",
   "buyerPortalTitle": "Buyer preview",
+  "buyerPortalTabDashboard": "Dashboard",
   "buyerPortalTabCatalog": "Catalog",
-  "buyerPortalTabCart": "Cart",
-  "buyerPortalTabCheckout": "Checkout",
+  "buyerPortalTabOrder": "Order sheet",
   "buyerPreviewTitle": "Buyer preview",
   "buyerPreviewSubtitle": "Simulate the retailer-side ordering flow.",
   "buyerCatalogSearchHint": "Search catalog",
@@ -364,8 +364,39 @@
       }
     }
   },
-  "buyerCartProceed": "Go to checkout",
   "buyerCartClear": "Clear cart",
+  "buyerDeliveryDateLabel": "Delivery date",
+  "buyerDeliveryDatePick": "Select delivery date",
+  "buyerDeliveryDateEdit": "Change",
+  "buyerOrderSummary": "{uniqueCount} items : total qty {totalCount}",
+  "@buyerOrderSummary": {
+    "placeholders": {
+      "uniqueCount": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerDashboardGreeting": "Plan your next purchase using your recent activity.",
+  "buyerDashboardMetricTotalOrdersLabel": "Total orders",
+  "buyerDashboardMetricMonthlySpendLabel": "Spend this month",
+  "buyerDashboardMetricLastOrderLabel": "Last order",
+  "buyerDashboardMetricTopStoreLabel": "Most active store",
+  "buyerDashboardMetricEmptyValue": "None",
+  "buyerDashboardHistoryTitle": "Past orders",
+  "buyerDashboardHistoryEmpty": "No past orders yet",
+  "buyerDashboardHistoryEmptyHint": "Submit your first order to see it here.",
+  "buyerDashboardHistoryLoad": "Load into order",
+  "buyerDashboardLoaded": "{label} copied to the order sheet.",
+  "@buyerDashboardLoaded": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "buyerCheckoutItems": "{count} items",
   "@buyerCheckoutItems": {
     "placeholders": {
@@ -384,6 +415,18 @@
   "@buyerCheckoutSuccess": {
     "placeholders": {
       "code": {
+        "type": "String"
+      }
+    }
+  },
+  "buyerOrderEmptyHint": "Use the catalog to add items before filling out the form.",
+  "buyerOrderBrowseCatalog": "Browse catalog",
+  "buyerOrderPrefillMissing": "This order has no item snapshot, so it cannot be copied.",
+  "buyerOrderStoreEmptyHint": "Select a store you have registered.",
+  "buyerOrderStoreLoadError": "Store list failed to load: {error}",
+  "@buyerOrderStoreLoadError": {
+    "placeholders": {
+      "error": {
         "type": "String"
       }
     }

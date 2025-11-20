@@ -673,16 +673,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get categoryManagerPrimaryRequired => '최소 1단계 카테고리를 입력하세요.';
 
   @override
-  String get buyerPortalTitle => '구매자 미리보기';
+  String get buyerPortalTitle => '구매처 미리보기';
+
+  @override
+  String get buyerPortalTabDashboard => '대시보드';
 
   @override
   String get buyerPortalTabCatalog => '카탈로그';
 
   @override
-  String get buyerPortalTabCart => '장바구니';
-
-  @override
-  String get buyerPortalTabCheckout => '주문서';
+  String get buyerPortalTabOrder => '주문서';
 
   @override
   String get buyerPreviewTitle => '구매자 미리보기';
@@ -739,10 +739,56 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get buyerCartProceed => '주문서로 이동';
+  String get buyerCartClear => '장바구니 비우기';
 
   @override
-  String get buyerCartClear => '장바구니 비우기';
+  String get buyerDeliveryDateLabel => '희망 배송일';
+
+  @override
+  String get buyerDeliveryDatePick => '배송 날짜 선택';
+
+  @override
+  String get buyerDeliveryDateEdit => '변경';
+
+  @override
+  String buyerOrderSummary(int uniqueCount, int totalCount) {
+    return '$uniqueCount개 품목 : 총수량 $totalCount';
+  }
+
+  @override
+  String get buyerDashboardGreeting => '최근 주문 내역을 기반으로 빠르게 재주문하세요.';
+
+  @override
+  String get buyerDashboardMetricTotalOrdersLabel => '총 주문 건수';
+
+  @override
+  String get buyerDashboardMetricMonthlySpendLabel => '이번 달 주문액';
+
+  @override
+  String get buyerDashboardMetricLastOrderLabel => '마지막 주문';
+
+  @override
+  String get buyerDashboardMetricTopStoreLabel => '주문이 많은 매장';
+
+  @override
+  String get buyerDashboardMetricEmptyValue => '없음';
+
+  @override
+  String get buyerDashboardHistoryTitle => '지난 주문 내역';
+
+  @override
+  String get buyerDashboardHistoryEmpty => '아직 주문 내역이 없습니다';
+
+  @override
+  String get buyerDashboardHistoryEmptyHint => '첫 주문을 제출하면 이곳에서 바로 불러올 수 있습니다.';
+
+  @override
+  String get buyerDashboardHistoryLoad => '주문서로 불러오기';
+
+  @override
+  String buyerDashboardLoaded(String label) {
+    return '$label 주문을 주문서로 불러왔습니다.';
+  }
 
   @override
   String buyerCheckoutItems(int count) {
@@ -770,5 +816,22 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String buyerCheckoutSuccess(String code) {
     return '주문이 접수되었습니다. 코드 $code';
+  }
+
+  @override
+  String get buyerOrderEmptyHint => '폼을 작성하기 전에 카탈로그에서 품목을 담아주세요.';
+
+  @override
+  String get buyerOrderBrowseCatalog => '카탈로그 보기';
+
+  @override
+  String get buyerOrderPrefillMissing => '이 주문에는 품목 정보가 없어 복사할 수 없습니다.';
+
+  @override
+  String get buyerOrderStoreEmptyHint => '등록한 매장을 선택해 주세요.';
+
+  @override
+  String buyerOrderStoreLoadError(String error) {
+    return '매장 목록을 불러오지 못했습니다: $error';
   }
 }

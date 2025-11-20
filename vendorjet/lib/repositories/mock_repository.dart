@@ -139,9 +139,7 @@ class MockProductRepository {
   Future<List<List<String>>> fetchCategoryPresets() async {
     _ensureCategoryPresets();
     await Future<void>.delayed(const Duration(milliseconds: 80));
-    return _categoryPresets
-        .map((path) => List<String>.from(path))
-        .toList();
+    return _categoryPresets.map((path) => List<String>.from(path)).toList();
   }
 
   Future<void> saveCategory(
@@ -150,13 +148,18 @@ class MockProductRepository {
   }) async {
     _ensureCategoryPresets();
     await Future<void>.delayed(const Duration(milliseconds: 80));
-    final normalized = path.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final normalized = path
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     if (normalized.isEmpty) {
       throw ArgumentError('Category path cannot be empty');
     }
     if (originalPath != null) {
       final originalKey = _pathKey(originalPath);
-      final index = _categoryPresets.indexWhere((p) => _pathKey(p) == originalKey);
+      final index = _categoryPresets.indexWhere(
+        (p) => _pathKey(p) == originalKey,
+      );
       if (index != -1) {
         _categoryPresets[index] = normalized;
       } else {
@@ -209,51 +212,76 @@ class MockOrderRepository {
 
   final _rnd = Random(2026);
   final _statuses = OrderStatus.values;
-  final List<String> _buyerNames = [
-    'Sunrise Mart',
-    'Harbor Lane Retail',
-    'Metro Mini',
-    'Evergreen Shop',
-    'Bluebird Boutique',
-    'Willow Corner',
-  ];
-  final List<String> _buyerContacts = [
-    'Alex Kim',
-    'Morgan Lee',
-    'Taylor Choi',
-    'Jamie Park',
-    'Jordan Han',
-    'Eun Seo',
-  ];
   final List<String> _buyerNotes = [
-    '요청: 다음 주 월요일 납품',
-    '단가 확인 후 확정 예정',
-    '선결제 완료, 출고만 남음',
-    '신제품 실물 샘플 동봉 요청',
-    '택배 대신 화물배송 희망',
+    '재청: 다음 달 인기 상품',
+    '납기 확인 및 재고 점검',
+    '결제 완료, 출고만 남음',
+    '제철 식물 샘플 보강 요청',
+    '소량 및 묶음배송 희망',
   ];
   final List<Order> _items = [];
   final _idCounter = _IdCounter(prefix: 'o_');
   final Map<String, int> _sequenceByDate = {};
+  final MockProductRepository _productRepository = MockProductRepository();
+  final MockCustomerRepository _customerRepository = MockCustomerRepository();
 
-  void _seed() {
+  Future<void> _seed() async {
     if (_items.isNotEmpty) return;
+    final products = await _productRepository.fetch();
+    final customers = await _customerRepository.fetch();
+    final fallbackNames = [
+      'Sunrise Mart',
+      'Harbor Lane Retail',
+      'Metro Mini',
+      'Evergreen Shop',
+      'Bluebird Boutique',
+    ];
+    final fallbackContacts = [
+      'Alex Kim',
+      'Morgan Lee',
+      'Taylor Choi',
+      'Jamie Park',
+      'Jordan Han',
+    ];
     for (var i = 0; i < 30; i++) {
       final createdAt = DateTime.now().subtract(
         Duration(days: _rnd.nextInt(30)),
       );
       final code = _generateCodeForDate(createdAt);
       final status = _statuses[i % _statuses.length];
-      final total = (_rnd.nextDouble() * 900) + 100;
-      final buyerName = _buyerNames[i % _buyerNames.length];
-      final buyerContact = _buyerContacts[i % _buyerContacts.length];
-      final buyerNote =
-          i.isEven ? _buyerNotes[i % _buyerNotes.length] : null;
+      final customer = customers.isEmpty
+          ? null
+          : customers[i % customers.length];
+      final buyerName =
+          customer?.name ?? fallbackNames[i % fallbackNames.length];
+      final buyerContact =
+          customer?.contactName ??
+          fallbackContacts[i % fallbackContacts.length];
+      final lineCount = 1 + _rnd.nextInt(4);
+      final lines = <OrderLine>[];
+      for (var j = 0; j < lineCount; j++) {
+        final product = products[_rnd.nextInt(products.length)];
+        final qty = 1 + _rnd.nextInt(6);
+        lines.add(
+          OrderLine(
+            productId: product.id,
+            productName: product.name,
+            quantity: qty,
+            unitPrice: product.price,
+          ),
+        );
+      }
+      final itemCount = lines.fold<int>(0, (sum, line) => sum + line.quantity);
+      final total = lines.fold<double>(0, (sum, line) => sum + line.lineTotal);
+      final buyerNote = i.isEven ? _buyerNotes[i % _buyerNotes.length] : null;
+      final desiredDeliveryDate = createdAt.add(
+        Duration(days: 1 + _rnd.nextInt(5)),
+      );
       _items.add(
         Order(
           id: 'o_${i + 1}',
           code: code,
-          itemCount: 1 + _rnd.nextInt(8),
+          itemCount: itemCount,
           total: double.parse(total.toStringAsFixed(2)),
           createdAt: createdAt,
           status: status,
@@ -262,6 +290,8 @@ class MockOrderRepository {
           buyerNote: buyerNote,
           updatedAt: createdAt.add(const Duration(hours: 2)),
           updateNote: 'Auto-generated mock order',
+          lines: lines,
+          desiredDeliveryDate: desiredDeliveryDate,
         ),
       );
     }
@@ -274,7 +304,7 @@ class MockOrderRepository {
     bool openOnly = false,
     DateTime? dateEquals,
   }) async {
-    _seed();
+    await _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     Iterable<Order> result = _items;
     if (status != null) {
@@ -309,7 +339,7 @@ class MockOrderRepository {
   }
 
   Future<Order?> findById(String id) async {
-    _seed();
+    await _seed();
     await Future<void>.delayed(const Duration(milliseconds: 80));
     try {
       return _items.firstWhere((o) => o.id == id);
@@ -319,7 +349,7 @@ class MockOrderRepository {
   }
 
   Future<Order> save(Order order) async {
-    _seed();
+    await _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final isNew = order.id.isEmpty;
     final index = _items.indexWhere((element) => element.id == order.id);
@@ -333,6 +363,8 @@ class MockOrderRepository {
       createdAt: isNew ? DateTime.now() : order.createdAt,
       updatedAt: order.updatedAt,
       updateNote: order.updateNote,
+      lines: order.lines,
+      desiredDeliveryDate: order.desiredDeliveryDate,
     );
     if (index == -1) {
       _items.add(normalized);

@@ -1,0 +1,139 @@
+VendorJet 로컬 서버 구축 절차
+================================
+목적: 현재 MockRepository(예: lib/repositories/mock_repository.dart)와 Auth 목업(lib/services/auth/*.dart)로 처리하던 데이터를 로컬 PC에서 구동되는 Node.js + Express + SQLite 서버로 대체해 Flutter 코드가 실제 HTTP 왕복을 테스트할 수 있도록 한다. 순서를 그대로 따르면 Firebase/Firestore 이전 단계에서도 BuyerPortal, 대시보드, 주문/상품/고객 CRUD 흐름을 점검할 수 있다.
+
+1. 사전 준비
+   1. Node.js 20 LTS 이상과 npm 10 이상 설치 (https://nodejs.org).
+   2. SQLite3 CLI 설치(Windows winget: `winget install SQLite.SQLite`).
+   3. VS Code 또는 좋아하는 IDE에 REST 클라이언트(Thunder Client, Insomnia 등) 준비.
+   4. Flutter 앱에서 HTTP 패키지를 쓸 예정이므로 `flutter pub add http`를 미리 실행해도 된다.
+
+2. 서버 프로젝트 생성
+   1. `VendorJet` 루트에 `server` 폴더를 새로 만든다.
+   2. PowerShell 기준:
+      ```
+      cd vendorjet
+      mkdir ..\server
+      cd ..\server
+      npm init -y
+      npm install express cors morgan better-sqlite3 dotenv zod date-fns
+      npm install -D typescript ts-node-dev @types/express @types/cors @types/morgan
+      npx tsc --init --rootDir src --outDir dist --module commonjs --esModuleInterop --resolveJsonModule true --strict true
+      ```
+   3. `package.json`에 실행 스크립트 추가:
+      ```json
+      "scripts": {
+        "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "seed": "ts-node src/seed.ts"
+      }
+      ```
+
+3. 환경 변수와 포트
+   1. `server/.env` 생성:
+      ```
+      PORT=4110
+      ADMIN_EMAIL=alex@vendorjet.com
+      ADMIN_PASSWORD=welcome1
+      JWT_SECRET=local-vendorjet
+      ```
+   2. `.env`는 dotenv로 불러오고, 추후 원격 서버에 맞춰 값만 수정하면 된다.
+
+4. SQLite 스키마 정의 (`server/schema.sql`)
+   아래 SQL을 작성 후 `sqlite3 vendorjet.db < schema.sql`로 테이블을 만든다. (tenantId는 Firestore 계획과 동일하게 유지)
+   ```
+   CREATE TABLE tenants (id TEXT PRIMARY KEY, name TEXT, locale TEXT, created_at TEXT);
+   CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT UNIQUE, password_hash TEXT);
+   CREATE TABLE memberships (user_id TEXT, tenant_id TEXT, role TEXT, PRIMARY KEY (user_id, tenant_id));
+   CREATE TABLE products (id TEXT PRIMARY KEY, tenant_id TEXT, sku TEXT, name TEXT, price REAL, variants_count INTEGER, categories TEXT, tags TEXT, low_stock INTEGER, image_url TEXT);
+   CREATE TABLE customers (id TEXT PRIMARY KEY, tenant_id TEXT, name TEXT, contact_name TEXT, email TEXT, tier TEXT, created_at TEXT, segment TEXT);
+   CREATE TABLE segments (id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id TEXT, name TEXT);
+   CREATE TABLE orders (id TEXT PRIMARY KEY, tenant_id TEXT, code TEXT, buyer_name TEXT, buyer_contact TEXT, buyer_note TEXT, status TEXT, total REAL, item_count INTEGER, created_at TEXT, updated_at TEXT, update_note TEXT, desired_delivery_date TEXT);
+   CREATE TABLE order_lines (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT, product_id TEXT, product_name TEXT, quantity INTEGER, unit_price REAL);
+   CREATE TABLE dashboard_cache (tenant_id TEXT PRIMARY KEY, snapshot_json TEXT, cached_at TEXT);
+   ```
+   - categories/tags는 JSON 문자열(`["Snacks","Chips"]`, `["featured","discounted"]`)로 저장한다.
+   - status/tier/role은 enum 문자열로 저장해 Flutter 모델과 1:1 매핑한다.
+
+5. 시드 데이터 작성 (`server/src/seed.ts`)
+   1. better-sqlite3로 연결 후 위 구조에 `t_acme`, `t_nova` 등 목업과 동일한 데이터를 넣는다.
+   2. products 30~40개, customers 15개, orders 20개 정도를 `mock_repository.dart`의 패턴처럼 생성:
+      - 주문 코드 포맷: `POyyMMdd####` (`docs/backend/firebase_plan.md`와 동일).
+      - BuyerPortal UX 요구대로 `desired_delivery_date` 기본값은 `created_at + 1일`.
+      - order_lines는 담은 순서를 그대로 insert하여 SELECT 시 ORDER BY id ASC로 돌려준다.
+   3. `npm run seed`로 DB를 초기화할 수 있도록 `DELETE FROM ...` 뒤 insert하도록 작성한다.
+
+6. 서버 코드 구조 잡기
+   ```
+   server/
+     src/
+       config/env.ts
+       db/client.ts
+       middleware/auth.ts
+       modules/auth/controller.ts
+       modules/products/controller.ts
+       modules/customers/controller.ts
+       modules/orders/controller.ts
+       modules/buyer/controller.ts
+       modules/dashboard/controller.ts
+       utils/code_generator.ts
+       server.ts
+   ```
+   - `db/client.ts`: better-sqlite3 연결과 helper (rows → camelCase).
+   - `middleware/auth.ts`: Authorization 헤더의 Bearer 토큰(JWT 혹은 단순 signed token) 검증 후 `req.user = { userId, tenantId, role }`.
+   - `utils/code_generator.ts`: 날짜별 시퀀스를 캐시해 `_sequenceByDate`와 동일하게 동작.
+
+7. 필수 REST API 설계(모두 `tenantId` 쿼리나 토큰의 tenantId 필요)
+   | 엔드포인트 | 메서드 | 설명 |
+   | --- | --- | --- |
+   | `/healthz` | GET | 서버 상태 체크. |
+   | `/auth/login` | POST | `{email,password}` → `{token, user:{email}, memberships:[{tenantId,role}]}`. 목업 자격증명(`welcome1`)을 그대로 사용. |
+   | `/auth/me` | GET | 현재 사용자/멤버십 조회. |
+   | `/tenants` | GET | 사용자가 속한 테넌트 목록. Flutter의 `AuthController.fetchTenants()` 대체. |
+   | `/tenants/:id/dashboard` | GET | DashboardSnapshot(오늘 주문수, 미결수, 저재고 수, 최근 주문 5개). MockDashboardService와 동일한 계산 로직(`lib/services/dashboard/dashboard_service.dart`). |
+   | `/products` | GET | 쿼리 파라미터: `q`, `topCategory`, `lowStockOnly`. 응답: 리스트와 `categories` 메타. |
+   | `/products/:id` | GET/PUT/DELETE | 상세 조회 및 수정/삭제. |
+   | `/customers` | GET | 파라미터: `q`, `tier`, `segment`. |
+   | `/customers/segments` | GET/POST/DELETE | 세그먼트 관리 (`MockCustomerRepository.fetchSegments` 동작 복제). |
+   | `/orders` | GET | 파라미터: `q`, `status`, `openOnly`, `date`(yyyy-MM-dd). |
+   | `/orders` | POST | 주문 생성. 서버에서 `code`, `id`, `created_at`, `desired_delivery_date`(요청 없으면 다음날) 자동 할당. |
+   | `/orders/:id` | GET/PATCH/DELETE | 상세, 상태 변경, 삭제. |
+   | `/orders/:id/clone` | POST | 기존 주문을 BuyerPortal에서 “주문서로 불러오기” 할 때 사용. 라인/메모/매장 메타 복사. |
+   | `/buyer/stores` | GET | 로그인 사용자 기준 매장 리스트. `customers` 테이블에서 name만 추출해 반환. |
+   | `/buyer/history` | GET | 최근 N개 주문 카드(요약 + `itemCount`, `total`). BuyerPortal 탭 요구사항을 만족하도록 `?limit=10`. |
+   | `/buyer/cart` | POST | BuyerPortal 주문 제출. 요청 본문: `{storeId, buyerContact, desiredDeliveryDate, note, items:[{productId, quantity}]}`. 응답은 `/orders` 생성과 동일. |
+
+8. Express 라우터 구현 순서
+   1. `server.ts`에서 `express()`, `app.use(cors())`, `app.use(express.json())`, `/healthz` 라우트 설정.
+   2. `/auth` 라우트: 이메일/비밀번호 검증 → JWT 발급(`jwt.sign({userId, tenantId, role}, JWT_SECRET, { expiresIn: '12h' })`). 실제 비밀번호는 bcrypt 해시(`npm install bcryptjs @types/bcryptjs`)로 저장.
+   3. 보호된 라우트 앞에 `authMiddleware`.
+   4. 각 모듈 컨트롤러에서 MockRepository와 동일한 정렬/필터 로직을 SQL로 옮김 (예: `/orders`는 `ORDER BY created_at DESC`).
+   5. BuyerPortal 컨트롤러는 Tab 전환 시 Controller null 오류를 막기 위해 항상 JSON 구조를 고정({items:[], stores:[], deliveryDateDefault: ...}).
+
+9. 실행 및 확인
+   1. `npm run dev` → `http://localhost:4110/healthz`가 `{"status":"ok"}` 반환.
+   2. Postman/Thunder Client에서 `POST /auth/login`으로 토큰 확보 후 다른 API 호출.
+   3. BuyerPortal 요구사항 검증:
+      - `GET /buyer/history` 응답의 각 카드에 `"summary": "5개 품목 : 총수량 18"` 형태 문자열 포함.
+      - 응답의 `desiredDeliveryDate`는 기본값 익일.
+      - `/buyer/cart` 제출 후 `/orders`에서 동일 날짜/메모 확인.
+
+10. Flutter 앱에서 로컬 서버 사용
+   1. `lib/repositories` 아래에 `api_product_repository.dart`, `api_order_repository.dart`, `api_customer_repository.dart`를 생성하고 `MockProductRepository` 등과 동일한 public API를 제공하되 `http` 패키지로 REST 호출하도록 구현.
+   2. `lib/services/auth/api_auth_service.dart`를 만들어 `AuthService` 인터페이스를 HTTP 버전으로 구현한다(`SharedPreferences`는 토큰/현재 테넌트 캐싱에 계속 사용).
+   3. `main.dart` 혹은 `providers.dart`에서 `const bool useLocalApi = bool.fromEnvironment('USE_LOCAL_API');` 플래그를 두고, true일 때는 API 버전을 DI 한다.
+   4. 로컬 테스트 시 `flutter run --dart-define=USE_LOCAL_API=true --dart-define=API_BASE_URL=http://localhost:4110`.
+   5. BuyerPortal 관련 파일(`lib/ui/pages/buyer/buyer_portal_page.dart`, `ui/pages/buyer/buyer_cart_controller.dart`)에서 현재 `Mock*Repository`로 직접 생성하는 부분을 Provider를 통해 주입 가능한 형태로 리팩터링해 두면 실제 API 교체가 쉬워진다.
+
+11. 원격 서버로 전환하기
+   1. 서버 폴더를 그대로 Git에 포함하거나 별도 리포로 분리한 뒤, 클라우드(DB, Functions 등) 도입 시 REST 스펙을 유지한다.
+   2. 온라인 배포 시에는 `.env`만 교체하고 `npm run build && npm start`로 배포한다.
+   3. Flutter 쪽은 `API_BASE_URL`만 변경하면 되므로 운영/스테이징 전환이 간단하다.
+
+12. 문제 해결 팁
+   1. 주문 코드 중복 → `code_generator.ts`에서 날짜별 캐시를 `Map<string, number>`로 유지하고 `BEGIN IMMEDIATE` 트랜잭션 안에서 증가시키면 해결.
+   2. BuyerPortal Tab 이동 시 Controller null → 서버 응답이 실패하면 Flutter에서 `_historyError`에 메시지 표시하므로 `/buyer/history`에서 예외를 최대한 200 응답 + `error` 필드로 내려준다.
+   3. 대시보드 캐시 → `dashboard_cache`에 TTL(30초)을 저장하고 GET 시 만료 검사. Flutter의 `DashboardService` 캐시와 동작을 맞추면 된다.
+
+위 절차를 따르면 로컬 PC에서 온라인 서버 없이도 전체 주문 흐름(인증 → 데이터 조회 → BuyerPortal 주문 제출)을 HTTP 기반으로 재현할 수 있고, 이후 Firebase/Firestore로 교체할 때는 데이터 모델과 엔드포인트만 연결해주면 된다.
