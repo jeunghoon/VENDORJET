@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../../models/tenant.dart';
+import 'api_auth_service.dart';
 import 'auth_service.dart';
 
-/// 인증/테넌시 상태를 관리하는 ChangeNotifier
+/// 인증/테넌트 상태를 관리하는 ChangeNotifier
 class AuthController extends ChangeNotifier {
   final AuthService service;
 
@@ -25,10 +26,16 @@ class AuthController extends ChangeNotifier {
   Future<void> load() async {
     _loading = true;
     notifyListeners();
-    await service.init();
-    _signedIn = await service.isSignedIn();
-    _email = service.currentEmail;
-    _tenants = await service.fetchTenants();
+    try {
+      await service.init();
+      _signedIn = await service.isSignedIn();
+      _email = service.currentEmail;
+      _tenants = await service.fetchTenants();
+    } catch (_) {
+      _signedIn = false;
+      _email = null;
+      _tenants = const [];
+    }
     _loading = false;
     notifyListeners();
   }
@@ -61,8 +68,59 @@ class AuthController extends ChangeNotifier {
     return ok;
   }
 
-  Future<void> requestPasswordReset(String email) async {
-    await service.requestPasswordReset(email);
+  Future<bool> registerSeller({
+    required String companyName,
+    String companyAddress = '',
+    String companyPhone = '',
+    String name = '',
+    String phone = '',
+    required String email,
+    required String password,
+    String role = 'staff',
+  }) async {
+    if (service is ApiAuthService) {
+      final ok = await (service as ApiAuthService).registerSeller(
+        companyName: companyName,
+        companyAddress: companyAddress,
+        companyPhone: companyPhone,
+        name: name,
+        phone: phone,
+        email: email,
+        password: password,
+        role: role,
+      );
+      if (ok) {
+        _tenants = await service.fetchTenants();
+        notifyListeners();
+      }
+      return ok;
+    }
+    return registerTenant(tenantName: companyName, email: email, password: password);
+  }
+
+  Future<bool> registerBuyer({
+    required String sellerCompanyName,
+    required String buyerCompanyName,
+    String buyerAddress = '',
+    String name = '',
+    String phone = '',
+    required String email,
+    String attachmentUrl = '',
+    String role = 'staff',
+  }) async {
+    if (service is ApiAuthService) {
+      return await (service as ApiAuthService).registerBuyer(
+        sellerCompanyName: sellerCompanyName,
+        buyerCompanyName: buyerCompanyName,
+        buyerAddress: buyerAddress,
+        name: name,
+        phone: phone,
+        email: email,
+        attachmentUrl: attachmentUrl,
+        role: role,
+      );
+    }
+    return false;
   }
 
   Future<void> inviteMember({
@@ -89,5 +147,9 @@ class AuthController extends ChangeNotifier {
     _signedIn = false;
     _email = null;
     notifyListeners();
+  }
+
+  Future<void> requestPasswordReset(String email) async {
+    await service.requestPasswordReset(email);
   }
 }

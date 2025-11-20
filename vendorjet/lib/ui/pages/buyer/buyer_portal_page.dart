@@ -82,6 +82,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadProducts() async {
+    if (!mounted) return;
     setState(() {
       _productsLoading = true;
       _productsError = null;
@@ -108,6 +109,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadHistory() async {
+    if (!mounted) return;
     setState(() {
       _historyLoading = true;
       _historyError = null;
@@ -129,6 +131,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadStores() async {
+    if (!mounted) return;
     setState(() {
       _storesLoading = true;
       _storesError = null;
@@ -1037,7 +1040,7 @@ class _OrderFormSection extends StatelessWidget {
           ),
         ],
         DropdownButtonFormField<String>(
-          value: selectedStore,
+          initialValue: selectedStore,
           onChanged: storeOptions.isEmpty ? null : onStoreChanged,
           decoration: InputDecoration(
             labelText: t.buyerCheckoutStore,
@@ -1127,7 +1130,7 @@ class _DashboardMetricCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: scheme.surfaceVariant,
+        color: scheme.surfaceContainerHighest,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

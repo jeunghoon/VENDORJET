@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'l10n/app_localizations.dart';
+import 'services/api/api_client.dart';
+import 'services/auth/api_auth_service.dart';
 import 'services/auth/auth_controller.dart';
 import 'services/auth/auth_service.dart';
 import 'services/sync/data_refresh_coordinator.dart';
@@ -39,7 +41,8 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _authController = AuthController(MockAuthService())..load();
+    final authService = useLocalApi ? ApiAuthService() : MockAuthService();
+    _authController = AuthController(authService)..load();
     _router = _createRouter();
   }
 

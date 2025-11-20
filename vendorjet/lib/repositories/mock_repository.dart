@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/customer.dart';
 import '../models/order.dart';
 import '../models/product.dart';
+import '../services/api/api_client.dart';
 
 class MockProductRepository {
   MockProductRepository._internal();
@@ -18,6 +19,8 @@ class MockProductRepository {
   final List<Product> _items = [];
   List<List<String>> _categoryPresets = [];
   final _idCounter = _IdCounter(prefix: 'p_');
+  List<Product> _apiCache = [];
+  List<String>? _apiTopCategoriesCache;
 
   static const _sampleCategories = [
     ['Beverages', 'Sparkling'],
@@ -35,6 +38,7 @@ class MockProductRepository {
   }
 
   void _seed() {
+    if (useLocalApi) return;
     _ensureCategoryPresets();
     if (_items.isNotEmpty) return;
     for (var i = 0; i < 40; i++) {
@@ -67,6 +71,18 @@ class MockProductRepository {
     String? topCategory,
     bool lowStockOnly = false,
   }) async {
+    if (useLocalApi) {
+      final data = await ApiClient.get('/products', query: {
+        'q': query,
+        'topCategory': topCategory,
+        'lowStockOnly': lowStockOnly ? 'true' : null,
+      }) as List<dynamic>;
+      final products =
+          data.map((e) => _productFromJson(e as Map<String, dynamic>)).toList();
+      _apiCache = products;
+      _apiTopCategoriesCache = _computeTopCategories(products, presets: _categoryPresets);
+      return products;
+    }
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     Iterable<Product> result = _items;
@@ -91,6 +107,14 @@ class MockProductRepository {
   }
 
   Future<Product?> findById(String id) async {
+    if (useLocalApi) {
+      try {
+        final data = await ApiClient.get('/products/$id') as Map<String, dynamic>;
+        return _productFromJson(data);
+      } catch (_) {
+        return null;
+      }
+    }
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 80));
     try {
@@ -101,6 +125,40 @@ class MockProductRepository {
   }
 
   Future<Product> save(Product product) async {
+    if (useLocalApi) {
+      if (product.id.isEmpty) {
+        final created = await ApiClient.post(
+          '/products',
+          body: {
+            'sku': product.sku,
+            'name': product.name,
+            'price': product.price,
+            'variantsCount': product.variantsCount,
+            'categories': product.categories,
+            'tags': product.tags.map((e) => e.name).toList(),
+            'lowStock': product.lowStock,
+            'imageUrl': product.imageUrl,
+          },
+        ) as Map<String, dynamic>;
+        final id = created['id'] as String? ?? product.id;
+        return await findById(id) ?? product.copyWith(id: id);
+      } else {
+        await ApiClient.put(
+          '/products/${product.id}',
+          body: {
+            'sku': product.sku,
+            'name': product.name,
+            'price': product.price,
+            'variantsCount': product.variantsCount,
+            'categories': product.categories,
+            'tags': product.tags.map((e) => e.name).toList(),
+            'lowStock': product.lowStock,
+            'imageUrl': product.imageUrl,
+          },
+        );
+        return await findById(product.id) ?? product;
+      }
+    }
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final index = _items.indexWhere((element) => element.id == product.id);
@@ -116,11 +174,19 @@ class MockProductRepository {
   }
 
   Future<void> delete(String id) async {
+    if (useLocalApi) {
+      await ApiClient.delete('/products/$id');
+      return;
+    }
     await Future<void>.delayed(const Duration(milliseconds: 80));
     _items.removeWhere((item) => item.id == id);
   }
 
   List<String> topCategories() {
+    if (useLocalApi) {
+      _apiTopCategoriesCache ??= _computeTopCategories(_apiCache, presets: _categoryPresets);
+      return _apiTopCategoriesCache ?? [];
+    }
     _seed();
     _ensureCategoryPresets();
     final set = <String>{};
@@ -138,6 +204,12 @@ class MockProductRepository {
 
   Future<List<List<String>>> fetchCategoryPresets() async {
     _ensureCategoryPresets();
+    if (useLocalApi) {
+      _apiTopCategoriesCache ??= _computeTopCategories(_apiCache);
+      final set = <String>{..._apiTopCategoriesCache ?? [], ..._categoryPresets.map((p) => p.isNotEmpty ? p.first : '')};
+      set.remove('');
+      return set.map((c) => [c]).toList();
+    }
     await Future<void>.delayed(const Duration(milliseconds: 80));
     return _categoryPresets.map((path) => List<String>.from(path)).toList();
   }
@@ -169,6 +241,7 @@ class MockProductRepository {
       _insertOrReplaceCategory(normalized);
     }
     _categoryPresets.sort(_comparePaths);
+    _apiTopCategoriesCache = null;
   }
 
   Future<void> deleteCategory(List<String> path) async {
@@ -176,6 +249,7 @@ class MockProductRepository {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     final key = _pathKey(path);
     _categoryPresets.removeWhere((element) => _pathKey(element) == key);
+    _apiTopCategoriesCache = null;
   }
 
   void _insertOrReplaceCategory(List<String> path) {
@@ -226,6 +300,7 @@ class MockOrderRepository {
   final MockCustomerRepository _customerRepository = MockCustomerRepository();
 
   Future<void> _seed() async {
+    if (useLocalApi) return;
     if (_items.isNotEmpty) return;
     final products = await _productRepository.fetch();
     final customers = await _customerRepository.fetch();
@@ -304,6 +379,19 @@ class MockOrderRepository {
     bool openOnly = false,
     DateTime? dateEquals,
   }) async {
+    if (useLocalApi) {
+      final data = await ApiClient.get('/orders', query: {
+        'q': query,
+        'status': status?.name,
+        'openOnly': openOnly ? 'true' : null,
+        'date': dateEquals != null
+            ? DateFormat('yyyy-MM-dd').format(dateEquals)
+            : null,
+      }) as List<dynamic>;
+      final orders =
+          data.map((e) => _orderFromJson(e as Map<String, dynamic>)).toList();
+      return orders..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
     await _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     Iterable<Order> result = _items;
@@ -339,6 +427,14 @@ class MockOrderRepository {
   }
 
   Future<Order?> findById(String id) async {
+    if (useLocalApi) {
+      try {
+        final data = await ApiClient.get('/orders/$id') as Map<String, dynamic>;
+        return _orderFromJson(data);
+      } catch (_) {
+        return null;
+      }
+    }
     await _seed();
     await Future<void>.delayed(const Duration(milliseconds: 80));
     try {
@@ -349,6 +445,34 @@ class MockOrderRepository {
   }
 
   Future<Order> save(Order order) async {
+    if (useLocalApi) {
+      if (order.id.isEmpty) {
+        final resp = await ApiClient.post('/orders', body: {
+          'buyerName': order.buyerName,
+          'buyerContact': order.buyerContact,
+          'buyerNote': order.buyerNote,
+          'desiredDeliveryDate': order.desiredDeliveryDate?.toIso8601String(),
+          'items': order.lines
+              .map((l) => {
+                    'productId': l.productId,
+                    'productName': l.productName,
+                    'quantity': l.quantity,
+                    'unitPrice': l.unitPrice,
+                  })
+              .toList(),
+        }) as Map<String, dynamic>;
+        final created = _orderFromJson(resp);
+        return created.copyWith(lines: order.lines);
+      } else {
+        await ApiClient.patch('/orders/${order.id}', body: {
+          'status': order.status.name,
+          'buyerNote': order.buyerNote,
+          'updateNote': order.updateNote,
+          'desiredDeliveryDate': order.desiredDeliveryDate?.toIso8601String(),
+        });
+        return await findById(order.id) ?? order;
+      }
+    }
     await _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final isNew = order.id.isEmpty;
@@ -375,6 +499,10 @@ class MockOrderRepository {
   }
 
   Future<void> delete(String id) async {
+    if (useLocalApi) {
+      await ApiClient.delete('/customers/$id');
+      return;
+    }
     await Future<void>.delayed(const Duration(milliseconds: 80));
     _items.removeWhere((element) => element.id == id);
   }
@@ -406,6 +534,7 @@ class MockCustomerRepository {
   }
 
   void _seed() {
+    if (useLocalApi) return;
     _ensureSegments();
     if (_items.isNotEmpty) return;
     final tiers = CustomerTier.values;
@@ -438,6 +567,16 @@ class MockCustomerRepository {
     CustomerTier? tier,
     String? segment,
   }) async {
+    if (useLocalApi) {
+      final data = await ApiClient.get('/customers', query: {
+        'q': query,
+        'tier': tier?.name,
+        'segment': segment,
+      }) as List<dynamic>;
+      final customers =
+          data.map((e) => _customerFromJson(e as Map<String, dynamic>)).toList();
+      return customers..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     Iterable<Customer> result = _items;
@@ -460,6 +599,27 @@ class MockCustomerRepository {
   }
 
   Future<Customer> save(Customer customer) async {
+    if (useLocalApi) {
+      if (customer.id.isEmpty) {
+        final created = await ApiClient.post('/customers', body: {
+          'name': customer.name,
+          'contactName': customer.contactName,
+          'email': customer.email,
+          'tier': customer.tier.name,
+          'segment': customer.segment,
+        }) as Map<String, dynamic>;
+        return _customerFromJson(created);
+      } else {
+        await ApiClient.put('/customers/${customer.id}', body: {
+          'name': customer.name,
+          'contactName': customer.contactName,
+          'email': customer.email,
+          'tier': customer.tier.name,
+          'segment': customer.segment,
+        });
+        return customer;
+      }
+    }
     _seed();
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final index = _items.indexWhere((element) => element.id == customer.id);
@@ -479,17 +639,40 @@ class MockCustomerRepository {
   }
 
   Future<void> delete(String id) async {
+    if (useLocalApi) {
+      await ApiClient.delete('/orders/$id');
+      return;
+    }
     await Future<void>.delayed(const Duration(milliseconds: 80));
     _items.removeWhere((element) => element.id == id);
   }
 
   Future<List<String>> fetchSegments() async {
+    if (useLocalApi) {
+      final data = await ApiClient.get('/customers/segments') as List<dynamic>;
+      return data.map((e) => e.toString()).toList()..sort();
+    }
     _ensureSegments();
     await Future<void>.delayed(const Duration(milliseconds: 80));
     return List<String>.from(_segments)..sort();
   }
 
   Future<void> upsertSegment(String name, {String? original}) async {
+    if (useLocalApi) {
+      // 서버 미구현: 로컬 목록만 관리
+      _ensureSegments();
+      final trimmed = name.trim();
+      if (trimmed.isEmpty) return;
+      if (original != null) {
+        final idx = _segments.indexWhere(
+          (e) => e.toLowerCase() == original.toLowerCase(),
+        );
+        if (idx != -1) _segments[idx] = trimmed;
+      } else if (!_segments.contains(trimmed)) {
+        _segments.add(trimmed);
+      }
+      return;
+    }
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
       throw ArgumentError('Segment cannot be empty');
@@ -512,6 +695,10 @@ class MockCustomerRepository {
   }
 
   Future<void> deleteSegment(String name) async {
+    if (useLocalApi) {
+      _segments.remove(name);
+      return;
+    }
     _ensureSegments();
     await Future<void>.delayed(const Duration(milliseconds: 80));
     _segments.remove(name);
@@ -549,3 +736,112 @@ class _IdCounter {
     return '$prefix$_counter';
   }
 }
+
+List<String> _computeTopCategories(List<Product> products,
+    {List<List<String>> presets = const []}) {
+  final set = <String>{};
+  for (final product in products) {
+    if (product.categories.isNotEmpty) {
+      set.add(product.categories.first);
+    }
+  }
+  for (final p in presets) {
+    if (p.isNotEmpty) set.add(p.first);
+  }
+  final list = set.toList()..sort();
+  return list;
+}
+
+Product _productFromJson(Map<String, dynamic> json) {
+  final tags = <ProductTag>{};
+  final tagList = (json['tags'] as List<dynamic>? ?? []);
+  for (final t in tagList) {
+    final name = t.toString();
+    final tag = ProductTag.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => ProductTag.featured,
+    );
+    tags.add(tag);
+  }
+  final categories = (json['categories'] as List<dynamic>? ?? []).map((e) => e.toString()).toList();
+  return Product(
+    id: json['id'] as String? ?? '',
+    sku: json['sku'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    variantsCount: (json['variantsCount'] ?? json['variants_count'] ?? 1) is int
+        ? (json['variantsCount'] ?? json['variants_count'] ?? 1) as int
+        : int.tryParse((json['variantsCount'] ?? json['variants_count'] ?? '1').toString()) ?? 1,
+    price: (json['price'] as num?)?.toDouble() ?? 0,
+    categories: categories,
+    tags: tags,
+    lowStock: (json['lowStock'] ?? json['low_stock'] ?? false).toString() == 'true' ||
+        (json['lowStock'] ?? json['low_stock'] ?? 0) == 1,
+    imageUrl: json['imageUrl'] as String?,
+  );
+}
+
+Customer _customerFromJson(Map<String, dynamic> json) {
+  return Customer(
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    contactName: json['contactName'] as String? ?? '',
+    email: json['email'] as String? ?? '',
+    tier: _tierFromString(json['tier'] as String?),
+    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+        DateTime.tryParse(json['created_at'] as String? ?? '') ??
+        DateTime.now(),
+    segment: json['segment'] as String? ?? '',
+  );
+}
+
+CustomerTier _tierFromString(String? value) {
+  return CustomerTier.values.firstWhere(
+    (t) => t.name == value,
+    orElse: () => CustomerTier.silver,
+  );
+}
+
+Order _orderFromJson(Map<String, dynamic> json) {
+  final lines = (json['lines'] as List<dynamic>? ?? [])
+      .map((l) => _orderLineFromJson(l as Map<String, dynamic>))
+      .toList();
+  final itemCount = json['itemCount'] ?? json['item_count'] ?? _calcItemCount(lines);
+  return Order(
+    id: json['id'] as String? ?? '',
+    code: json['code'] as String? ?? '',
+    itemCount: itemCount is int ? itemCount : int.tryParse(itemCount.toString()) ?? 0,
+    total: (json['total'] as num?)?.toDouble() ?? 0,
+    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+        DateTime.tryParse(json['created_at'] as String? ?? '') ??
+        DateTime.now(),
+    status: _statusFromString(json['status'] as String?),
+    buyerName: json['buyerName'] as String? ?? json['buyer_name'] as String? ?? '',
+    buyerContact: json['buyerContact'] as String? ?? json['buyer_contact'] as String? ?? '',
+    buyerNote: json['buyerNote'] as String? ?? json['buyer_note'] as String?,
+    updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? json['updated_at'] as String? ?? ''),
+    updateNote: json['updateNote'] as String? ?? json['update_note'] as String?,
+    lines: lines,
+    desiredDeliveryDate: DateTime.tryParse(
+      json['desiredDeliveryDate'] as String? ?? json['desired_delivery_date'] as String? ?? '',
+    ),
+  );
+}
+
+OrderLine _orderLineFromJson(Map<String, dynamic> json) {
+  return OrderLine(
+    productId: json['productId'] as String? ?? json['product_id'] as String? ?? '',
+    productName: json['productName'] as String? ?? json['product_name'] as String? ?? '',
+    quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+    unitPrice: (json['unitPrice'] as num?)?.toDouble() ?? 0,
+  );
+}
+
+OrderStatus _statusFromString(String? value) {
+  return OrderStatus.values.firstWhere(
+    (s) => s.name == value,
+    orElse: () => OrderStatus.pending,
+  );
+}
+
+int _calcItemCount(List<OrderLine> lines) =>
+    lines.fold(0, (sum, l) => sum + l.quantity);

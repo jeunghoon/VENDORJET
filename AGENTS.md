@@ -117,11 +117,12 @@
 2) Firestore Repository 1차 구현: 주문/상품/고객 read-only 계층 도입 후 UI 병행 주입
 3) BuyerPortal v2 설계: 구매자 주문 내역/재주문 템플릿/배송지 캡처 흐름 정의 및 UI 목업 반영
 ## 이어하기(작업 포인터)
-- Firebase Auth 연동: lib/services/auth/*, lib/ui/pages/auth/*
-- Firestore Repository 인터페이스 전환: lib/repositories/mock_repository.dart, lib/services/dashboard/dashboard_service.dart
-- BuyerPortal 확장: lib/ui/pages/buyer/buyer_portal_page.dart, lib/ui/pages/buyer/buyer_cart_controller.dart
-- 주문 buyer 메타 유지보수: lib/ui/pages/orders_page.dart, lib/ui/pages/orders/order_detail_page.dart, lib/ui/pages/orders/order_form_sheet.dart
-- 문서/운영 자료: docs/backend/firebase_plan.md, docs/*
+- 로컬 API 서버(Express + SQLite): `server/src/server.ts`, `server/src/modules/*`, `server/src/seed.ts` — CRUD/회원가입/BuyerPortal 라우트 정상 구동. `.env` 세팅 후 `npm run seed`, `npm run dev`.
+- 클라이언트 API 전환: `lib/services/auth/api_auth_service.dart`, `lib/services/api/api_client.dart`, `lib/repositories/mock_repository.dart`(API 분기) 정리 및 UI 연결 상태 점검.
+- BuyerPortal 확장: `lib/ui/pages/buyer/buyer_portal_page.dart`, `lib/ui/pages/buyer/buyer_cart_controller.dart` — API 데이터 기준 히스토리/스토어/장바구니 검증.
+- 주문/상품/고객 CRUD UI와 API 동기화 확인: `lib/ui/pages/orders_page.dart`, `lib/ui/pages/products_page.dart`, `lib/ui/pages/customers_page.dart`.
+- 문서/운영 자료: 로컬 API 사용법/플래그 정리(add .vscode/launch.json 안내).
+- 가입/승인 확장: 판매자/구매자 가입 탭 UI, 회사 신규/기존 검색, 역할(대표/관리자/직원), 승인 대기/요청 테이블(membership_requests, buyer_requests) 반영.
 ## 진행 상황 체크리스트
 - [x] P0 기본 프레임 구축 및 다국어 적용
 - [x] GoRouter 기반 라우팅과 주문/상품 상세 페이지 초안
@@ -144,10 +145,13 @@
 - [x] 주문 데이터에 buyerName/contact/note 추가 및 UI 연동
 - [x] Firebase Auth·Firestore 통합 계획 문서화
 ## 향후 진행 체크리스트
-- [ ] Firebase Auth SDK 연동 및 커스텀 클레임 발급 Function 작성
-- [ ] Firestore Repository(주문/상품/고객) read-only 계층 도입 및 캐싱 전략 검증
-- [ ] BuyerPortal v2: 구매자 주문 내역/배송지/템플릿 설계 및 UI 반영
-- [ ] Cloud Functions 기반 주문 코드 생성·XLSX 업로드 파이프라인 설계
-- [ ] 핵심 플로우 위젯/통합 테스트 시나리오 명세
+- [ ] 로컬 API 기반 CRUD/회원가입 종단 테스트(상품·고객·주문·테넌트)
+- [ ] 판매자/구매자 구분 회원가입 플로우 구현: 새 회사=소유자 자동 승인, 기존 회사=관리자 승인/알림 설정(관리자만 또는 관리자 이상)
+- [ ] 구매자 가입/승인 흐름: 구매자 회사+판매자 회사 입력, 첨부파일 업로드 후 판매자 승인 시 거래 가능, 승인 후 판매자 상품 조회
+- [ ] 초대/승인 알림/권한 설정: 관리자에게만 또는 관리자 이상 모두에게 알림 옵션 추가
+- [ ] BuyerPortal v2: 주문 내역/배송지/템플릿 설계 및 API 연동 리팩터링
+- [ ] 코드/이벤트 로그 정비 및 에러 핸들링(토큰 만료, CORS/네트워크 예외)
+- [ ] 핵심 플로우 위젯/통합 테스트 시나리오 작성 및 일부 자동화
+- [ ] Firestore/Firebase 전환 설계 재정리(필요 시) 및 문서 업데이트
 
 

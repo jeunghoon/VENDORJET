@@ -1,0 +1,16 @@
+{
+  // VS Code에서 F5 실행 시 로컬 API 서버(포트 4110)에 붙도록 dart-define을 기본으로 넘깁니다.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Local API (localhost:4110)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=USE_LOCAL_API=true",
+        "--dart-define=API_BASE_URL=http://localhost:4110"
+      ]
+    }
+  ]
+}

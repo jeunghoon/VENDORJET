@@ -25,6 +25,9 @@ class _SignInPageState extends State<SignInPage> {
   bool _obscure = true;
   bool _signingIn = false;
 
+  String _tr(String en, String ko) =>
+      Localizations.localeOf(context).languageCode == 'ko' ? ko : en;
+
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -66,7 +69,9 @@ class _SignInPageState extends State<SignInPage> {
                   children: [
                     Text(
                       t.signInTitle,
-                      style: Theme.of(context).textTheme.headlineSmall
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 16),
@@ -187,75 +192,550 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Future<void> _showRegistrationDialog() async {
-    final t = AppLocalizations.of(context)!;
     final auth = context.read<AuthController>();
-    final tenantCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    final pwCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
 
-    final confirmed = await showDialog<bool>(
+    // seller form controllers
+    final sellerFormKey = GlobalKey<FormState>();
+    final sellerCompanyCtrl = TextEditingController();
+    final sellerAddressCtrl = TextEditingController();
+    final sellerPhoneCtrl = TextEditingController();
+    final sellerNameCtrl = TextEditingController();
+    final sellerUserPhoneCtrl = TextEditingController();
+    final sellerEmailCtrl = TextEditingController();
+    final sellerPwCtrl = TextEditingController();
+    final sellerRole = ValueNotifier<String>('staff');
+    bool sellerIsNew = true;
+    Map<String, String> selectedSellerCompany = {};
+
+    // buyer form controllers
+    final buyerFormKey = GlobalKey<FormState>();
+    final buyerCompanyCtrl = TextEditingController();
+    final buyerAddressCtrl = TextEditingController();
+    final buyerPhoneCtrl = TextEditingController();
+    final buyerNameCtrl = TextEditingController();
+    final buyerEmailCtrl = TextEditingController();
+    final buyerAttachmentCtrl = TextEditingController();
+    final sellerSearchCtrl = TextEditingController();
+    final buyerRole = ValueNotifier<String>('staff');
+    bool buyerCompanyIsNew = true;
+    Map<String, String> selectedBuyerCompany = {};
+    Map<String, String> selectedTargetSeller = {};
+
+    // mock company search data
+    final companies = [
+      {'name': 'Acme Foods', 'phone': '02-1234-5678', 'address': 'Seoul'},
+      {'name': 'Nova Market', 'phone': '031-987-6543', 'address': 'Incheon'},
+    ];
+
+    await showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(t.registerVendor),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: tenantCtrl,
-                  decoration: InputDecoration(labelText: t.tenantName),
-                  validator: (v) =>
-                      v == null || v.trim().length < 2 ? t.tenantName : null,
+        return DefaultTabController(
+          length: 2,
+          child: StatefulBuilder(
+            builder: (context, setState) {
+            return AlertDialog(
+              title: Text(_tr('Sign up', '회원가입')),
+              content: SizedBox(
+                width: 540,
+                  height: 620,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TabBar(
+                          tabs: [
+                            Tab(text: _tr('Seller', '도매')),
+                            Tab(text: _tr('Buyer', '소매')),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 520,
+                          child: TabBarView(
+                            children: [
+                              _buildSellerForm(
+                                formKey: sellerFormKey,
+                                isNew: sellerIsNew,
+                                onToggleNew: (v) => setState(() => sellerIsNew = v),
+                                companyCtrl: sellerCompanyCtrl,
+                                addressCtrl: sellerAddressCtrl,
+                                phoneCtrl: sellerPhoneCtrl,
+                                nameCtrl: sellerNameCtrl,
+                                userPhoneCtrl: sellerUserPhoneCtrl,
+                                emailCtrl: sellerEmailCtrl,
+                                pwCtrl: sellerPwCtrl,
+                                selectedCompany: selectedSellerCompany,
+                                onSearchCompany: () async {
+                                  final picked = await _pickCompany(
+                                    context,
+                                    companies,
+                                    _tr('Search company', '회사명 검색'),
+                                  );
+                                  if (picked != null) {
+                                    setState(() {
+                                      selectedSellerCompany = picked;
+                                      sellerCompanyCtrl.text = picked['name'] ?? '';
+                                      sellerPhoneCtrl.text = picked['phone'] ?? '';
+                                      sellerAddressCtrl.text = picked['address'] ?? '';
+                                    });
+                                  }
+                                },
+                                roleNotifier: sellerRole,
+                              ),
+                              _buildBuyerForm(
+                                formKey: buyerFormKey,
+                                isNewBuyerCompany: buyerCompanyIsNew,
+                                onToggleBuyerNew: (v) =>
+                                    setState(() => buyerCompanyIsNew = v),
+                                buyerCompanyCtrl: buyerCompanyCtrl,
+                                buyerAddressCtrl: buyerAddressCtrl,
+                                buyerPhoneCtrl: buyerPhoneCtrl,
+                                buyerNameCtrl: buyerNameCtrl,
+                                buyerEmailCtrl: buyerEmailCtrl,
+                                attachmentCtrl: buyerAttachmentCtrl,
+                                sellerSearchCtrl: sellerSearchCtrl,
+                                selectedBuyerCompany: selectedBuyerCompany,
+                                selectedSeller: selectedTargetSeller,
+                                onSearchBuyerCompany: () async {
+                                  final picked = await _pickCompany(
+                                    context,
+                                    companies,
+                                    _tr('Search buyer company', '구매자 회사 검색'),
+                                  );
+                                  if (picked != null) {
+                                    setState(() {
+                                      selectedBuyerCompany = picked;
+                                      buyerCompanyCtrl.text = picked['name'] ?? '';
+                                      buyerPhoneCtrl.text = picked['phone'] ?? '';
+                                      buyerAddressCtrl.text = picked['address'] ?? '';
+                                    });
+                                  }
+                                },
+                                onSearchSeller: () async {
+                                  final picked = await _pickCompany(
+                                    context,
+                                    companies,
+                                    _tr('Search seller company', '도매 회사 검색'),
+                                  );
+                                  if (picked != null) {
+                                    setState(() {
+                                      selectedTargetSeller = picked;
+                                      sellerSearchCtrl.text = picked['name'] ?? '';
+                                    });
+                                  }
+                                },
+                                roleNotifier: buyerRole,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: emailCtrl,
-                  decoration: InputDecoration(labelText: t.email),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (v) => v == null || v.isEmpty ? t.email : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: pwCtrl,
-                  decoration: InputDecoration(labelText: t.password),
-                  obscureText: true,
-                  validator: (v) =>
-                      v == null || v.length < 6 ? t.password : null,
-                ),
-              ],
-            ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(_tr('Cancel', '취소')),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      final tabController = DefaultTabController.of(context);
+                      final tab = tabController?.index ?? 0;
+                      bool ok = false;
+                      if (tab == 0) {
+                        if (sellerFormKey.currentState?.validate() ?? false) {
+                          ok = await auth.registerSeller(
+                            companyName: sellerCompanyCtrl.text.trim(),
+                            companyAddress: sellerAddressCtrl.text.trim(),
+                            companyPhone: sellerPhoneCtrl.text.trim(),
+                            name: sellerNameCtrl.text.trim(),
+                            phone: sellerUserPhoneCtrl.text.trim(),
+                            email: sellerEmailCtrl.text.trim(),
+                            password: sellerPwCtrl.text,
+                            role: sellerIsNew ? 'owner' : sellerRole.value,
+                          );
+                        }
+                      } else {
+                        if ((buyerFormKey.currentState?.validate() ?? false) &&
+                            sellerSearchCtrl.text.isNotEmpty) {
+                          ok = await auth.registerBuyer(
+                            sellerCompanyName: sellerSearchCtrl.text.trim(),
+                            buyerCompanyName: buyerCompanyCtrl.text.trim(),
+                            buyerAddress: buyerAddressCtrl.text.trim(),
+                            name: buyerNameCtrl.text.trim(),
+                            phone: buyerPhoneCtrl.text.trim(),
+                            email: buyerEmailCtrl.text.trim(),
+                            attachmentUrl: buyerAttachmentCtrl.text.trim(),
+                            role: buyerRole.value,
+                          );
+                        }
+                      }
+                      if (!mounted) return;
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            ok
+                                ? _tr('Submitted (may require approval)', '제출 완료 (승인 대기일 수 있음)')
+                                : _tr('Registration failed', '등록에 실패했습니다'),
+                          ),
+                        ),
+                      );
+                      if (ok) Navigator.of(context).pop();
+                    },
+                    child: Text(_tr('Submit', '등록')),
+                  ),
+                ],
+              );
+            },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(t.orderEditCancel),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.of(context).pop(true);
-                }
-              },
-              child: Text(t.registerVendor),
-            ),
-          ],
         );
       },
     );
 
-    if (confirmed != true) return;
+    sellerCompanyCtrl.dispose();
+    sellerAddressCtrl.dispose();
+    sellerPhoneCtrl.dispose();
+    sellerNameCtrl.dispose();
+    sellerUserPhoneCtrl.dispose();
+    sellerEmailCtrl.dispose();
+    sellerPwCtrl.dispose();
+    sellerRole.dispose();
+    buyerCompanyCtrl.dispose();
+    buyerAddressCtrl.dispose();
+    buyerPhoneCtrl.dispose();
+    buyerNameCtrl.dispose();
+    buyerEmailCtrl.dispose();
+    buyerAttachmentCtrl.dispose();
+    sellerSearchCtrl.dispose();
+    buyerRole.dispose();
+  }
 
-    final ok = await auth.registerTenant(
-      tenantName: tenantCtrl.text.trim(),
-      email: emailCtrl.text.trim(),
-      password: pwCtrl.text,
+  Widget _buildSellerForm({
+    required GlobalKey<FormState> formKey,
+    required bool isNew,
+    required ValueChanged<bool> onToggleNew,
+    required TextEditingController companyCtrl,
+    required TextEditingController addressCtrl,
+    required TextEditingController phoneCtrl,
+    required TextEditingController nameCtrl,
+    required TextEditingController userPhoneCtrl,
+    required TextEditingController emailCtrl,
+    required TextEditingController pwCtrl,
+    required Map<String, String> selectedCompany,
+    required VoidCallback onSearchCompany,
+    required ValueNotifier<String> roleNotifier,
+  }) {
+    return SingleChildScrollView(
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('New company'),
+                  selected: isNew,
+                  onSelected: (_) => onToggleNew(true),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Existing'),
+                  selected: !isNew,
+                  onSelected: (_) => onToggleNew(false),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: companyCtrl,
+                    decoration: InputDecoration(labelText: _tr('Company name', '회사명')),
+                    readOnly: !isNew && selectedCompany.isNotEmpty,
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Enter company name' : null,
+                  ),
+                ),
+                if (!isNew) ...[
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: onSearchCompany,
+                    child: Text(_tr('Search', '검색')),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: phoneCtrl,
+              decoration: InputDecoration(labelText: _tr('Company phone', '대표번호')),
+              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter phone', '대표번호를 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: addressCtrl,
+              decoration: InputDecoration(labelText: _tr('Company address', '주소')),
+              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter address', '주소를 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            if (!isNew)
+              ValueListenableBuilder<String>(
+                valueListenable: roleNotifier,
+                builder: (context, value, _) {
+                  return DropdownButtonFormField<String>(
+                    value: value,
+                    decoration: InputDecoration(labelText: _tr('Role', '역할')),
+                    items: [
+                      DropdownMenuItem(value: 'manager', child: Text(_tr('Manager', '관리자'))),
+                      DropdownMenuItem(value: 'staff', child: Text(_tr('Staff', '직원'))),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) roleNotifier.value = v;
+                    },
+                  );
+                },
+              ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: nameCtrl,
+              decoration: InputDecoration(labelText: _tr('Your name', '이름')),
+              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter your name', '이름을 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: userPhoneCtrl,
+              decoration: InputDecoration(labelText: _tr('Your phone', '전화번호')),
+              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter your phone', '전화번호를 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: emailCtrl,
+              decoration: InputDecoration(labelText: _tr('Email', '이메일')),
+              keyboardType: TextInputType.emailAddress,
+              validator: (v) => v == null || v.isEmpty ? _tr('Enter email', '이메일을 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: pwCtrl,
+              decoration: InputDecoration(labelText: _tr('Password', '비밀번호')),
+              obscureText: true,
+              validator: (v) => v == null || v.length < 6 ? _tr('Min 6 chars', '6자 이상 입력') : null,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isNew
+                  ? _tr('New company: you will be registered as owner.', '신규 회사: 가입자가 사장(소유자)로 등록됩니다.')
+                  : _tr('Existing company: access after owner/manager approval.', '기존 회사: 관리자/사장 승인 후 사용 가능합니다.'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
     );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? t.registerSuccess : t.registerFailed)),
+  }
+
+  Widget _buildBuyerForm({
+    required GlobalKey<FormState> formKey,
+    required bool isNewBuyerCompany,
+    required ValueChanged<bool> onToggleBuyerNew,
+    required TextEditingController buyerCompanyCtrl,
+    required TextEditingController buyerAddressCtrl,
+    required TextEditingController buyerPhoneCtrl,
+    required TextEditingController buyerNameCtrl,
+    required TextEditingController buyerEmailCtrl,
+    required TextEditingController attachmentCtrl,
+    required TextEditingController sellerSearchCtrl,
+    required Map<String, String> selectedBuyerCompany,
+    required Map<String, String> selectedSeller,
+    required VoidCallback onSearchBuyerCompany,
+    required VoidCallback onSearchSeller,
+    required ValueNotifier<String> roleNotifier,
+  }) {
+    return SingleChildScrollView(
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                ChoiceChip(
+                  label: Text(_tr('New company', '신규 회사')),
+                  selected: isNewBuyerCompany,
+                  onSelected: (_) => onToggleBuyerNew(true),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: Text(_tr('Existing', '기존')),
+                  selected: !isNewBuyerCompany,
+                  onSelected: (_) => onToggleBuyerNew(false),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: buyerCompanyCtrl,
+                    decoration: InputDecoration(labelText: _tr('Buyer company', '구매자 회사명')),
+                    readOnly: !isNewBuyerCompany && selectedBuyerCompany.isNotEmpty,
+                    validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter company', '회사명을 입력하세요') : null,
+                  ),
+                ),
+                if (!isNewBuyerCompany) ...[
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: onSearchBuyerCompany,
+                    child: Text(_tr('Search', '검색')),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: buyerAddressCtrl,
+              decoration: InputDecoration(labelText: _tr('Buyer address', '주소')),
+              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter address', '주소를 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: buyerPhoneCtrl,
+              decoration: InputDecoration(labelText: _tr('Buyer phone', '대표번호')),
+              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter phone', '대표번호를 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            ValueListenableBuilder<String>(
+              valueListenable: roleNotifier,
+              builder: (context, value, _) {
+                return DropdownButtonFormField<String>(
+                  value: value,
+                  decoration: InputDecoration(labelText: _tr('Role', '역할')),
+                  items: [
+                    DropdownMenuItem(value: 'manager', child: Text(_tr('Manager', '관리자'))),
+                    DropdownMenuItem(value: 'staff', child: Text(_tr('Staff', '직원'))),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) roleNotifier.value = v;
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: buyerNameCtrl,
+              decoration: InputDecoration(labelText: _tr('Your name', '이름')),
+              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter your name', '이름을 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: buyerEmailCtrl,
+              decoration: InputDecoration(labelText: _tr('Email', '이메일')),
+              keyboardType: TextInputType.emailAddress,
+              validator: (v) => v == null || v.isEmpty ? _tr('Enter email', '이메일을 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: attachmentCtrl,
+              decoration: InputDecoration(
+                labelText: _tr('Attachment URL (optional)', '첨부파일 URL (선택)'),
+                helperText: _tr(
+                  'Business license, etc. if required by seller',
+                  '사업자등록증 등 필요 시 첨부 (선택사항)',
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: sellerSearchCtrl,
+                    decoration: InputDecoration(labelText: _tr('Target seller name', '도매 회사명')),
+                    readOnly: selectedSeller.isNotEmpty,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: onSearchSeller,
+                  child: Text(_tr('Search', '검색')),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (selectedSeller.isNotEmpty)
+              Text(
+                '${_tr('Seller', '도매사')}: ${selectedSeller['name']} / ${selectedSeller['phone']} / ${selectedSeller['address']}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            const SizedBox(height: 8),
+            Text(
+              _tr('After seller approval, you can view products.', '도매사 승인 후 상품을 볼 수 있습니다.'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<Map<String, String>?> _pickCompany(
+    BuildContext context,
+    List<Map<String, String>> companies,
+    String title,
+  ) async {
+    String query = '';
+    return showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final list = companies
+                .where((c) => c['name']!.toLowerCase().contains(query.toLowerCase()))
+                .toList();
+            return AlertDialog(
+              title: Text(title),
+              content: SizedBox(
+                width: 420,
+                height: 360,
+                child: Column(
+                  children: [
+                    TextField(
+                      decoration: InputDecoration(labelText: _tr('Search by name', '회사명 검색')),
+                      onChanged: (v) => setState(() => query = v),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: list.length,
+                        itemBuilder: (context, index) {
+                          final item = list[index];
+                          return ListTile(
+                            title: Text(item['name'] ?? ''),
+                            subtitle: Text(
+                                '${item['phone'] ?? ''} · ${item['address'] ?? ''}'),
+                            onTap: () => Navigator.of(context).pop(item),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
