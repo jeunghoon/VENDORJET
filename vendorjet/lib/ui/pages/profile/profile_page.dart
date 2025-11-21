@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 
+/// 계정/업체 관리
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -20,6 +22,8 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _loading = true;
   bool _saving = false;
 
+  NotificationTicker get _ticker => context.read<NotificationTicker>();
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +31,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final profile = await context.read<AuthController>().fetchProfile();
     if (!mounted) return;
@@ -38,6 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _saveProfile() async {
+    if (!mounted) return;
     setState(() => _saving = true);
     final ok = await context.read<AuthController>().updateProfile(
           name: _nameCtrl.text.trim(),
@@ -48,29 +54,26 @@ class _ProfilePageState extends State<ProfilePage> {
         );
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? '저장되었습니다' : '저장에 실패했습니다')),
-    );
+    _ticker.push(ok ? '저장되었습니다' : '저장에 실패했습니다');
   }
 
   Future<void> _deleteAccount() async {
-    final confirmed = await showDialog<bool>(
+    if (!mounted) return;
+    final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('탈퇴'),
-        content: const Text('계정을 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.'),
+        content: const Text('계정을 탈퇴하시겠습니까? 되돌릴 수 없습니다.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('탈퇴')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('취소')),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('탈퇴')),
         ],
       ),
     );
-    if (confirmed != true) return;
-    final ok = await context.read<AuthController>().deleteAccount();
+    if (!mounted || ok != true) return;
+    final success = await context.read<AuthController>().deleteAccount();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? '탈퇴되었습니다' : '탈퇴에 실패했습니다')),
-    );
+    _ticker.push(success ? '탈퇴되었습니다' : '탈퇴에 실패했습니다');
   }
 
   @override
@@ -89,7 +92,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final tenants = auth.tenants;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('내 정보/업체 관리'),
+        title: const Text('계정/업체 관리'),
         actions: [
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
@@ -99,7 +102,7 @@ class _ProfilePageState extends State<ProfilePage> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Text('개인정보', style: Theme.of(context).textTheme.titleMedium),
+                Text('개인 정보', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: '이름')),
                 const SizedBox(height: 8),
@@ -134,22 +137,24 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                Text('업체 관리 (도매/소매)', style: Theme.of(context).textTheme.titleMedium),
+                Text('업체 관리', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 ...tenants.map(
-                  (t) => Card(
+                  (tenant) => Card(
                     child: ListTile(
-                      title: Text(t.name),
-                      subtitle: Text('${t.id}\n${t.createdAt}'),
+                      title: Text(tenant.name),
+                      subtitle: Text([
+                        if (tenant.phone.isNotEmpty) '전화: ${tenant.phone}',
+                        if (tenant.address.isNotEmpty) '주소: ${tenant.address}',
+                      ].join('\n')),
                       trailing: PopupMenuButton<String>(
-                        onSelected: (v) {
-                          Future.microtask(() {
-                            if (v == 'edit') {
-                              _editTenant(t.id, t.name);
-                            } else if (v == 'delete') {
-                              _deleteTenant(t.id);
-                            }
-                          });
+                        onSelected: (value) {
+                          if (!mounted) return;
+                          if (value == 'edit') {
+                            _editTenant(tenant.id, tenant.name, tenant.phone, tenant.address);
+                          } else if (value == 'delete') {
+                            _deleteTenant(tenant.id);
+                          }
                         },
                         itemBuilder: (_) => const [
                           PopupMenuItem(value: 'edit', child: Text('수정')),
@@ -176,7 +181,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final addrCtrl = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('업체 추가'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -189,28 +194,28 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('추가')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('취소')),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('추가')),
         ],
       ),
     );
-    if (ok == true) {
-      await context.read<AuthController>().createTenantForCurrentUser(
-            name: nameCtrl.text.trim(),
-            phone: phoneCtrl.text.trim(),
-            address: addrCtrl.text.trim(),
-          );
-      if (mounted) await _load();
-    }
+    if (!mounted || ok != true) return;
+    await context.read<AuthController>().createTenantForCurrentUser(
+          name: nameCtrl.text.trim(),
+          phone: phoneCtrl.text.trim(),
+          address: addrCtrl.text.trim(),
+        );
+    if (mounted) await _load();
+    _ticker.push('업체가 추가되었습니다');
   }
 
-  Future<void> _editTenant(String tenantId, String currentName) async {
+  Future<void> _editTenant(String tenantId, String currentName, String currentPhone, String currentAddress) async {
     final nameCtrl = TextEditingController(text: currentName);
-    final phoneCtrl = TextEditingController();
-    final addrCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController(text: currentPhone);
+    final addrCtrl = TextEditingController(text: currentAddress);
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('업체 수정'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -223,37 +228,37 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('저장')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('취소')),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('수정')),
         ],
       ),
     );
-    if (ok == true) {
-      await context.read<AuthController>().updateTenant(
-            tenantId: tenantId,
-            name: nameCtrl.text.trim(),
-            phone: phoneCtrl.text.trim(),
-            address: addrCtrl.text.trim(),
-          );
-      if (mounted) await _load();
-    }
+    if (!mounted || ok != true) return;
+    await context.read<AuthController>().updateTenant(
+          tenantId: tenantId,
+          name: nameCtrl.text.trim(),
+          phone: phoneCtrl.text.trim(),
+          address: addrCtrl.text.trim(),
+        );
+    if (mounted) await _load();
+    _ticker.push('업체가 수정되었습니다');
   }
 
   Future<void> _deleteTenant(String tenantId) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('업체 삭제'),
-        content: const Text('이 업체를 삭제하시겠습니까?'),
+        content: const Text('해당 업체를 삭제하시겠습니까?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('삭제')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('취소')),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('삭제')),
         ],
       ),
     );
-    if (ok == true) {
-      await context.read<AuthController>().deleteTenant(tenantId);
-      if (mounted) await _load();
-    }
+    if (!mounted || ok != true) return;
+    await context.read<AuthController>().deleteTenant(tenantId);
+    if (mounted) await _load();
+    _ticker.push('업체가 삭제되었습니다');
   }
 }

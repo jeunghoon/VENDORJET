@@ -44,6 +44,16 @@ class _SettingsPageState extends State<SettingsPage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.person_outline),
+            title: const Text('회원 정보 수정'),
+            subtitle: const Text('개인 정보와 업체 정보를 관리합니다'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => GoRouter.of(context).push('/profile'),
+          ),
+        ),
+        const SizedBox(height: 16),
         if (tenant != null) ...[
           Text(
             t.tenantSectionTitle,

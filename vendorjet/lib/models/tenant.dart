@@ -1,11 +1,23 @@
 enum TenantMemberRole { owner, manager, staff }
 
+enum TenantType { seller, buyer, unknown }
+
 class Tenant {
   final String id;
   final String name;
   final DateTime createdAt;
+  final String phone;
+  final String address;
+  final TenantType type;
 
-  const Tenant({required this.id, required this.name, required this.createdAt});
+  const Tenant({
+    required this.id,
+    required this.name,
+    required this.createdAt,
+    this.phone = '',
+    this.address = '',
+    this.type = TenantType.unknown,
+  });
 }
 
 class TenantMembership {

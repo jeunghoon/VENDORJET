@@ -20,7 +20,9 @@ import 'ui/pages/products/product_detail_page.dart';
 import 'ui/pages/products_page.dart';
 import 'ui/pages/settings_page.dart';
 import 'ui/widgets/responsive_scaffold.dart';
+import 'ui/widgets/notification_ticker.dart';
 import 'ui/pages/admin/admin_page.dart';
+import 'ui/pages/profile/profile_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -153,6 +155,11 @@ class _MyAppState extends State<MyApp> {
               name: 'admin',
               builder: (context, state) => const AdminPage(),
             ),
+            GoRoute(
+              path: '/profile',
+              name: 'profile',
+              builder: (context, state) => const ProfilePage(),
+            ),
           ],
         ),
         GoRoute(
@@ -171,6 +178,9 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider<AuthController>.value(value: _authController),
         ChangeNotifierProvider<DataRefreshCoordinator>(
           create: (_) => DataRefreshCoordinator(),
+        ),
+        ChangeNotifierProvider<NotificationTicker>(
+          create: (_) => NotificationTicker(),
         ),
       ],
       child: Consumer<AuthController>(
@@ -193,7 +203,24 @@ class _MyAppState extends State<MyApp> {
               if (auth.loading) {
                 return const _Splash();
               }
-              return child ?? const SizedBox.shrink();
+              final ticker = context.watch<NotificationTicker>();
+              const tickerHeight = 36.0;
+              final bgColor = Theme.of(context).scaffoldBackgroundColor;
+              return Stack(
+                children: [
+                  Container(
+                    color: bgColor,
+                    padding: const EdgeInsets.only(bottom: tickerHeight * 1.5),
+                    child: child ?? const SizedBox.shrink(),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: NotificationTickerBar(ticker: ticker),
+                  ),
+                ],
+              );
             },
           );
         },
@@ -270,11 +297,28 @@ class _HomeShell extends StatelessWidget {
       ),
     ];
 
+    final appBar = isDetail
+        ? null
+        : AppBar(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t.appTitle),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: '글로벌 관리자',
+                  icon: const Icon(Icons.admin_panel_settings_outlined),
+                  onPressed: () => context.go('/admin'),
+                ),
+              ],
+            ),
+          );
+
     return ResponsiveScaffold(
       currentIndex: currentIndex,
       onIndexChanged: (index) => _handleNavigation(context, index),
       destinations: destinations,
-      appBar: isDetail ? null : AppBar(title: Text(t.appTitle)),
+      appBar: appBar,
       child: child,
     );
   }

@@ -22,6 +22,7 @@ class ApiAuthService implements AuthService {
     ApiClient.token = _prefs?.getString(_kToken);
     _email = _prefs?.getString(_kEmail);
     _currentTenantId = _prefs?.getString(_kTenant);
+    ApiClient.tenantId = _currentTenantId;
     if (ApiClient.token != null) {
       try {
         _tenants = await fetchTenants();
@@ -49,6 +50,7 @@ class ApiAuthService implements AuthService {
               ))
           .toList();
       _currentTenantId = _memberships.isNotEmpty ? _memberships.first.tenantId : null;
+      ApiClient.tenantId = _currentTenantId;
       _tenants = await fetchTenants();
       await _persist();
       return true;
@@ -150,7 +152,10 @@ class ApiAuthService implements AuthService {
           .map((e) => Tenant(
                 id: e['id'] as String,
                 name: e['name'] as String,
-                createdAt: DateTime.now(),
+                phone: (e['phone'] as String?) ?? '',
+                address: (e['address'] as String?) ?? '',
+                type: _typeFromString(e['type'] as String?),
+                createdAt: DateTime.tryParse((e['createdAt'] ?? '') as String? ?? '') ?? DateTime.now(),
               ))
           .toList();
       _tenants = tenants;
@@ -166,6 +171,7 @@ class ApiAuthService implements AuthService {
     final allowed = _memberships.any((m) => m.tenantId == tenantId);
     if (!allowed) return false;
     _currentTenantId = tenantId;
+    ApiClient.tenantId = tenantId;
     await _persist();
     return true;
   }
@@ -267,6 +273,53 @@ class ApiAuthService implements AuthService {
     // 서버 미구현: no-op
   }
 
+  Future<bool> createTenantForUser({
+    required String userId,
+    required String name,
+    String phone = '',
+    String address = '',
+  }) async {
+    try {
+      await ApiClient.post('/admin/tenants', body: {
+        'userId': userId,
+        'name': name,
+        'phone': phone,
+        'address': address,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> updateTenant({
+    required String tenantId,
+    String? name,
+    String? phone,
+    String? address,
+  }) async {
+    final body = <String, String>{};
+    if (name != null && name.isNotEmpty) body['name'] = name;
+    if (phone != null && phone.isNotEmpty) body['phone'] = phone;
+    if (address != null && address.isNotEmpty) body['address'] = address;
+    if (body.isEmpty) return true;
+    try {
+      await ApiClient.patch('/admin/tenants/$tenantId', body: body);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteTenant(String tenantId) async {
+    try {
+      await ApiClient.delete('/admin/tenants/$tenantId');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _persist() async {
     await _prefs?.setString(_kEmail, _email ?? '');
     if (_currentTenantId != null) {
@@ -285,6 +338,17 @@ class ApiAuthService implements AuthService {
         return TenantMemberRole.manager;
       default:
         return TenantMemberRole.staff;
+    }
+  }
+
+  TenantType _typeFromString(String? value) {
+    switch (value) {
+      case 'seller':
+        return TenantType.seller;
+      case 'buyer':
+        return TenantType.buyer;
+      default:
+        return TenantType.unknown;
     }
   }
 }

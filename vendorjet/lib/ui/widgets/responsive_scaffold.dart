@@ -7,6 +7,8 @@ class ResponsiveScaffold extends StatelessWidget {
   final List<NavigationDestination> destinations;
   final Widget child;
   final PreferredSizeWidget? appBar;
+  final Widget? leading;
+  final Widget? title;
 
   const ResponsiveScaffold({
     super.key,
@@ -15,6 +17,8 @@ class ResponsiveScaffold extends StatelessWidget {
     required this.destinations,
     required this.child,
     this.appBar,
+    this.leading,
+    this.title,
   });
 
   @override
@@ -25,7 +29,11 @@ class ResponsiveScaffold extends StatelessWidget {
         final isWide = constraints.maxWidth >= 900; // 데스크톱/태블릿 가로
         if (isWide) {
           return Scaffold(
-            appBar: appBar,
+            appBar: appBar ??
+                AppBar(
+                  leading: leading,
+                  title: title,
+                ),
             body: Row(
               children: [
                 _Rail(

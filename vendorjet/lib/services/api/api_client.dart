@@ -10,6 +10,7 @@ const String apiBaseUrl =
 class ApiClient {
   static final http.Client _client = http.Client();
   static String? token;
+  static String? tenantId;
 
   static Uri _uri(String path, [Map<String, String?>? query]) {
     final base = apiBaseUrl.endsWith('/') ? apiBaseUrl.substring(0, apiBaseUrl.length - 1) : apiBaseUrl;
@@ -25,6 +26,7 @@ class ApiClient {
   static Map<String, String> _headers() => {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
+        if (tenantId != null) 'X-Tenant-Id': tenantId!,
       };
 
   static Future<dynamic> get(String path, {Map<String, String?>? query}) async {

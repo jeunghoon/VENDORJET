@@ -45,6 +45,7 @@ class _ProductsPageState extends State<ProductsPage> {
   String? _error;
   bool _lowStockOnly = false;
   String? _topCategoryFilter;
+  bool _gridView = true;
 
   DataRefreshCoordinator? _refreshCoordinator;
   int _lastProductsVersion = 0;
@@ -193,6 +194,21 @@ class _ProductsPageState extends State<ProductsPage> {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _gridView ? 'Grid view' : 'List view',
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  IconButton(
+                    tooltip: _gridView ? 'List view' : 'Grid view',
+                    onPressed: () => setState(() => _gridView = !_gridView),
+                    icon: Icon(_gridView ? Icons.view_list : Icons.grid_view),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               Expanded(
                 child: Builder(
@@ -220,127 +236,50 @@ class _ProductsPageState extends State<ProductsPage> {
                             : t.productsEmptyFiltered(_topCategoryFilter!),
                       );
                     }
-                    return RefreshIndicator(
-                      onRefresh: _load,
-                      child: GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 1.2,
-                            ),
-                        itemCount: _items.length,
-                        itemBuilder: (context, i) {
-                          final p = _items[i];
-                          final categoryLabel = p.categories.isEmpty
-                              ? t.productCategoryUnassigned
-                              : p.categories.join(' > ');
-                          final tagLabels = _tagLabels(p.tags, t);
-                          return Card(
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () => context.go('/products/${p.id}'),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: color.primary.withValues(
-                                            alpha: 0.08,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.inventory_2_outlined,
-                                            size: 42,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      p.sku,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    Text(
-                                      p.name,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      categoryLabel,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: color.onSurface.withValues(
-                                              alpha: 0.6,
-                                            ),
-                                          ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: -6,
-                                      children: [
-                                        if (p.lowStock)
-                                          _Tag(
-                                            label: t.productLowStockTag,
-                                            highlight: true,
-                                          ),
-                                        for (final label in tagLabels)
-                                          _Tag(label: label),
-                                      ],
-                                    ),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: PopupMenuButton<String>(
-                                        onSelected: (value) {
-                                          switch (value) {
-                                            case 'edit':
-                                              _openProductForm(initial: p);
-                                              break;
-                                            case 'delete':
-                                              _confirmDelete(p);
-                                              break;
-                                          }
-                                        },
-                                        itemBuilder: (context) => [
-                                          PopupMenuItem(
-                                            value: 'edit',
-                                            child: Text(t.edit),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'delete',
-                                            child: Text(t.productsDelete),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth >= 900;
+                        final crossAxisCount = isWide ? 4 : 2;
+                        final aspectRatio = isWide ? 0.9 : 0.85;
+                        if (_gridView) {
+                          return RefreshIndicator(
+                            onRefresh: _load,
+                            child: GridView.builder(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: aspectRatio,
+                              ),
+                              itemCount: _items.length,
+                              itemBuilder: (context, i) => _ProductCard(
+                                product: _items[i],
+                                t: t,
+                                color: color,
+                                onEdit: _openProductForm,
+                                onDelete: _confirmDelete,
+                                compact: true,
                               ),
                             ),
                           );
-                        },
-                      ),
+                        }
+                        return RefreshIndicator(
+                          onRefresh: _load,
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                            itemCount: _items.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, i) => _ProductCard(
+                              product: _items[i],
+                              t: t,
+                              color: color,
+                              onEdit: _openProductForm,
+                              onDelete: _confirmDelete,
+                              compact: false,
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -359,20 +298,6 @@ class _ProductsPageState extends State<ProductsPage> {
         ),
       ],
     );
-  }
-
-  List<String> _tagLabels(Set<ProductTag> tags, AppLocalizations t) {
-    final labels = <String>[];
-    if (tags.contains(ProductTag.featured)) {
-      labels.add(t.productTagFeatured);
-    }
-    if (tags.contains(ProductTag.discounted)) {
-      labels.add(t.productTagDiscounted);
-    }
-    if (tags.contains(ProductTag.newArrival)) {
-      labels.add(t.productTagNew);
-    }
-    return labels;
   }
 
   Future<void> _openProductForm({Product? initial}) async {
@@ -488,6 +413,95 @@ class _ProductsPageState extends State<ProductsPage> {
     );
     if (!mounted) return;
     await _load();
+  }
+}
+
+class _ProductCard extends StatelessWidget {
+  final Product product;
+  final AppLocalizations t;
+  final ColorScheme color;
+  final void Function(Product) onDelete;
+  final void Function({Product? initial}) onEdit;
+  final bool compact;
+
+  const _ProductCard({
+    required this.product,
+    required this.t,
+    required this.color,
+    required this.onDelete,
+    required this.onEdit,
+    required this.compact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final categoryLabel =
+        product.categories.isEmpty ? t.productCategoryUnassigned : product.categories.join(' > ');
+    final tagLabels = <String>[];
+    if (product.lowStock) tagLabels.add(t.productLowStockTag);
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.go('/products/${product.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(product.sku, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      product.name,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      categoryLabel,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: color.onSurface.withValues(alpha: 0.6),
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: -6,
+                      children: [
+                        for (final label in tagLabels)
+                          _Tag(label: label, highlight: label == t.productLowStockTag),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  switch (value) {
+                    case 'edit':
+                      onEdit(initial: product);
+                      break;
+                    case 'delete':
+                      onDelete(product);
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(value: 'edit', child: Text(t.edit)),
+                  PopupMenuItem(value: 'delete', child: Text(t.productsDelete)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

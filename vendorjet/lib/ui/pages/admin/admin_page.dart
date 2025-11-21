@@ -16,7 +16,6 @@ class _AdminPageState extends State<AdminPage> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _users = [];
-  List<Map<String, dynamic>> _tenants = [];
   List<Map<String, dynamic>> _membershipRequests = [];
   List<Map<String, dynamic>> _buyerRequests = [];
 
@@ -33,11 +32,9 @@ class _AdminPageState extends State<AdminPage> {
     });
     try {
       final users = await ApiClient.get('/admin/users') as List<dynamic>;
-      final tenants = await ApiClient.get('/admin/tenants') as List<dynamic>;
       final req = await ApiClient.get('/admin/requests') as Map<String, dynamic>;
       setState(() {
         _users = users.cast<Map<String, dynamic>>();
-        _tenants = tenants.cast<Map<String, dynamic>>();
         _membershipRequests =
             (req['membershipRequests'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
         _buyerRequests =
@@ -55,15 +52,14 @@ class _AdminPageState extends State<AdminPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('관리자'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: '사용자'),
-              Tab(text: '업체'),
-              Tab(text: '승인요청'),
+              Tab(text: 'Users'),
+              Tab(text: 'Approvals'),
             ],
           ),
           actions: [
@@ -80,7 +76,6 @@ class _AdminPageState extends State<AdminPage> {
                 : TabBarView(
                     children: [
                       _UsersTab(users: _users, onChanged: _load),
-                      _TenantsTab(tenants: _tenants),
                       _RequestsTab(
                         membershipRequests: _membershipRequests,
                         buyerRequests: _buyerRequests,
@@ -101,16 +96,21 @@ class _UsersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (users.isEmpty) {
-      return const Center(child: Text('사용자가 없습니다'));
+      return const Center(child: Text('No users'));
     }
     final dateFormat = DateFormat.yMMMd().add_Hm();
     return ListView.builder(
       itemCount: users.length,
       itemBuilder: (context, index) {
         final u = users[index];
-        final type = (u['userType'] ?? 'wholesale') == 'retail' ? '소매' : '도매';
+        final type = (u['userType'] ?? 'wholesale') == 'retail' ? 'Retail' : 'Wholesale';
         final createdAt = u['createdAt'] as String?;
         final lastLogin = u['lastLoginAt'] as String?;
+        final tenants = (u['tenants'] as List<dynamic>? ?? [])
+            .cast<Map<String, dynamic>>()
+            .map((t) => '${t['name'] ?? ''}${t['role'] != null ? ' · ${t['role']}' : ''}')
+            .where((e) => e.trim().isNotEmpty)
+            .toList();
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Padding(
@@ -126,66 +126,45 @@ class _UsersTab extends StatelessWidget {
                     children: [
                       Text(u['email'] ?? '', style: Theme.of(context).textTheme.titleSmall),
                       Text(
-                        '${u['name'] ?? ''} · $type · ${u['role'] ?? ''}${(u['status'] ?? '') == 'pending' ? ' (대기)' : ''}',
+                        '${u['name'] ?? ''} · $type · ${u['role'] ?? ''}${(u['status'] ?? '') == 'pending' ? ' (pending)' : ''}',
                       ),
                       if (createdAt != null && createdAt.isNotEmpty)
                         Text(
-                          '가입: ${dateFormat.format(DateTime.tryParse(createdAt) ?? DateTime.now())}',
+                          'Joined ${dateFormat.format(DateTime.tryParse(createdAt) ?? DateTime.now())}',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       if (lastLogin != null && lastLogin.isNotEmpty)
                         Text(
-                          '마지막: ${dateFormat.format(DateTime.tryParse(lastLogin) ?? DateTime.now())}',
+                          'Last login ${dateFormat.format(DateTime.tryParse(lastLogin) ?? DateTime.now())}',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
+                      if (tenants.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: -6,
+                          children: tenants
+                              .map((tName) => Chip(
+                                    label: Text(tName),
+                                    visualDensity: VisualDensity.compact,
+                                  ))
+                              .toList(),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(u['tenantNames'] ?? u['tenantName'] ?? ''),
-                    IconButton(
-                      tooltip: '삭제',
-                      onPressed: () async {
-                        await ApiClient.delete('/admin/users/${u['id']}');
-                        onChanged();
-                      },
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ],
+                IconButton(
+                  tooltip: 'Delete',
+                  onPressed: () async {
+                    await ApiClient.delete('/admin/users/${u['id']}');
+                    onChanged();
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                  color: Theme.of(context).colorScheme.error,
                 ),
               ],
             ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _TenantsTab extends StatelessWidget {
-  final List<Map<String, dynamic>> tenants;
-
-  const _TenantsTab({required this.tenants});
-
-  @override
-  Widget build(BuildContext context) {
-    if (tenants.isEmpty) {
-      return const Center(child: Text('업체가 없습니다'));
-    }
-    return ListView.builder(
-      itemCount: tenants.length,
-      itemBuilder: (context, index) {
-        final t = tenants[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: ListTile(
-            leading: const Icon(Icons.apartment_outlined),
-            title: Text(t['name'] ?? ''),
-            subtitle: Text('${t['phone'] ?? ''} · ${t['address'] ?? ''}'),
-            trailing: Text('멤버 ${t['memberCount'] ?? 0}'),
           ),
         );
       },
@@ -206,7 +185,7 @@ class _RequestsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat.yMMMd();
     final combined = [
-      ...membershipRequests.map((r) => {...r, 'kind': '도매 합류'}),
+      ...membershipRequests.map((r) => {...r, 'kind': '멤버 승인'}),
       ...buyerRequests.map((r) => {...r, 'kind': '소매 승인'}),
     ];
     if (combined.isEmpty) {

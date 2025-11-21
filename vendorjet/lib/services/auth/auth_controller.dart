@@ -173,6 +173,57 @@ class AuthController extends ChangeNotifier {
     return ok;
   }
 
+  Future<bool> createTenantForCurrentUser({
+    required String name,
+    String phone = '',
+    String address = '',
+  }) async {
+    final profile = await fetchProfile();
+    final userId = profile?['id'] as String?;
+    if (userId == null) return false;
+    final ok = await _api?.createTenantForUser(
+          userId: userId,
+          name: name,
+          phone: phone,
+          address: address,
+        ) ??
+        false;
+    if (ok) {
+      _tenants = await service.fetchTenants();
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  Future<bool> updateTenant({
+    required String tenantId,
+    String? name,
+    String? phone,
+    String? address,
+  }) async {
+    final ok = await _api?.updateTenant(
+          tenantId: tenantId,
+          name: name,
+          phone: phone,
+          address: address,
+        ) ??
+        false;
+    if (ok) {
+      _tenants = await service.fetchTenants();
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  Future<bool> deleteTenant(String tenantId) async {
+    final ok = await _api?.deleteTenant(tenantId) ?? false;
+    if (ok) {
+      _tenants = await service.fetchTenants();
+      notifyListeners();
+    }
+    return ok;
+  }
+
   Future<bool> switchTenant(String tenantId) async {
     final ok = await service.switchTenant(tenantId);
     if (ok) notifyListeners();
