@@ -274,7 +274,7 @@ class _RecentOrdersList extends StatelessWidget {
                   ),
                 const SizedBox(height: 2),
                 Text(
-                  '${localizations.formatShortDate(order.createdAt)} · ${numberFormat.format(order.total)}',
+                  '${localizations.formatShortDate(order.createdAt)} - ${numberFormat.format(order.total)}',
                 ),
                 const SizedBox(height: 2),
                 Text(

@@ -58,8 +58,8 @@ class _AdminPageState extends State<AdminPage> {
           title: const Text('관리자'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Users'),
-              Tab(text: 'Approvals'),
+              Tab(text: '사용자'),
+              Tab(text: '승인 요청'),
             ],
           ),
           actions: [
@@ -96,7 +96,7 @@ class _UsersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (users.isEmpty) {
-      return const Center(child: Text('No users'));
+      return const Center(child: Text('사용자가 없습니다'));
     }
     final dateFormat = DateFormat.yMMMd().add_Hm();
     return ListView.builder(
@@ -130,12 +130,12 @@ class _UsersTab extends StatelessWidget {
                       ),
                       if (createdAt != null && createdAt.isNotEmpty)
                         Text(
-                          'Joined ${dateFormat.format(DateTime.tryParse(createdAt) ?? DateTime.now())}',
+                          '가입 ${dateFormat.format(DateTime.tryParse(createdAt) ?? DateTime.now())}',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       if (lastLogin != null && lastLogin.isNotEmpty)
                         Text(
-                          'Last login ${dateFormat.format(DateTime.tryParse(lastLogin) ?? DateTime.now())}',
+                          '최근 접속 ${dateFormat.format(DateTime.tryParse(lastLogin) ?? DateTime.now())}',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       if (tenants.isNotEmpty) ...[
@@ -155,7 +155,7 @@ class _UsersTab extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Delete',
+                  tooltip: '삭제',
                   onPressed: () async {
                     await ApiClient.delete('/admin/users/${u['id']}');
                     onChanged();
@@ -185,8 +185,8 @@ class _RequestsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat.yMMMd();
     final combined = [
-      ...membershipRequests.map((r) => {...r, 'kind': '멤버 승인'}),
-      ...buyerRequests.map((r) => {...r, 'kind': '소매 승인'}),
+      ...membershipRequests.map((r) => {...r, 'kind': '멤버십 요청'}),
+      ...buyerRequests.map((r) => {...r, 'kind': '구매자 요청'}),
     ];
     if (combined.isEmpty) {
       return const Center(child: Text('승인 요청이 없습니다'));
