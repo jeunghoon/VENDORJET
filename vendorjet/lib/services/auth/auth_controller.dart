@@ -23,6 +23,8 @@ class AuthController extends ChangeNotifier {
   List<TenantMembership> get memberships => service.memberships;
   List<Tenant> get tenants => _tenants;
 
+  ApiAuthService? get _api => service is ApiAuthService ? service as ApiAuthService : null;
+
   Future<void> load() async {
     _loading = true;
     notifyListeners();
@@ -30,7 +32,7 @@ class AuthController extends ChangeNotifier {
       await service.init();
       _signedIn = await service.isSignedIn();
       _email = service.currentEmail;
-      _tenants = await service.fetchTenants();
+      _tenants = _signedIn ? await service.fetchTenants() : const [];
     } catch (_) {
       _signedIn = false;
       _email = null;
@@ -90,7 +92,10 @@ class AuthController extends ChangeNotifier {
         role: role,
       );
       if (ok) {
-        _tenants = await service.fetchTenants();
+        // pending 가입 등 토큰이 없을 수 있으니, 토큰이 있을 때만 테넌트 목록 요청
+        if (await service.isSignedIn()) {
+          _tenants = await service.fetchTenants();
+        }
         notifyListeners();
       }
       return ok;
@@ -129,6 +134,43 @@ class AuthController extends ChangeNotifier {
   }) async {
     await service.inviteMember(email: email, role: role);
     notifyListeners();
+  }
+
+  Future<Map<String, dynamic>?> fetchProfile() async {
+    return await _api?.fetchProfile();
+  }
+
+  Future<bool> updateProfile({
+    String? email,
+    String? phone,
+    String? address,
+    String? name,
+    String? password,
+  }) async {
+    final ok = await _api?.updateProfile(
+          email: email,
+          phone: phone,
+          address: address,
+          name: name,
+          password: password,
+        ) ??
+        false;
+    if (ok) {
+      _email = service.currentEmail;
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  Future<bool> deleteAccount() async {
+    final ok = await _api?.deleteAccount() ?? false;
+    if (ok) {
+      _signedIn = false;
+      _email = null;
+      _tenants = const [];
+      notifyListeners();
+    }
+    return ok;
   }
 
   Future<bool> switchTenant(String tenantId) async {

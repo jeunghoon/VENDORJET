@@ -1,11 +1,59 @@
 import Database from 'better-sqlite3';
 import { format } from 'date-fns';
 import path from 'path';
+import fs from 'fs';
 
 const db = new Database(path.join(__dirname, '..', 'vendorjet.db'));
 db.pragma('foreign_keys = ON');
 
 const nowIso = new Date().toISOString();
+const schemaPath = path.join(__dirname, '..', 'schema.sql');
+
+// 스키마 보강: 핵심 테이블이 없을 때만 schema.sql 적용
+const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+const names = db
+  .prepare("SELECT name FROM sqlite_master WHERE type='table';")
+  .all()
+  .map((r: any) => r.name);
+const coreTables = ['users', 'tenants', 'orders', 'order_lines'];
+const missingCore = coreTables.some((t) => !names.includes(t));
+if (missingCore) {
+  db.exec(schemaSql);
+}
+
+// ensure missing tables (for fresh DB)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS buyer_requests (
+    id TEXT PRIMARY KEY,
+    seller_company TEXT,
+    seller_phone TEXT,
+    seller_address TEXT,
+    buyer_company TEXT,
+    buyer_address TEXT,
+    email TEXT,
+    name TEXT,
+    phone TEXT,
+    role TEXT,
+    attachment_url TEXT,
+    status TEXT,
+    created_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS membership_requests (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT,
+    email TEXT,
+    name TEXT,
+    phone TEXT,
+    role TEXT,
+    status TEXT,
+    company_name TEXT,
+    company_address TEXT,
+    company_phone TEXT,
+    attachments TEXT,
+    requester_type TEXT,
+    created_at TEXT
+  );
+`);
 
 function resetTables() {
   db.exec(`
@@ -56,29 +104,52 @@ function seedProducts() {
   const insertProduct = db.prepare(
     'INSERT OR REPLACE INTO products (id, tenant_id, sku, name, price, variants_count, categories, tags, low_stock, image_url) VALUES (?,?,?,?,?,?,?,?,?,?)'
   );
-  const sampleCategories = [
-    ['Beverages'],
-    ['Snacks'],
-    ['Household'],
-    ['Fashion'],
-    ['Electronics'],
+  const acmeProducts = [
+    { sku: 'ACM-COFF-001', name: 'Coldbrew Concentrate 2L', price: 24.5, cat: ['Beverages', 'Coffee'], low: 0 },
+    { sku: 'ACM-TEA-002', name: 'Jasmine Green Tea 500ml', price: 2.9, cat: ['Beverages', 'Tea'], low: 0 },
+    { sku: 'ACM-SYR-003', name: 'Vanilla Syrup 1kg', price: 8.5, cat: ['Ingredients', 'Syrup'], low: 0 },
+    { sku: 'ACM-DRY-004', name: 'Penne Rigate 5kg', price: 11.0, cat: ['Dry Goods', 'Pasta'], low: 0 },
+    { sku: 'ACM-SNCK-005', name: 'Sea Salt Chips 150g', price: 3.2, cat: ['Snacks', 'Chips'], low: 1 },
+    { sku: 'ACM-DAIR-006', name: 'Whole Milk 1L', price: 1.8, cat: ['Dairy', 'Milk'], low: 0 },
+    { sku: 'ACM-FRZN-007', name: 'Frozen Blueberries 2kg', price: 9.9, cat: ['Frozen', 'Fruit'], low: 0 },
+    { sku: 'ACM-CLN-008', name: 'Kitchen Paper Towel 12roll', price: 7.5, cat: ['Household', 'Supplies'], low: 0 },
   ];
-  for (let i = 0; i < 10; i++) {
-    const tenantId = i % 2 === 0 ? 't_acme' : 't_nova';
-    const cat = sampleCategories[i % sampleCategories.length];
+  acmeProducts.forEach((p, idx) =>
     insertProduct.run(
-      `p_${i + 1}`,
-      tenantId,
-      `SKU-${1000 + i}`,
-      `Sample Product ${i + 1}`,
-      10 + i * 2.5,
+      `p_acm_${idx + 1}`,
+      't_acme',
+      p.sku,
+      p.name,
+      p.price,
       1,
-      JSON.stringify(cat),
+      JSON.stringify(p.cat),
       JSON.stringify([]),
-      i % 3 === 0 ? 1 : 0,
+      p.low,
       null
-    );
-  }
+    )
+  );
+
+  const novaProducts = [
+    { sku: 'NOV-DRNK-010', name: 'Sparkling Water 500ml', price: 1.5, cat: ['Beverages', 'Water'], low: 0 },
+    { sku: 'NOV-BAKE-011', name: 'Brioche Bun 12ct', price: 6.8, cat: ['Bakery', 'Bread'], low: 0 },
+    { sku: 'NOV-MEAT-012', name: 'Chicken Breast 2kg', price: 13.2, cat: ['Meat', 'Poultry'], low: 0 },
+    { sku: 'NOV-VEG-013', name: 'Fresh Spinach 1kg', price: 3.9, cat: ['Produce', 'Leafy'], low: 1 },
+    { sku: 'NOV-FRZN-014', name: 'Frozen French Fries 2.5kg', price: 5.4, cat: ['Frozen', 'Potato'], low: 0 },
+  ];
+  novaProducts.forEach((p, idx) =>
+    insertProduct.run(
+      `p_nov_${idx + 1}`,
+      't_nova',
+      p.sku,
+      p.name,
+      p.price,
+      1,
+      JSON.stringify(p.cat),
+      JSON.stringify([]),
+      p.low,
+      null
+    )
+  );
 }
 
 function seedCustomers() {

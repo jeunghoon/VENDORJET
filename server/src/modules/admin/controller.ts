@@ -1,0 +1,191 @@
+import { Router } from 'express';
+import { db, mapRows } from '../../db/client';
+
+const router = Router();
+
+// 전체 사용자 목록
+router.get('/users', (_req, res) => {
+  const rows = mapRows<any>(
+    db
+      .prepare(
+        `SELECT u.id,
+                u.email,
+                u.name,
+                u.phone,
+                u.address,
+                u.created_at,
+                u.last_login_at,
+                u.user_type,
+                m.role,
+                m.status,
+                group_concat(distinct t.name) AS tenantNames
+         FROM users u
+         LEFT JOIN memberships m ON u.id = m.user_id
+         LEFT JOIN tenants t ON m.tenant_id = t.id
+         GROUP BY u.id, m.role, m.status`
+      )
+      .all()
+  );
+  res.json(rows);
+});
+
+// 전체 테넌트(도매/소매) 목록
+router.get('/tenants', (_req, res) => {
+  const rows = mapRows<any>(
+    db
+      .prepare(
+        `SELECT t.id,
+                t.name,
+                t.phone,
+                t.address,
+                (SELECT COUNT(*) FROM memberships m WHERE m.tenant_id = t.id) AS memberCount
+         FROM tenants t`
+      )
+      .all()
+  );
+  res.json(rows);
+});
+
+// 테넌트 생성(지정 사용자 owner 연결)
+router.post('/tenants', (req, res) => {
+  const { name, phone = '', address = '', userId } = req.body || {};
+  if (!name || !userId) {
+    return res.status(400).json({ error: 'name and userId required' });
+  }
+  const tenantId = `t_${Date.now()}`;
+  const now = new Date().toISOString();
+  const tx = db.transaction(() => {
+    db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address) VALUES (?,?,?,?,?,?)')
+      .run(tenantId, name, 'en', now, phone, address);
+    db.prepare('INSERT OR IGNORE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)')
+      .run(userId, tenantId, 'owner', 'approved');
+  });
+  tx();
+  return res.status(201).json({ id: tenantId, name, phone, address });
+});
+
+// 테넌트 수정
+router.patch('/tenants/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, phone, address } = req.body || {};
+  if (!name && !phone && !address) return res.json({ ok: true });
+  const parts: string[] = [];
+  const params: any[] = [];
+  if (name) {
+    parts.push('name = ?');
+    params.push(name);
+  }
+  if (phone) {
+    parts.push('phone = ?');
+    params.push(phone);
+  }
+  if (address) {
+    parts.push('address = ?');
+    params.push(address);
+  }
+  params.push(id);
+  db.prepare(`UPDATE tenants SET ${parts.join(', ')} WHERE id = ?`).run(...params);
+  return res.json({ ok: true });
+});
+
+// 테넌트 삭제
+router.delete('/tenants/:id', (req, res) => {
+  const { id } = req.params;
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM memberships WHERE tenant_id = ?').run(id);
+    db.prepare('DELETE FROM tenants WHERE id = ?').run(id);
+  });
+  tx();
+  return res.status(204).end();
+});
+
+// 가입/승인 요청
+router.get('/requests', (_req, res) => {
+  const membershipRequests = mapRows<any>(
+    db
+      .prepare(
+        `SELECT id,
+                tenant_id AS tenantId,
+                email,
+                name,
+                phone,
+                role,
+                status,
+                company_name AS companyName,
+                company_address AS companyAddress,
+                company_phone AS companyPhone,
+                requester_type AS requesterType,
+                created_at AS createdAt
+         FROM membership_requests`
+      )
+      .all()
+  ).map((r) => ({ ...r, type: 'membership' }));
+
+  const buyerRequests = mapRows<any>(
+    db
+      .prepare(
+        `SELECT id,
+                seller_company AS sellerCompany,
+                buyer_company AS buyerCompany,
+                buyer_address AS buyerAddress,
+                email,
+                name,
+                phone,
+                role,
+                attachment_url AS attachmentUrl,
+                status,
+                created_at AS createdAt
+         FROM buyer_requests`
+      )
+      .all()
+  ).map((r) => ({ ...r, type: 'buyer' }));
+
+  res.json({ membershipRequests, buyerRequests });
+});
+
+// 요청 승인/거절 (간단히 status만 변경)
+router.patch('/requests/:id', (req, res) => {
+  const { id } = req.params;
+  const { status = 'approved' } = req.body || {};
+  if (!['approved', 'denied', 'pending'].includes(status)) {
+    return res.status(400).json({ error: 'invalid status' });
+  }
+  const isMembership = id.startsWith('mr_');
+  if (isMembership) {
+    db.prepare('UPDATE membership_requests SET status = ? WHERE id = ?').run(status, id);
+  } else {
+    db.prepare('UPDATE buyer_requests SET status = ? WHERE id = ?').run(status, id);
+  }
+  return res.json({ id, status });
+});
+
+// 사용자 역할/상태 갱신 (단순 멤버십 업데이트)
+router.patch('/users/:id', (req, res) => {
+  const { id } = req.params;
+  const { role, status, tenantId } = req.body || {};
+  if (!role && !status) {
+    return res.status(400).json({ error: 'role or status required' });
+  }
+  const targetTenant = tenantId as string | undefined;
+  const stmt = targetTenant
+    ? db.prepare('UPDATE memberships SET role = COALESCE(?, role), status = COALESCE(?, status) WHERE user_id = ? AND tenant_id = ?')
+    : db.prepare('UPDATE memberships SET role = COALESCE(?, role), status = COALESCE(?, status) WHERE user_id = ?');
+  const info = targetTenant ? stmt.run(role, status, id, targetTenant) : stmt.run(role, status, id);
+  if (info.changes === 0) {
+    return res.status(404).json({ error: 'membership not found' });
+  }
+  return res.json({ id, role, status });
+});
+
+// 사용자 삭제
+router.delete('/users/:id', (req, res) => {
+  const { id } = req.params;
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM memberships WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  });
+  tx();
+  return res.status(204).end();
+});
+
+export const adminController = router;

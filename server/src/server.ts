@@ -7,6 +7,7 @@ import { productsController } from './modules/products/controller';
 import { customersController } from './modules/customers/controller';
 import { ordersController } from './modules/orders/controller';
 import { buyerController } from './modules/buyer/controller';
+import { adminController } from './modules/admin/controller';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/products', productsController);
 app.use('/customers', customersController);
 app.use('/orders', ordersController);
 app.use('/buyer', buyerController);
+app.use('/admin', adminController);
 
 app.listen(env.port, () => {
   // eslint-disable-next-line no-console

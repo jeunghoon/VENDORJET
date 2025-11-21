@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
+import 'package:vendorjet/services/api/api_client.dart';
 
 class SignInPage extends StatefulWidget {
   final Locale? currentLocale;
@@ -140,7 +141,7 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                         TextButton(
                           onPressed: _showRegistrationDialog,
-                          child: Text(t.registerVendor),
+                          child: Text(_tr('Sign up', '회원가입')),
                         ),
                       ],
                     ),
@@ -179,22 +180,18 @@ class _SignInPageState extends State<SignInPage> {
     final t = AppLocalizations.of(context)!;
     final email = _emailCtrl.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.email)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.email)));
       return;
     }
     await context.read<AuthController>().requestPasswordReset(email);
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.passwordResetSent)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(t.passwordResetSent)));
   }
 
   Future<void> _showRegistrationDialog() async {
     final auth = context.read<AuthController>();
-
-    // seller form controllers
     final sellerFormKey = GlobalKey<FormState>();
     final sellerCompanyCtrl = TextEditingController();
     final sellerAddressCtrl = TextEditingController();
@@ -207,7 +204,6 @@ class _SignInPageState extends State<SignInPage> {
     bool sellerIsNew = true;
     Map<String, String> selectedSellerCompany = {};
 
-    // buyer form controllers
     final buyerFormKey = GlobalKey<FormState>();
     final buyerCompanyCtrl = TextEditingController();
     final buyerAddressCtrl = TextEditingController();
@@ -220,131 +216,161 @@ class _SignInPageState extends State<SignInPage> {
     bool buyerCompanyIsNew = true;
     Map<String, String> selectedBuyerCompany = {};
     Map<String, String> selectedTargetSeller = {};
+    int tabIndex = 0;
 
-    // mock company search data
-    final companies = [
-      {'name': 'Acme Foods', 'phone': '02-1234-5678', 'address': 'Seoul'},
-      {'name': 'Nova Market', 'phone': '031-987-6543', 'address': 'Incheon'},
-    ];
+    List<Map<String, String>> companies = [];
+    try {
+      final resp = await ApiClient.get('/auth/tenants-public') as List<dynamic>;
+      companies = resp
+          .map((e) => {
+                'id': e['id']?.toString() ?? '',
+                'name': e['name']?.toString() ?? '',
+                'phone': e['phone']?.toString() ?? '',
+                'address': e['address']?.toString() ?? '',
+              })
+          .where((e) => (e['name'] ?? '').isNotEmpty)
+          .toList();
+    } catch (_) {
+      companies = [];
+    }
 
     await showDialog(
       context: context,
-      builder: (context) {
-        return DefaultTabController(
-          length: 2,
-          child: StatefulBuilder(
-            builder: (context, setState) {
+      builder: (dialogContext) {
+        final viewportHeight = MediaQuery.of(dialogContext).size.height;
+        final dialogHeight = (viewportHeight * 0.8).clamp(520.0, 720.0);
+        return StatefulBuilder(
+          builder: (context, setState) {
             return AlertDialog(
               title: Text(_tr('Sign up', '회원가입')),
               content: SizedBox(
-                width: 540,
-                  height: 620,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                width: 560,
+                height: dialogHeight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        TabBar(
-                          tabs: [
-                            Tab(text: _tr('Seller', '도매')),
-                            Tab(text: _tr('Buyer', '소매')),
-                          ],
+                        ChoiceChip(
+                          label: Text(_tr('Seller', '도매')),
+                          selected: tabIndex == 0,
+                          onSelected: (_) => setState(() => tabIndex = 0),
                         ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 520,
-                          child: TabBarView(
-                            children: [
-                              _buildSellerForm(
-                                formKey: sellerFormKey,
-                                isNew: sellerIsNew,
-                                onToggleNew: (v) => setState(() => sellerIsNew = v),
-                                companyCtrl: sellerCompanyCtrl,
-                                addressCtrl: sellerAddressCtrl,
-                                phoneCtrl: sellerPhoneCtrl,
-                                nameCtrl: sellerNameCtrl,
-                                userPhoneCtrl: sellerUserPhoneCtrl,
-                                emailCtrl: sellerEmailCtrl,
-                                pwCtrl: sellerPwCtrl,
-                                selectedCompany: selectedSellerCompany,
-                                onSearchCompany: () async {
-                                  final picked = await _pickCompany(
-                                    context,
-                                    companies,
-                                    _tr('Search company', '회사명 검색'),
-                                  );
-                                  if (picked != null) {
-                                    setState(() {
-                                      selectedSellerCompany = picked;
-                                      sellerCompanyCtrl.text = picked['name'] ?? '';
-                                      sellerPhoneCtrl.text = picked['phone'] ?? '';
-                                      sellerAddressCtrl.text = picked['address'] ?? '';
-                                    });
-                                  }
-                                },
-                                roleNotifier: sellerRole,
-                              ),
-                              _buildBuyerForm(
-                                formKey: buyerFormKey,
-                                isNewBuyerCompany: buyerCompanyIsNew,
-                                onToggleBuyerNew: (v) =>
-                                    setState(() => buyerCompanyIsNew = v),
-                                buyerCompanyCtrl: buyerCompanyCtrl,
-                                buyerAddressCtrl: buyerAddressCtrl,
-                                buyerPhoneCtrl: buyerPhoneCtrl,
-                                buyerNameCtrl: buyerNameCtrl,
-                                buyerEmailCtrl: buyerEmailCtrl,
-                                attachmentCtrl: buyerAttachmentCtrl,
-                                sellerSearchCtrl: sellerSearchCtrl,
-                                selectedBuyerCompany: selectedBuyerCompany,
-                                selectedSeller: selectedTargetSeller,
-                                onSearchBuyerCompany: () async {
-                                  final picked = await _pickCompany(
-                                    context,
-                                    companies,
-                                    _tr('Search buyer company', '구매자 회사 검색'),
-                                  );
-                                  if (picked != null) {
-                                    setState(() {
-                                      selectedBuyerCompany = picked;
-                                      buyerCompanyCtrl.text = picked['name'] ?? '';
-                                      buyerPhoneCtrl.text = picked['phone'] ?? '';
-                                      buyerAddressCtrl.text = picked['address'] ?? '';
-                                    });
-                                  }
-                                },
-                                onSearchSeller: () async {
-                                  final picked = await _pickCompany(
-                                    context,
-                                    companies,
-                                    _tr('Search seller company', '도매 회사 검색'),
-                                  );
-                                  if (picked != null) {
-                                    setState(() {
-                                      selectedTargetSeller = picked;
-                                      sellerSearchCtrl.text = picked['name'] ?? '';
-                                    });
-                                  }
-                                },
-                                roleNotifier: buyerRole,
-                              ),
-                            ],
-                          ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: Text(_tr('Buyer', '소매')),
+                          selected: tabIndex == 1,
+                          onSelected: (_) => setState(() => tabIndex = 1),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: IndexedStack(
+                        index: tabIndex,
+                        children: [
+                          _buildSellerForm(
+                            formKey: sellerFormKey,
+                            isNew: sellerIsNew,
+                            onToggleNew: (v) => setState(() => sellerIsNew = v),
+                            companyCtrl: sellerCompanyCtrl,
+                            addressCtrl: sellerAddressCtrl,
+                            phoneCtrl: sellerPhoneCtrl,
+                            nameCtrl: sellerNameCtrl,
+                            userPhoneCtrl: sellerUserPhoneCtrl,
+                            emailCtrl: sellerEmailCtrl,
+                            pwCtrl: sellerPwCtrl,
+                            selectedCompany: selectedSellerCompany,
+                            onSearchCompany: () async {
+                              final picked = await _pickCompany(
+                                context,
+                                companies,
+                                _tr('Search company', '회사명 검색'),
+                              );
+                              if (!dialogContext.mounted) return;
+                              if (picked != null) {
+                                setState(() {
+                                  selectedSellerCompany = picked;
+                                  sellerCompanyCtrl.text =
+                                      picked['name'] ?? '';
+                                  sellerPhoneCtrl.text =
+                                      picked['phone'] ?? '';
+                                  sellerAddressCtrl.text =
+                                      picked['address'] ?? '';
+                                });
+                              }
+                            },
+                            roleNotifier: sellerRole,
+                          ),
+                          _buildBuyerForm(
+                            formKey: buyerFormKey,
+                            isNewBuyerCompany: buyerCompanyIsNew,
+                            onToggleBuyerNew: (v) =>
+                                setState(() => buyerCompanyIsNew = v),
+                            buyerCompanyCtrl: buyerCompanyCtrl,
+                            buyerAddressCtrl: buyerAddressCtrl,
+                            buyerPhoneCtrl: buyerPhoneCtrl,
+                            buyerNameCtrl: buyerNameCtrl,
+                            buyerEmailCtrl: buyerEmailCtrl,
+                            attachmentCtrl: buyerAttachmentCtrl,
+                            sellerSearchCtrl: sellerSearchCtrl,
+                            selectedBuyerCompany: selectedBuyerCompany,
+                            selectedSeller: selectedTargetSeller,
+                            onSearchBuyerCompany: () async {
+                              final picked = await _pickCompany(
+                                context,
+                                companies,
+                                _tr('Search buyer company', '구매 업체 검색'),
+                              );
+                              if (!dialogContext.mounted) return;
+                              if (picked != null) {
+                                setState(() {
+                                  selectedBuyerCompany = picked;
+                                  buyerCompanyCtrl.text =
+                                      picked['name'] ?? '';
+                                  buyerPhoneCtrl.text =
+                                      picked['phone'] ?? '';
+                                  buyerAddressCtrl.text =
+                                      picked['address'] ?? '';
+                                });
+                              }
+                            },
+                            onSearchSeller: () async {
+                              final picked = await _pickCompany(
+                                context,
+                                companies,
+                                _tr('Search seller company', '도매 업체 검색'),
+                              );
+                              if (!dialogContext.mounted) return;
+                              if (picked != null) {
+                                setState(() {
+                                  selectedTargetSeller = picked;
+                                  sellerSearchCtrl.text =
+                                      picked['name'] ?? '';
+                                });
+                              }
+                            },
+                            roleNotifier: buyerRole,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(_tr('Cancel', '취소')),
-                  ),
-                  FilledButton(
-                    onPressed: () async {
-                      final tabController = DefaultTabController.of(context);
-                      final tab = tabController?.index ?? 0;
-                      bool ok = false;
-                      if (tab == 0) {
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(_tr('Cancel', '취소')),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.maybeOf(dialogContext);
+                    final navigator = Navigator.of(dialogContext);
+                    bool ok = false;
+                    try {
+                      if (tabIndex == 0) {
                         if (sellerFormKey.currentState?.validate() ?? false) {
                           ok = await auth.registerSeller(
                             companyName: sellerCompanyCtrl.text.trim(),
@@ -360,6 +386,8 @@ class _SignInPageState extends State<SignInPage> {
                       } else {
                         if ((buyerFormKey.currentState?.validate() ?? false) &&
                             sellerSearchCtrl.text.isNotEmpty) {
+                          final roleToUse =
+                              buyerCompanyIsNew ? 'owner' : buyerRole.value;
                           ok = await auth.registerBuyer(
                             sellerCompanyName: sellerSearchCtrl.text.trim(),
                             buyerCompanyName: buyerCompanyCtrl.text.trim(),
@@ -368,49 +396,43 @@ class _SignInPageState extends State<SignInPage> {
                             phone: buyerPhoneCtrl.text.trim(),
                             email: buyerEmailCtrl.text.trim(),
                             attachmentUrl: buyerAttachmentCtrl.text.trim(),
-                            role: buyerRole.value,
+                            role: roleToUse,
                           );
                         }
                       }
-                      if (!mounted) return;
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    } catch (_) {
+                      ok = false;
+                    }
+                    if (!mounted) return;
+                    try {
+                      messenger?.showSnackBar(
                         SnackBar(
                           content: Text(
                             ok
-                                ? _tr('Submitted (may require approval)', '제출 완료 (승인 대기일 수 있음)')
-                                : _tr('Registration failed', '등록에 실패했습니다'),
+                                ? _tr(
+                                    'Submitted (may require approval)',
+                                    '제출 완료 (승인 대기일 수 있음)',
+                                  )
+                                : _tr(
+                                    'Registration failed',
+                                    '등록에 실패했습니다',
+                                  ),
                           ),
                         ),
                       );
-                      if (ok) Navigator.of(context).pop();
-                    },
-                    child: Text(_tr('Submit', '등록')),
-                  ),
-                ],
-              );
-            },
-          ),
+                      if (ok) navigator.pop();
+                    } catch (_) {
+                      // ignore messenger errors
+                    }
+                  },
+                  child: Text(_tr('Submit', '등록')),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-
-    sellerCompanyCtrl.dispose();
-    sellerAddressCtrl.dispose();
-    sellerPhoneCtrl.dispose();
-    sellerNameCtrl.dispose();
-    sellerUserPhoneCtrl.dispose();
-    sellerEmailCtrl.dispose();
-    sellerPwCtrl.dispose();
-    sellerRole.dispose();
-    buyerCompanyCtrl.dispose();
-    buyerAddressCtrl.dispose();
-    buyerPhoneCtrl.dispose();
-    buyerNameCtrl.dispose();
-    buyerEmailCtrl.dispose();
-    buyerAttachmentCtrl.dispose();
-    sellerSearchCtrl.dispose();
-    buyerRole.dispose();
   }
 
   Widget _buildSellerForm({
@@ -437,13 +459,13 @@ class _SignInPageState extends State<SignInPage> {
             Row(
               children: [
                 ChoiceChip(
-                  label: const Text('New company'),
+                  label: Text(_tr('New company', '신규 회사')),
                   selected: isNew,
                   onSelected: (_) => onToggleNew(true),
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: const Text('Existing'),
+                  label: Text(_tr('Existing', '기존')),
                   selected: !isNew,
                   onSelected: (_) => onToggleNew(false),
                 ),
@@ -455,9 +477,12 @@ class _SignInPageState extends State<SignInPage> {
                 Expanded(
                   child: TextFormField(
                     controller: companyCtrl,
-                    decoration: InputDecoration(labelText: _tr('Company name', '회사명')),
+                    decoration: InputDecoration(
+                      labelText: _tr('Company name', '회사명'),
+                    ),
                     readOnly: !isNew && selectedCompany.isNotEmpty,
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Enter company name' : null,
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? _tr('Enter company name', '회사명을 입력하세요') : null,
                   ),
                 ),
                 if (!isNew) ...[
@@ -472,14 +497,20 @@ class _SignInPageState extends State<SignInPage> {
             const SizedBox(height: 12),
             TextFormField(
               controller: phoneCtrl,
-              decoration: InputDecoration(labelText: _tr('Company phone', '대표번호')),
-              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter phone', '대표번호를 입력하세요') : null,
+              decoration: InputDecoration(
+                labelText: _tr('Company phone', '대표번호'),
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? _tr('Enter phone', '대표번호를 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: addressCtrl,
-              decoration: InputDecoration(labelText: _tr('Company address', '주소')),
-              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter address', '주소를 입력하세요') : null,
+              decoration: InputDecoration(
+                labelText: _tr('Company address', '주소'),
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? _tr('Enter address', '주소를 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             if (!isNew)
@@ -487,7 +518,7 @@ class _SignInPageState extends State<SignInPage> {
                 valueListenable: roleNotifier,
                 builder: (context, value, _) {
                   return DropdownButtonFormField<String>(
-                    value: value,
+                    initialValue: value,
                     decoration: InputDecoration(labelText: _tr('Role', '역할')),
                     items: [
                       DropdownMenuItem(value: 'manager', child: Text(_tr('Manager', '관리자'))),
@@ -503,33 +534,43 @@ class _SignInPageState extends State<SignInPage> {
             TextFormField(
               controller: nameCtrl,
               decoration: InputDecoration(labelText: _tr('Your name', '이름')),
-              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter your name', '이름을 입력하세요') : null,
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? _tr('Enter your name', '이름을 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: userPhoneCtrl,
               decoration: InputDecoration(labelText: _tr('Your phone', '전화번호')),
-              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter your phone', '전화번호를 입력하세요') : null,
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? _tr('Enter your phone', '전화번호를 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: emailCtrl,
               decoration: InputDecoration(labelText: _tr('Email', '이메일')),
               keyboardType: TextInputType.emailAddress,
-              validator: (v) => v == null || v.isEmpty ? _tr('Enter email', '이메일을 입력하세요') : null,
+              validator: (v) =>
+                  v == null || v.isEmpty ? _tr('Enter email', '이메일을 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: pwCtrl,
               decoration: InputDecoration(labelText: _tr('Password', '비밀번호')),
               obscureText: true,
-              validator: (v) => v == null || v.length < 6 ? _tr('Min 6 chars', '6자 이상 입력') : null,
+              validator: (v) =>
+                  v == null || v.length < 6 ? _tr('Min 6 chars', '6자 이상 입력') : null,
             ),
             const SizedBox(height: 8),
             Text(
               isNew
-                  ? _tr('New company: you will be registered as owner.', '신규 회사: 가입자가 사장(소유자)로 등록됩니다.')
-                  : _tr('Existing company: access after owner/manager approval.', '기존 회사: 관리자/사장 승인 후 사용 가능합니다.'),
+                  ? _tr(
+                      'New company: you will be registered as owner.',
+                      '신규 회사: 가입자가 사장(소유자)로 등록됩니다.',
+                    )
+                  : _tr(
+                      'Existing company: access after owner/manager approval.',
+                      '기존 회사: 관리자/사장 승인 후 이용 가능합니다.',
+                    ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -584,7 +625,8 @@ class _SignInPageState extends State<SignInPage> {
                     controller: buyerCompanyCtrl,
                     decoration: InputDecoration(labelText: _tr('Buyer company', '구매자 회사명')),
                     readOnly: !isNewBuyerCompany && selectedBuyerCompany.isNotEmpty,
-                    validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter company', '회사명을 입력하세요') : null,
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? _tr('Enter company', '회사명을 입력하세요') : null,
                   ),
                 ),
                 if (!isNewBuyerCompany) ...[
@@ -600,43 +642,48 @@ class _SignInPageState extends State<SignInPage> {
             TextFormField(
               controller: buyerAddressCtrl,
               decoration: InputDecoration(labelText: _tr('Buyer address', '주소')),
-              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter address', '주소를 입력하세요') : null,
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? _tr('Enter address', '주소를 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerPhoneCtrl,
               decoration: InputDecoration(labelText: _tr('Buyer phone', '대표번호')),
-              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter phone', '대표번호를 입력하세요') : null,
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? _tr('Enter phone', '대표번호를 입력하세요') : null,
             ),
             const SizedBox(height: 12),
-            ValueListenableBuilder<String>(
-              valueListenable: roleNotifier,
-              builder: (context, value, _) {
-                return DropdownButtonFormField<String>(
-                  value: value,
-                  decoration: InputDecoration(labelText: _tr('Role', '역할')),
-                  items: [
-                    DropdownMenuItem(value: 'manager', child: Text(_tr('Manager', '관리자'))),
-                    DropdownMenuItem(value: 'staff', child: Text(_tr('Staff', '직원'))),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) roleNotifier.value = v;
-                  },
-                );
-              },
-            ),
+            if (!isNewBuyerCompany)
+              ValueListenableBuilder<String>(
+                valueListenable: roleNotifier,
+                builder: (context, value, _) {
+                  return DropdownButtonFormField<String>(
+                    initialValue: value,
+                    decoration: InputDecoration(labelText: _tr('Role', '역할')),
+                    items: [
+                      DropdownMenuItem(value: 'manager', child: Text(_tr('Manager', '관리자'))),
+                      DropdownMenuItem(value: 'staff', child: Text(_tr('Staff', '직원'))),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) roleNotifier.value = v;
+                    },
+                  );
+                },
+              ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerNameCtrl,
               decoration: InputDecoration(labelText: _tr('Your name', '이름')),
-              validator: (v) => v == null || v.trim().isEmpty ? _tr('Enter your name', '이름을 입력하세요') : null,
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? _tr('Enter your name', '이름을 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerEmailCtrl,
               decoration: InputDecoration(labelText: _tr('Email', '이메일')),
               keyboardType: TextInputType.emailAddress,
-              validator: (v) => v == null || v.isEmpty ? _tr('Enter email', '이메일을 입력하세요') : null,
+              validator: (v) =>
+                  v == null || v.isEmpty ? _tr('Enter email', '이메일을 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -644,8 +691,8 @@ class _SignInPageState extends State<SignInPage> {
               decoration: InputDecoration(
                 labelText: _tr('Attachment URL (optional)', '첨부파일 URL (선택)'),
                 helperText: _tr(
-                  'Business license, etc. if required by seller',
-                  '사업자등록증 등 필요 시 첨부 (선택사항)',
+                  'Business license if the seller requires it (optional)',
+                  '판매자가 요구하는 경우 사업자등록증 등 첨부 (선택)',
                 ),
               ),
             ),
@@ -655,7 +702,7 @@ class _SignInPageState extends State<SignInPage> {
                 Expanded(
                   child: TextFormField(
                     controller: sellerSearchCtrl,
-                    decoration: InputDecoration(labelText: _tr('Target seller name', '도매 회사명')),
+                    decoration: InputDecoration(labelText: _tr('Target seller name', '도매 업체명')),
                     readOnly: selectedSeller.isNotEmpty,
                   ),
                 ),
@@ -669,12 +716,15 @@ class _SignInPageState extends State<SignInPage> {
             const SizedBox(height: 8),
             if (selectedSeller.isNotEmpty)
               Text(
-                '${_tr('Seller', '도매사')}: ${selectedSeller['name']} / ${selectedSeller['phone']} / ${selectedSeller['address']}',
+                '${_tr('Seller', '도매업체')}: ${selectedSeller['name']} / ${selectedSeller['phone']} / ${selectedSeller['address']}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             const SizedBox(height: 8),
             Text(
-              _tr('After seller approval, you can view products.', '도매사 승인 후 상품을 볼 수 있습니다.'),
+              _tr(
+                'After seller approval, you can view products.',
+                '도매 승인 후 상품을 볼 수 있습니다.',
+              ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -717,7 +767,8 @@ class _SignInPageState extends State<SignInPage> {
                           return ListTile(
                             title: Text(item['name'] ?? ''),
                             subtitle: Text(
-                                '${item['phone'] ?? ''} · ${item['address'] ?? ''}'),
+                              '${item['phone'] ?? ''} · ${item['address'] ?? ''}',
+                            ),
                             onTap: () => Navigator.of(context).pop(item),
                           );
                         },

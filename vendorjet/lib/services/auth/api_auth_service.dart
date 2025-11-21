@@ -26,7 +26,7 @@ class ApiAuthService implements AuthService {
       try {
         _tenants = await fetchTenants();
       } catch (_) {
-        // 토큰 만료 시 무시
+        // 토큰 만료 등은 무시
       }
     }
   }
@@ -51,6 +51,49 @@ class ApiAuthService implements AuthService {
       _currentTenantId = _memberships.isNotEmpty ? _memberships.first.tenantId : null;
       _tenants = await fetchTenants();
       await _persist();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchProfile() async {
+    try {
+      final resp = await ApiClient.get('/auth/profile') as Map<String, dynamic>;
+      return resp;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> updateProfile({
+    String? email,
+    String? phone,
+    String? address,
+    String? name,
+    String? password,
+  }) async {
+    final body = <String, String>{};
+    if (email != null && email.isNotEmpty) body['email'] = email;
+    if (phone != null && phone.isNotEmpty) body['phone'] = phone;
+    if (address != null && address.isNotEmpty) body['address'] = address;
+    if (name != null && name.isNotEmpty) body['name'] = name;
+    if (password != null && password.isNotEmpty) body['password'] = password;
+    if (body.isEmpty) return true;
+    try {
+      await ApiClient.patch('/auth/profile', body: body);
+      if (email != null && email.isNotEmpty) _email = email.toLowerCase();
+      await _persist();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    try {
+      await ApiClient.delete('/auth/profile');
+      await signOut();
       return true;
     } catch (_) {
       return false;
@@ -113,7 +156,6 @@ class ApiAuthService implements AuthService {
       _tenants = tenants;
       return tenants;
     } catch (_) {
-      // 비로그인 또는 토큰 오류일 경우 빈 목록 반환
       _tenants = const [];
       return _tenants;
     }
@@ -134,7 +176,6 @@ class ApiAuthService implements AuthService {
     required String email,
     required String password,
   }) async {
-    // 새로운 판매자 가입은 /auth/register 사용 (companyName으로 전달)
     return await registerSeller(
       companyName: tenantName,
       email: email,
@@ -164,9 +205,10 @@ class ApiAuthService implements AuthService {
         'role': role,
       }) as Map<String, dynamic>;
       final token = resp['token'] as String?;
+      // 신규 테넌트는 201 + token, 기존 테넌트는 202(pending)로 token이 없을 수 있음
       if (token == null) {
-        // 승인 대기 상태일 수 있음
-        return false;
+        final status = resp['status'] as String?;
+        return status == 'pending';
       }
       ApiClient.token = token;
       _email = email.toLowerCase();
@@ -206,7 +248,7 @@ class ApiAuthService implements AuthService {
         'attachmentUrl': attachmentUrl,
         'role': role,
       });
-      return true; // 승인 대기
+      return true;
     } catch (_) {
       return false;
     }

@@ -26,7 +26,11 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     if (!payload.tenantId || !payload.userId) {
       return res.status(401).json({ error: 'invalid token' });
     }
-    req.user = payload;
+    const overrideTenant = req.headers['x-tenant-id'];
+    req.user = {
+      ...payload,
+      tenantId: typeof overrideTenant === 'string' && overrideTenant.length > 0 ? overrideTenant : payload.tenantId,
+    };
     next();
   } catch (err) {
     return res.status(401).json({ error: 'invalid token' });

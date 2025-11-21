@@ -44,6 +44,7 @@ router.post('/login', (req, res) => {
     env.jwtSecret,
     { expiresIn: '12h' }
   );
+  db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?').run(new Date().toISOString(), user.id);
 
   return res.json({
     token,
@@ -57,9 +58,71 @@ router.get('/me', authMiddleware, (req, res) => {
   return res.json({ user: req.user });
 });
 
+// 내 프로필 조회
+router.get('/profile', authMiddleware, (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+  const row = db
+    .prepare('SELECT id, email, name, phone, address, created_at, last_login_at, user_type FROM users WHERE id = ?')
+    .get(req.user.userId);
+  return res.json(row);
+});
+
+// 내 프로필 업데이트
+router.patch('/profile', authMiddleware, (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+  const { email, phone, address, name, password } = req.body || {};
+  const updates: string[] = [];
+  const params: any[] = [];
+  if (email) {
+    updates.push('email = ?');
+    params.push(email);
+  }
+  if (phone) {
+    updates.push('phone = ?');
+    params.push(phone);
+  }
+  if (address) {
+    updates.push('address = ?');
+    params.push(address);
+  }
+  if (name) {
+    updates.push('name = ?');
+    params.push(name);
+  }
+  if (password) {
+    updates.push('password_hash = ?');
+    params.push(password);
+  }
+  if (updates.length === 0) return res.json({ ok: true });
+  const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+  params.push(req.user.userId);
+  db.prepare(sql).run(...params);
+  return res.json({ ok: true });
+});
+
+// 내 계정 삭제
+router.delete('/profile', authMiddleware, (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+  const uid = req.user.userId;
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM memberships WHERE user_id = ?').run(uid);
+    db.prepare('DELETE FROM users WHERE id = ?').run(uid);
+  });
+  tx();
+  return res.status(204).end();
+});
+
 router.get('/tenants', authMiddleware, (_req, res) => {
   const rows = mapRows<{ id: string; name: string; locale: string }>(
     db.prepare('SELECT * FROM tenants').all()
+  );
+  res.json(rows);
+});
+
+// 공개 테넌트 목록 (구매자 가입 시 판매자 검색용)
+router.get('/tenants-public', (_req, res) => {
+  const rows = mapRows<{ id: string; name: string; phone: string; address: string }>(
+    db.prepare('SELECT id, name, phone, address FROM tenants').all()
   );
   res.json(rows);
 });
@@ -87,8 +150,8 @@ router.post('/register', (req, res) => {
     const tx = db.transaction(() => {
       db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address) VALUES (?,?,?,?,?,?)')
         .run(tenantId, companyName, 'en', nowIso, companyPhone, companyAddress);
-      db.prepare('INSERT INTO users (id, email, password_hash, name, phone) VALUES (?,?,?,?,?)')
-        .run(userId, email, password, name, phone);
+      db.prepare('INSERT INTO users (id, email, password_hash, name, phone, address, created_at, user_type) VALUES (?,?,?,?,?,?,?,?)')
+        .run(userId, email, password, name, phone, companyAddress, nowIso, 'wholesale');
       db.prepare('INSERT INTO memberships (user_id, tenant_id, role) VALUES (?,?,?)')
         .run(userId, tenantId, 'owner');
       db.prepare(

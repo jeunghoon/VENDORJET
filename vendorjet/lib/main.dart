@@ -20,6 +20,7 @@ import 'ui/pages/products/product_detail_page.dart';
 import 'ui/pages/products_page.dart';
 import 'ui/pages/settings_page.dart';
 import 'ui/widgets/responsive_scaffold.dart';
+import 'ui/pages/admin/admin_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -146,6 +147,11 @@ class _MyAppState extends State<MyApp> {
                   _authController.signOut();
                 },
               ),
+            ),
+            GoRoute(
+              path: '/admin',
+              name: 'admin',
+              builder: (context, state) => const AdminPage(),
             ),
           ],
         ),

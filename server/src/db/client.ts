@@ -82,6 +82,10 @@ function ensureSchema() {
     ensureColumn('tenants', 'address', 'TEXT');
     ensureColumn('users', 'name', 'TEXT');
     ensureColumn('users', 'phone', 'TEXT');
+    ensureColumn('users', 'address', 'TEXT');
+    ensureColumn('users', 'created_at', 'TEXT');
+    ensureColumn('users', 'last_login_at', 'TEXT');
+    ensureColumn('users', 'user_type', 'TEXT');
     ensureColumn('memberships', 'status', 'TEXT');
     ensureColumn('membership_requests', 'company_phone', 'TEXT');
     ensureColumn('buyer_requests', 'seller_phone', 'TEXT');
