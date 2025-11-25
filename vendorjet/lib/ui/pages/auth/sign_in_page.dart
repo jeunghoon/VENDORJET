@@ -210,6 +210,7 @@ class _SignInPageState extends State<SignInPage> {
     final buyerPhoneCtrl = TextEditingController();
     final buyerNameCtrl = TextEditingController();
     final buyerEmailCtrl = TextEditingController();
+    final buyerPwCtrl = TextEditingController();
     final buyerAttachmentCtrl = TextEditingController();
     final sellerSearchCtrl = TextEditingController();
     final buyerRole = ValueNotifier<String>('staff');
@@ -313,6 +314,7 @@ class _SignInPageState extends State<SignInPage> {
                             buyerPhoneCtrl: buyerPhoneCtrl,
                             buyerNameCtrl: buyerNameCtrl,
                             buyerEmailCtrl: buyerEmailCtrl,
+                            buyerPwCtrl: buyerPwCtrl,
                             attachmentCtrl: buyerAttachmentCtrl,
                             sellerSearchCtrl: sellerSearchCtrl,
                             selectedBuyerCompany: selectedBuyerCompany,
@@ -395,6 +397,7 @@ class _SignInPageState extends State<SignInPage> {
                             name: buyerNameCtrl.text.trim(),
                             phone: buyerPhoneCtrl.text.trim(),
                             email: buyerEmailCtrl.text.trim(),
+                            password: buyerPwCtrl.text,
                             attachmentUrl: buyerAttachmentCtrl.text.trim(),
                             role: roleToUse,
                           );
@@ -588,6 +591,7 @@ class _SignInPageState extends State<SignInPage> {
     required TextEditingController buyerPhoneCtrl,
     required TextEditingController buyerNameCtrl,
     required TextEditingController buyerEmailCtrl,
+    required TextEditingController buyerPwCtrl,
     required TextEditingController attachmentCtrl,
     required TextEditingController sellerSearchCtrl,
     required Map<String, String> selectedBuyerCompany,
@@ -684,6 +688,14 @@ class _SignInPageState extends State<SignInPage> {
               keyboardType: TextInputType.emailAddress,
               validator: (v) =>
                   v == null || v.isEmpty ? _tr('Enter email', '이메일을 입력하세요') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: buyerPwCtrl,
+              decoration: InputDecoration(labelText: _tr('Password (login)', '비밀번호')),
+              obscureText: true,
+              validator: (v) =>
+                  v == null || v.isEmpty ? _tr('Enter password', '비밀번호를 입력하세요') : null,
             ),
             const SizedBox(height: 12),
             TextFormField(

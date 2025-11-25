@@ -91,6 +91,7 @@ function ensureSchema() {
     ensureColumn('buyer_requests', 'seller_phone', 'TEXT');
     ensureColumn('buyer_requests', 'seller_address', 'TEXT');
     ensureColumn('buyer_requests', 'role', 'TEXT');
+    ensureColumn('buyer_requests', 'user_id', 'TEXT');
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[db] schema check failed:', err);

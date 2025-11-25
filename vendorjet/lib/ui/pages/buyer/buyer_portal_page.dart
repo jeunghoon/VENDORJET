@@ -10,6 +10,8 @@ import 'package:vendorjet/repositories/mock_repository.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/buyer/buyer_cart_controller.dart';
+import 'package:vendorjet/ui/widgets/product_tag_pill.dart';
+import 'package:vendorjet/ui/widgets/product_thumbnail.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
 class BuyerPortalPage extends StatefulWidget {
@@ -83,6 +85,14 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadProducts() async {
+    final auth = context.read<AuthController?>();
+    if (auth?.pendingApproval == true) {
+      setState(() {
+        _productsLoading = false;
+        _products = const [];
+      });
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _productsLoading = true;
@@ -110,6 +120,14 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadHistory() async {
+    final auth = context.read<AuthController?>();
+    if (auth?.pendingApproval == true) {
+      setState(() {
+        _historyLoading = false;
+        _history = const [];
+      });
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _historyLoading = true;
@@ -132,6 +150,14 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadStores() async {
+    final auth = context.read<AuthController?>();
+    if (auth?.pendingApproval == true) {
+      setState(() {
+        _storesLoading = false;
+        _storeOptions = const [];
+      });
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _storesLoading = true;
@@ -362,6 +388,38 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.read<AuthController?>();
+    if (auth?.pendingApproval == true) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(AppLocalizations.of(context)!.buyerPortalTitle),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.hourglass_empty_outlined, size: 48),
+              const SizedBox(height: 12),
+              Text(
+                '승인 대기 중입니다',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '담당 도매 업체에서 승인하면 상품을 조회하고 주문할 수 있습니다.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ChangeNotifierProvider(
       create: (_) => BuyerCartController(),
       child: DefaultTabController(
@@ -669,26 +727,25 @@ class _CatalogCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            ProductThumbnail(
+              imageUrl: product.imageUrl,
+              aspectRatio: compact ? 4 / 3 : 16 / 9,
+              borderRadius: 12,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              product.name,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        product.sku,
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                    ],
+                  child: Text(
+                    product.sku,
+                    style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ),
                 if (product.lowStock)
@@ -716,11 +773,11 @@ class _CatalogCard extends StatelessWidget {
               runSpacing: -6,
               children: [
                 if (product.tags.contains(ProductTag.featured))
-                  _Tag(label: t.productTagFeatured),
+                  ProductTagPill(label: t.productTagFeatured),
                 if (product.tags.contains(ProductTag.discounted))
-                  _Tag(label: t.productTagDiscounted),
+                  ProductTagPill(label: t.productTagDiscounted),
                 if (product.tags.contains(ProductTag.newArrival))
-                  _Tag(label: t.productTagNew),
+                  ProductTagPill(label: t.productTagNew),
               ],
             ),
             const SizedBox(height: 8),
@@ -1376,110 +1433,5 @@ class _DashboardOrderCard extends StatelessWidget {
     );
   }
 }
-
-class _QuantityField extends StatefulWidget {
-  final int value;
-  final ValueChanged<int> onSubmitted;
-
-  const _QuantityField({required this.value, required this.onSubmitted});
-
-  @override
-  State<_QuantityField> createState() => _QuantityFieldState();
-}
-
-class _QuantityFieldState extends State<_QuantityField> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.value.toString());
-  }
-
-  @override
-  void didUpdateWidget(covariant _QuantityField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value &&
-        _controller.text != widget.value.toString()) {
-      _controller.text = widget.value.toString();
-      _controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: _controller.text.length),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _commit() {
-    final parsed = int.tryParse(_controller.text);
-    if (parsed == null || parsed < 1) {
-      _controller.text = widget.value.toString();
-      _controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: _controller.text.length),
-      );
-      return;
-    }
-    widget.onSubmitted(parsed);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 64,
-      child: TextField(
-        controller: _controller,
-        textAlign: TextAlign.center,
-        keyboardType: const TextInputType.numberWithOptions(decimal: false),
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: InputDecoration(
-          contentPadding: const EdgeInsets.symmetric(vertical: 8),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          isDense: true,
-        ),
-        onChanged: (value) {
-          final parsed = int.tryParse(value);
-          if (parsed != null) {
-            widget.onSubmitted(parsed.clamp(1, 999));
-          }
-        },
-        onSubmitted: (_) => _commit(),
-        onEditingComplete: _commit,
-      ),
-    );
-  }
-}
-
-String _formatQuantity(int value) => value.toString().padLeft(2, '0');
-
-class _Tag extends StatelessWidget {
-  final String label;
-
-  const _Tag({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: scheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: scheme.onSecondaryContainer,
-        ),
-      ),
-    );
-  }
-}
-
 
 

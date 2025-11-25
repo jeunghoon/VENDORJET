@@ -12,7 +12,7 @@ router.post('/login', (req, res) => {
     return res.status(400).json({ error: 'email and password are required' });
   }
 
-  // 간단히 plaintext 비교 (목업)
+  // 媛꾨떒??plaintext 鍮꾧탳 (紐⑹뾽)
   const userStmt = db.prepare(
     'SELECT id, email, password_hash FROM users WHERE email = ? LIMIT 1'
   );
@@ -58,7 +58,7 @@ router.get('/me', authMiddleware, (req, res) => {
   return res.json({ user: req.user });
 });
 
-// 내 프로필 조회
+// ???꾨줈??議고쉶
 router.get('/profile', authMiddleware, (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'unauthorized' });
   const row = db
@@ -67,7 +67,7 @@ router.get('/profile', authMiddleware, (req, res) => {
   return res.json(row);
 });
 
-// 내 프로필 업데이트
+// ???꾨줈???낅뜲?댄듃
 router.patch('/profile', authMiddleware, (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'unauthorized' });
   const { email, phone, address, name, password } = req.body || {};
@@ -100,7 +100,7 @@ router.patch('/profile', authMiddleware, (req, res) => {
   return res.json({ ok: true });
 });
 
-// 내 계정 삭제
+// ??怨꾩젙 ??젣
 router.delete('/profile', authMiddleware, (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'unauthorized' });
   const uid = req.user.userId;
@@ -119,7 +119,7 @@ router.get('/tenants', authMiddleware, (_req, res) => {
   res.json(rows);
 });
 
-// 공개 테넌트 목록 (구매자 가입 시 판매자 검색용)
+// 怨듦컻 ?뚮꼳??紐⑸줉 (援щℓ??媛?????먮ℓ??寃?됱슜)
 router.get('/tenants-public', (_req, res) => {
   const rows = mapRows<{ id: string; name: string; phone: string; address: string }>(
     db.prepare('SELECT id, name, phone, address FROM tenants').all()
@@ -127,7 +127,7 @@ router.get('/tenants-public', (_req, res) => {
   res.json(rows);
 });
 
-// 판매자 신규 가입: 새 회사면 테넌트+owner 생성, 기존 회사면 승인 요청만 생성
+// ?먮ℓ???좉퇋 媛?? ???뚯궗硫??뚮꼳??owner ?앹꽦, 湲곗〈 ?뚯궗硫??뱀씤 ?붿껌留??앹꽦
 router.post('/register', (req, res) => {
   const {
     companyName,
@@ -184,7 +184,7 @@ router.post('/register', (req, res) => {
     });
   }
 
-  // 기존 회사면 승인 요청 생성
+  // 湲곗〈 ?뚯궗硫??뱀씤 ?붿껌 ?앹꽦
   const reqId = `mr_${Date.now()}`;
   db.prepare(
     'INSERT INTO membership_requests (id, tenant_id, email, name, phone, role, status, company_name, company_address, company_phone, requester_type, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
@@ -202,10 +202,10 @@ router.post('/register', (req, res) => {
     'seller_staff',
     nowIso
   );
-  return res.status(202).json({ status: 'pending', requestId: reqId, message: '승인 대기 중입니다.' });
+  return res.status(202).json({ status: 'pending', requestId: reqId, message: '?뱀씤 ?湲?以묒엯?덈떎.' });
 });
 
-// 구매자 가입 요청: 판매자 회사 + 구매자 회사 정보와 첨부파일(옵션) 등록
+// 援щℓ??媛???붿껌: ?먮ℓ???뚯궗 + 援щℓ???뚯궗 ?뺣낫? 泥⑤??뚯씪(?듭뀡) ?깅줉
 router.post('/register-buyer', (req, res) => {
   const {
     sellerCompanyName,
@@ -214,15 +214,37 @@ router.post('/register-buyer', (req, res) => {
     name = '',
     phone = '',
     email,
+    password,
     attachmentUrl = '',
     role = 'staff',
   } = req.body || {};
-  if (!sellerCompanyName || !buyerCompanyName || !email) {
-    return res.status(400).json({ error: 'sellerCompanyName, buyerCompanyName, email required' });
+  if (!sellerCompanyName || !buyerCompanyName || !email || !password) {
+    return res
+      .status(400)
+      .json({ error: 'sellerCompanyName, buyerCompanyName, email, password required' });
   }
   const reqId = `br_${Date.now()}`;
+  const nowIso = new Date().toISOString();
+
+  const existingUser = db.prepare('SELECT id FROM users WHERE email = ? LIMIT 1').get(email) as
+    | { id: string }
+    | undefined;
+  const userId = existingUser?.id ?? `u_${Date.now()}`;
+  const upsertUser = db.transaction(() => {
+    if (existingUser) {
+      db.prepare(
+        'UPDATE users SET password_hash = COALESCE(?, password_hash), name = COALESCE(?, name), phone = COALESCE(?, phone), address = COALESCE(?, address), user_type = COALESCE(?, user_type), updated_at = ? WHERE id = ?'
+      ).run(password, name, phone, buyerAddress, 'buyer', nowIso, userId);
+    } else {
+      db.prepare(
+        'INSERT INTO users (id, email, password_hash, name, phone, address, created_at, user_type) VALUES (?,?,?,?,?,?,?,?)'
+      ).run(userId, email, password, name, phone, buyerAddress, nowIso, 'buyer');
+    }
+  });
+  upsertUser();
+
   db.prepare(
-    'INSERT INTO buyer_requests (id, seller_company, buyer_company, buyer_address, email, name, phone, role, attachment_url, status, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+    'INSERT INTO buyer_requests (id, seller_company, buyer_company, buyer_address, email, name, phone, role, attachment_url, status, created_at, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
   ).run(
     reqId,
     sellerCompanyName,
@@ -234,15 +256,13 @@ router.post('/register-buyer', (req, res) => {
     role,
     attachmentUrl,
     'pending',
-    new Date().toISOString()
+    nowIso,
+    userId
   );
-  return res.status(202).json({ status: 'pending', requestId: reqId, message: '판매자 승인 대기 중입니다.' });
+  return res
+    .status(202)
+    .json({ status: 'pending', requestId: reqId, message: '판매자 승인 대기중입니다.' });
 });
-
-// 새 테넌트+관리자 생성
-// 기존 register 경로는 판매자 신규 플로우로 통합 (상위에서 처리)
-
-// 간단한 사용자 CRUD (목업 수준, 비밀번호 해시 미적용)
 router.post('/users', authMiddleware, (req, res) => {
   const { email, password, tenantId, role = 'admin' } = req.body || {};
   const resolvedTenant = tenantId ?? req.user?.tenantId;

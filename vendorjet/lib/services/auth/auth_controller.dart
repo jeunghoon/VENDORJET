@@ -10,6 +10,7 @@ class AuthController extends ChangeNotifier {
 
   bool _loading = true;
   bool _signedIn = false;
+  bool _pendingApproval = false;
   String? _email;
   List<Tenant> _tenants = const [];
 
@@ -17,6 +18,7 @@ class AuthController extends ChangeNotifier {
 
   bool get loading => _loading;
   bool get signedIn => _signedIn;
+  bool get pendingApproval => _pendingApproval;
   String? get email => _email;
   Tenant? get tenant => service.currentTenant;
   TenantMemberRole? get role => service.currentRole;
@@ -33,10 +35,12 @@ class AuthController extends ChangeNotifier {
       _signedIn = await service.isSignedIn();
       _email = service.currentEmail;
       _tenants = _signedIn ? await service.fetchTenants() : const [];
+      _pendingApproval = _signedIn && (service.memberships.isEmpty || service.currentTenant == null);
     } catch (_) {
       _signedIn = false;
       _email = null;
       _tenants = const [];
+      _pendingApproval = false;
     }
     _loading = false;
     notifyListeners();
@@ -48,6 +52,7 @@ class AuthController extends ChangeNotifier {
     if (ok) {
       _email = service.currentEmail;
       _tenants = await service.fetchTenants();
+      _pendingApproval = service.memberships.isEmpty || service.currentTenant == null;
     }
     notifyListeners();
     return ok;
@@ -110,6 +115,7 @@ class AuthController extends ChangeNotifier {
     String name = '',
     String phone = '',
     required String email,
+    required String password,
     String attachmentUrl = '',
     String role = 'staff',
   }) async {
@@ -121,6 +127,7 @@ class AuthController extends ChangeNotifier {
         name: name,
         phone: phone,
         email: email,
+        password: password,
         attachmentUrl: attachmentUrl,
         role: role,
       );
@@ -239,6 +246,8 @@ class AuthController extends ChangeNotifier {
     await service.signOut();
     _signedIn = false;
     _email = null;
+    _tenants = const [];
+    _pendingApproval = false;
     notifyListeners();
   }
 

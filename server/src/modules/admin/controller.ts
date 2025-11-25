@@ -133,6 +133,7 @@ router.get('/requests', (_req, res) => {
                 phone,
                 role,
                 attachment_url AS attachmentUrl,
+                user_id AS userId,
                 status,
                 created_at AS createdAt
          FROM buyer_requests`
@@ -152,11 +153,51 @@ router.patch('/requests/:id', (req, res) => {
   }
   const isMembership = id.startsWith('mr_');
   if (isMembership) {
+    const reqRow = db
+      .prepare('SELECT * FROM membership_requests WHERE id = ?')
+      .get(id) as { tenant_id?: string; email?: string; role?: string } | undefined;
+    if (!reqRow) return res.status(404).json({ error: 'request not found' });
     db.prepare('UPDATE membership_requests SET status = ? WHERE id = ?').run(status, id);
+    if (status === 'approved' && reqRow.tenant_id && reqRow.email) {
+      const user = db
+        .prepare('SELECT id FROM users WHERE email = ? LIMIT 1')
+        .get(reqRow.email) as { id: string } | undefined;
+      if (user) {
+        db.prepare(
+          'INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
+        ).run(user.id, reqRow.tenant_id, reqRow.role ?? 'staff', 'approved');
+      }
+    }
   } else {
+    const reqRow = db
+      .prepare('SELECT * FROM buyer_requests WHERE id = ?')
+      .get(id) as { seller_company?: string; user_id?: string; role?: string } | undefined;
+    if (!reqRow) return res.status(404).json({ error: 'request not found' });
     db.prepare('UPDATE buyer_requests SET status = ? WHERE id = ?').run(status, id);
+    if (status === 'approved' && reqRow.seller_company && reqRow.user_id) {
+      const tenant = db
+        .prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1')
+        .get(reqRow.seller_company) as { id: string } | undefined;
+      if (tenant) {
+        db.prepare(
+          'INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
+        ).run(reqRow.user_id, tenant.id, reqRow.role ?? 'staff', 'approved');
+      }
+    }
   }
   return res.json({ id, status });
+});
+
+// 요청 삭제
+router.delete('/requests/:id', (req, res) => {
+  const { id } = req.params;
+  const isMembership = id.startsWith('mr_');
+  const stmt = isMembership
+    ? db.prepare('DELETE FROM membership_requests WHERE id = ?')
+    : db.prepare('DELETE FROM buyer_requests WHERE id = ?');
+  const info = stmt.run(id);
+  if (info.changes === 0) return res.status(404).json({ error: 'not found' });
+  return res.status(204).end();
 });
 
 // 사용자 역할/상태 갱신 (단순 멤버십 업데이트)

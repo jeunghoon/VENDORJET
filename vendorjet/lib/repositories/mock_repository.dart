@@ -567,154 +567,57 @@ class MockCustomerRepository {
     CustomerTier? tier,
     String? segment,
   }) async {
-    if (useLocalApi) {
-      final data = await ApiClient.get('/customers', query: {
-        'q': query,
-        'tier': tier?.name,
-        'segment': segment,
-      }) as List<dynamic>;
-      final customers =
-          data.map((e) => _customerFromJson(e as Map<String, dynamic>)).toList();
-      return customers..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    }
-    _seed();
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    Iterable<Customer> result = _items;
-    if (tier != null) {
-      result = result.where((c) => c.tier == tier);
-    }
-    if (segment != null && segment.isNotEmpty) {
-      result = result.where((c) => c.segment == segment);
-    }
-    if (query.isNotEmpty) {
-      final q = query.toLowerCase();
-      result = result.where(
-        (c) =>
-            c.name.toLowerCase().contains(q) ||
-            c.contactName.toLowerCase().contains(q) ||
-            c.email.toLowerCase().contains(q),
-      );
-    }
-    return result.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final data = await ApiClient.get('/customers', query: {
+      'q': query,
+      'tier': tier?.name,
+      'segment': segment,
+    }) as List<dynamic>;
+    final customers = data.map((e) => _customerFromJson(e as Map<String, dynamic>)).toList();
+    return customers..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   Future<Customer> save(Customer customer) async {
-    if (useLocalApi) {
-      if (customer.id.isEmpty) {
-        final created = await ApiClient.post('/customers', body: {
-          'name': customer.name,
-          'contactName': customer.contactName,
-          'email': customer.email,
-          'tier': customer.tier.name,
-          'segment': customer.segment,
-        }) as Map<String, dynamic>;
-        return _customerFromJson(created);
-      } else {
-        await ApiClient.put('/customers/${customer.id}', body: {
-          'name': customer.name,
-          'contactName': customer.contactName,
-          'email': customer.email,
-          'tier': customer.tier.name,
-          'segment': customer.segment,
-        });
-        return customer;
-      }
+    if (customer.id.isEmpty) {
+      final created = await ApiClient.post('/customers', body: {
+        'name': customer.name,
+        'contactName': customer.contactName,
+        'email': customer.email,
+        'tier': customer.tier.name,
+        'segment': customer.segment,
+      }) as Map<String, dynamic>;
+      return _customerFromJson(created);
+    } else {
+      await ApiClient.put('/customers/${customer.id}', body: {
+        'name': customer.name,
+        'contactName': customer.contactName,
+        'email': customer.email,
+        'tier': customer.tier.name,
+        'segment': customer.segment,
+      });
+      return customer;
     }
-    _seed();
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    final index = _items.indexWhere((element) => element.id == customer.id);
-    final normalized = customer.segment.trim();
-    final segment = normalized.isEmpty ? '' : normalized;
-    final updatedCustomer = customer.copyWith(segment: segment);
-    if (index == -1) {
-      final created = customer.copyWith(
-        id: customer.id.isEmpty ? _idCounter.next() : customer.id,
-        segment: segment,
-      );
-      _items.add(created);
-      return created;
-    }
-    _items[index] = updatedCustomer;
-    return updatedCustomer;
   }
 
   Future<void> delete(String id) async {
-    if (useLocalApi) {
-      await ApiClient.delete('/orders/$id');
-      return;
-    }
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-    _items.removeWhere((element) => element.id == id);
+    await ApiClient.delete('/customers/$id');
   }
 
   Future<List<String>> fetchSegments() async {
-    if (useLocalApi) {
-      final data = await ApiClient.get('/customers/segments') as List<dynamic>;
-      return data.map((e) => e.toString()).toList()..sort();
-    }
-    _ensureSegments();
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-    return List<String>.from(_segments)..sort();
+    final data = await ApiClient.get('/customers/segments') as List<dynamic>;
+    return data.map((e) => e.toString()).toList()..sort();
   }
 
   Future<void> upsertSegment(String name, {String? original}) async {
-    if (useLocalApi) {
-      // 서버 미구현: 로컬 목록만 관리
-      _ensureSegments();
-      final trimmed = name.trim();
-      if (trimmed.isEmpty) return;
-      if (original != null) {
-        final idx = _segments.indexWhere(
-          (e) => e.toLowerCase() == original.toLowerCase(),
-        );
-        if (idx != -1) _segments[idx] = trimmed;
-      } else if (!_segments.contains(trimmed)) {
-        _segments.add(trimmed);
-      }
-      return;
-    }
     final trimmed = name.trim();
-    if (trimmed.isEmpty) {
-      throw ArgumentError('Segment cannot be empty');
-    }
-    _ensureSegments();
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-    if (original != null) {
-      final index = _segments.indexWhere(
-        (element) => element.toLowerCase() == original.toLowerCase(),
-      );
-      if (index != -1) {
-        _segments[index] = trimmed;
-        _reassignSegment(original, trimmed);
-        return;
-      }
-    }
-    if (!_segments.contains(trimmed)) {
-      _segments.add(trimmed);
-    }
+    if (trimmed.isEmpty) return;
+    await ApiClient.post('/customers/segments', body: {
+      'name': trimmed,
+      'original': original,
+    });
   }
 
   Future<void> deleteSegment(String name) async {
-    if (useLocalApi) {
-      _segments.remove(name);
-      return;
-    }
-    _ensureSegments();
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-    _segments.remove(name);
-    for (var i = 0; i < _items.length; i++) {
-      if (_items[i].segment == name) {
-        _items[i] = _items[i].copyWith(segment: '');
-      }
-    }
-  }
-
-  void _reassignSegment(String from, String to) {
-    for (var i = 0; i < _items.length; i++) {
-      if (_items[i].segment == from) {
-        _items[i] = _items[i].copyWith(segment: to);
-      }
-    }
+    await ApiClient.delete('/customers/segments', query: {'name': name});
   }
 }
 

@@ -240,6 +240,7 @@ class ApiAuthService implements AuthService {
     String name = '',
     String phone = '',
     required String email,
+    required String password,
     String attachmentUrl = '',
     String role = 'staff',
   }) async {
@@ -251,6 +252,7 @@ class ApiAuthService implements AuthService {
         'name': name,
         'phone': phone,
         'email': email,
+        'password': password,
         'attachmentUrl': attachmentUrl,
         'role': role,
       });

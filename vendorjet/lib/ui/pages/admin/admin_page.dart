@@ -76,12 +76,13 @@ class _AdminPageState extends State<AdminPage> {
                 : TabBarView(
                     children: [
                       _UsersTab(users: _users, onChanged: _load),
-                      _RequestsTab(
-                        membershipRequests: _membershipRequests,
-                        buyerRequests: _buyerRequests,
-                      ),
-                    ],
+                  _RequestsTab(
+                    membershipRequests: _membershipRequests,
+                    buyerRequests: _buyerRequests,
+                    onChanged: _load,
                   ),
+                ],
+              ),
       ),
     );
   }
@@ -175,10 +176,12 @@ class _UsersTab extends StatelessWidget {
 class _RequestsTab extends StatelessWidget {
   final List<Map<String, dynamic>> membershipRequests;
   final List<Map<String, dynamic>> buyerRequests;
+  final FutureOr<void> Function() onChanged;
 
   const _RequestsTab({
     required this.membershipRequests,
     required this.buyerRequests,
+    required this.onChanged,
   });
 
   @override
@@ -204,6 +207,40 @@ class _RequestsTab extends StatelessWidget {
             title: Text('${r['kind']} · ${r['email'] ?? ''}'),
             subtitle: Text(
               '${r['name'] ?? ''} · ${status == 'pending' ? '대기' : status} · ${createdAt != null ? dateFormat.format(DateTime.tryParse(createdAt) ?? DateTime.now()) : ''}',
+            ),
+            trailing: Wrap(
+              spacing: 4,
+              children: [
+                IconButton(
+                  tooltip: '승인',
+                  onPressed: status == 'approved'
+                      ? null
+                      : () async {
+                          await ApiClient.patch('/admin/requests/${r['id']}', body: {'status': 'approved'});
+                          await onChanged();
+                        },
+                  icon: const Icon(Icons.check_circle_outline),
+                ),
+                IconButton(
+                  tooltip: '거절',
+                  onPressed: status == 'denied'
+                      ? null
+                      : () async {
+                          await ApiClient.patch('/admin/requests/${r['id']}', body: {'status': 'denied'});
+                          await onChanged();
+                        },
+                  icon: const Icon(Icons.cancel_outlined),
+                ),
+                IconButton(
+                  tooltip: '삭제',
+                  onPressed: () async {
+                    await ApiClient.delete('/admin/requests/${r['id']}');
+                    await onChanged();
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ],
             ),
           ),
         );

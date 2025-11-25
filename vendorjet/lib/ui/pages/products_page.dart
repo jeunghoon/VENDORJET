@@ -9,6 +9,8 @@ import 'package:vendorjet/services/import/mock_import_service.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/products/category_manager_sheet.dart';
 import 'package:vendorjet/ui/pages/products/product_edit_sheet.dart';
+import 'package:vendorjet/ui/widgets/product_tag_pill.dart';
+import 'package:vendorjet/ui/widgets/product_thumbnail.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
 class ProductsPagePreset {
@@ -443,62 +445,80 @@ class _ProductCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.go('/products/${product.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(product.sku, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(
-                      product.name,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      categoryLabel,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: color.onSurface.withValues(alpha: 0.6),
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: -6,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: ProductThumbnail(
+                imageUrl: product.imageUrl,
+                aspectRatio: compact ? 4 / 3 : 16 / 9,
+                borderRadius: 12,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (final label in tagLabels)
-                          _Tag(label: label, highlight: label == t.productLowStockTag),
+                        Text(
+                          product.name,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          product.sku,
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          categoryLabel,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: color.onSurface.withValues(alpha: 0.6),
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: -6,
+                          children: [
+                            for (final label in tagLabels)
+                              ProductTagPill(label: label, highlight: label == t.productLowStockTag),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  switch (value) {
-                    case 'edit':
-                      onEdit(initial: product);
-                      break;
-                    case 'delete':
-                      onDelete(product);
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(value: 'edit', child: Text(t.edit)),
-                  PopupMenuItem(value: 'delete', child: Text(t.productsDelete)),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          onEdit(initial: product);
+                          break;
+                        case 'delete':
+                          onDelete(product);
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(value: 'edit', child: Text(t.edit)),
+                      PopupMenuItem(value: 'delete', child: Text(t.productsDelete)),
+                    ],
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -539,36 +559,4 @@ class _CategoryChips extends StatelessWidget {
     );
   }
 }
-
-class _Tag extends StatelessWidget {
-  final String label;
-  final bool highlight;
-
-  const _Tag({required this.label, this.highlight = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final background = highlight
-        ? scheme.errorContainer
-        : scheme.surfaceContainerHighest;
-    final foreground = highlight ? scheme.onErrorContainer : scheme.onSurface;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: foreground,
-        ),
-      ),
-    );
-  }
-}
-
 
