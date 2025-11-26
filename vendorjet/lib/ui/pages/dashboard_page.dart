@@ -6,6 +6,7 @@ import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
 import 'package:vendorjet/services/dashboard/dashboard_service.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
 // 대시보드: 핵심 지표 + 최근 주문 목록
@@ -73,9 +74,9 @@ class _DashboardPageState extends State<DashboardPage> {
         }
       });
       if (_snapshot != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(err.message)));
+        if (mounted) {
+          context.read<NotificationTicker>().push(err.message);
+        }
       }
     } catch (err) {
       if (!mounted) return;

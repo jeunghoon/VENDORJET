@@ -17,7 +17,11 @@ function authMiddleware(req, res, next) {
         if (!payload.tenantId || !payload.userId) {
             return res.status(401).json({ error: 'invalid token' });
         }
-        req.user = payload;
+        const overrideTenant = req.headers['x-tenant-id'];
+        req.user = {
+            ...payload,
+            tenantId: typeof overrideTenant === 'string' && overrideTenant.length > 0 ? overrideTenant : payload.tenantId,
+        };
         next();
     }
     catch (err) {

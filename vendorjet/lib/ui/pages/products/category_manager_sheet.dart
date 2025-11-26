@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
@@ -236,9 +238,7 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
         .where((segment) => segment.isNotEmpty)
         .toList();
     if (path.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.categoryManagerPrimaryRequired)),
-      );
+      context.read<NotificationTicker>().push(t.categoryManagerPrimaryRequired);
       return;
     }
     final original =
@@ -248,9 +248,7 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
       originalPath: original,
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t.categoryManagerSaved)),
-    );
+    context.read<NotificationTicker>().push(t.categoryManagerSaved);
     await _load();
   }
 
@@ -325,9 +323,7 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
     if (confirmed != true) return;
     await widget.repository.deleteCategory(path);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t.categoryManagerDeleted)),
-    );
+    context.read<NotificationTicker>().push(t.categoryManagerDeleted);
     await _load();
   }
 }

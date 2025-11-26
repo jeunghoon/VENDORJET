@@ -30,6 +30,41 @@ router.get('/', (req, res) => {
     const rows = client_1.db.prepare(base).all(params);
     res.json((0, client_1.mapRows)(rows));
 });
+router.post('/segments', (req, res) => {
+    const tenantId = req.user?.tenantId;
+    if (!tenantId)
+        return res.status(400).json({ error: 'tenantId missing' });
+    const { name, original } = req.body || {};
+    const trimmed = (name ?? '').toString().trim();
+    if (!trimmed)
+        return res.status(400).json({ error: 'name required' });
+    const tx = client_1.db.transaction(() => {
+        if (original) {
+            client_1.db.prepare('UPDATE segments SET name = ? WHERE tenant_id = ? AND name = ?').run(trimmed, tenantId, original);
+            client_1.db.prepare('UPDATE customers SET segment = ? WHERE tenant_id = ? AND segment = ?').run(trimmed, tenantId, original);
+        }
+        const exists = client_1.db.prepare('SELECT 1 FROM segments WHERE tenant_id = ? AND name = ? LIMIT 1').get(tenantId, trimmed);
+        if (!exists) {
+            client_1.db.prepare('INSERT INTO segments (tenant_id, name) VALUES (?, ?)').run(tenantId, trimmed);
+        }
+    });
+    tx();
+    return res.json({ name: trimmed });
+});
+router.delete('/segments', (req, res) => {
+    const tenantId = req.user?.tenantId;
+    const name = req.query.name?.toString();
+    if (!tenantId)
+        return res.status(400).json({ error: 'tenantId missing' });
+    if (!name)
+        return res.status(400).json({ error: 'name required' });
+    const tx = client_1.db.transaction(() => {
+        client_1.db.prepare('DELETE FROM segments WHERE tenant_id = ? AND name = ?').run(tenantId, name);
+        client_1.db.prepare('UPDATE customers SET segment = ? WHERE tenant_id = ? AND segment = ?').run('', tenantId, name);
+    });
+    tx();
+    return res.status(204).end();
+});
 router.get('/segments', (req, res) => {
     const tenantId = req.user?.tenantId;
     if (!tenantId)

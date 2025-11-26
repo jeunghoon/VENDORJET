@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { env } from './config/env';
-import { authController } from './modules/auth/controller';
+import authController from './modules/auth/controller';
 import { productsController } from './modules/products/controller';
 import { customersController } from './modules/customers/controller';
 import { ordersController } from './modules/orders/controller';

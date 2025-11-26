@@ -1,5 +1,19 @@
 enum OrderStatus { pending, confirmed, shipped, completed, canceled, returned }
 
+class OrderEvent {
+  final String action;
+  final String actor;
+  final String? note;
+  final DateTime createdAt;
+
+  const OrderEvent({
+    required this.action,
+    required this.actor,
+    required this.createdAt,
+    this.note,
+  });
+}
+
 class OrderLine {
   final String productId;
   final String productName;
@@ -40,9 +54,15 @@ class Order {
   final String buyerName;
   final String buyerContact;
   final String? buyerNote;
+  final String? createdSource;
   final DateTime? updatedAt;
+  final String? createdBy;
+  final String? updatedBy;
+  final String? statusUpdatedBy;
+  final DateTime? statusUpdatedAt;
   final String? updateNote;
   final List<OrderLine> lines;
+  final List<OrderEvent> events;
   final DateTime? desiredDeliveryDate;
 
   const Order({
@@ -55,9 +75,15 @@ class Order {
     this.buyerName = '',
     this.buyerContact = '',
     this.buyerNote,
+    this.createdSource,
     this.updatedAt,
+    this.createdBy,
+    this.updatedBy,
+    this.statusUpdatedBy,
+    this.statusUpdatedAt,
     this.updateNote,
     this.lines = const [],
+    this.events = const [],
     this.desiredDeliveryDate,
   });
 
@@ -71,9 +97,15 @@ class Order {
     String? buyerName,
     String? buyerContact,
     String? buyerNote,
+    String? createdSource,
     DateTime? updatedAt,
+    String? createdBy,
+    String? updatedBy,
+    String? statusUpdatedBy,
+    DateTime? statusUpdatedAt,
     String? updateNote,
     List<OrderLine>? lines,
+    List<OrderEvent>? events,
     DateTime? desiredDeliveryDate,
   }) {
     return Order(
@@ -86,9 +118,15 @@ class Order {
       buyerName: buyerName ?? this.buyerName,
       buyerContact: buyerContact ?? this.buyerContact,
       buyerNote: buyerNote ?? this.buyerNote,
+      createdSource: createdSource ?? this.createdSource,
       updatedAt: updatedAt ?? this.updatedAt,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      statusUpdatedBy: statusUpdatedBy ?? this.statusUpdatedBy,
+      statusUpdatedAt: statusUpdatedAt ?? this.statusUpdatedAt,
       updateNote: updateNote ?? this.updateNote,
       lines: lines ?? this.lines,
+      events: events ?? this.events,
       desiredDeliveryDate: desiredDeliveryDate ?? this.desiredDeliveryDate,
     );
   }

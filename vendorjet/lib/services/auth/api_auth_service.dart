@@ -9,10 +9,12 @@ class ApiAuthService implements AuthService {
   static const _kToken = 'api_auth_token';
   static const _kEmail = 'api_auth_email';
   static const _kTenant = 'api_auth_tenant';
+  static const _kUserType = 'api_user_type';
 
   SharedPreferences? _prefs;
   String? _email;
   String? _currentTenantId;
+  String? _userType;
   List<TenantMembership> _memberships = const [];
   List<Tenant> _tenants = const [];
 
@@ -22,6 +24,7 @@ class ApiAuthService implements AuthService {
     ApiClient.token = _prefs?.getString(_kToken);
     _email = _prefs?.getString(_kEmail);
     _currentTenantId = _prefs?.getString(_kTenant);
+    _userType = _prefs?.getString(_kUserType);
     ApiClient.tenantId = _currentTenantId;
     if (ApiClient.token != null) {
       try {
@@ -43,6 +46,7 @@ class ApiAuthService implements AuthService {
       if (token == null) return false;
       ApiClient.token = token;
       _email = email.toLowerCase();
+      _userType = (resp['user'] as Map<String, dynamic>?)?['userType'] as String?;
       _memberships = (resp['memberships'] as List<dynamic>? ?? [])
           .map((m) => TenantMembership(
                 tenantId: m['tenantId'] as String,
@@ -107,11 +111,13 @@ class ApiAuthService implements AuthService {
     ApiClient.token = null;
     _email = null;
     _currentTenantId = null;
+    _userType = null;
     _memberships = const [];
     _tenants = const [];
     await _prefs?.remove(_kToken);
     await _prefs?.remove(_kEmail);
     await _prefs?.remove(_kTenant);
+    await _prefs?.remove(_kUserType);
   }
 
   @override
@@ -119,6 +125,8 @@ class ApiAuthService implements AuthService {
 
   @override
   String? get currentEmail => _email;
+
+  String? get userType => _userType;
 
   @override
   Tenant? get currentTenant {
@@ -186,6 +194,7 @@ class ApiAuthService implements AuthService {
       companyName: tenantName,
       email: email,
       password: password,
+      isNew: true,
     );
   }
 
@@ -198,6 +207,7 @@ class ApiAuthService implements AuthService {
     required String email,
     required String password,
     String role = 'staff',
+    bool isNew = true,
   }) async {
     try {
       final resp = await ApiClient.post('/auth/register', body: {
@@ -209,6 +219,7 @@ class ApiAuthService implements AuthService {
         'email': email,
         'password': password,
         'role': role,
+        'mode': isNew ? 'new' : 'existing',
       }) as Map<String, dynamic>;
       final token = resp['token'] as String?;
       // 신규 테넌트는 201 + token, 기존 테넌트는 202(pending)로 token이 없을 수 있음
@@ -243,6 +254,7 @@ class ApiAuthService implements AuthService {
     required String password,
     String attachmentUrl = '',
     String role = 'staff',
+    bool isNewBuyerCompany = true,
   }) async {
     try {
       await ApiClient.post('/auth/register-buyer', body: {
@@ -255,6 +267,7 @@ class ApiAuthService implements AuthService {
         'password': password,
         'attachmentUrl': attachmentUrl,
         'role': role,
+        'mode': isNewBuyerCompany ? 'new' : 'existing',
       });
       return true;
     } catch (_) {
@@ -329,6 +342,9 @@ class ApiAuthService implements AuthService {
     }
     if (ApiClient.token != null) {
       await _prefs?.setString(_kToken, ApiClient.token!);
+    }
+    if (_userType != null) {
+      await _prefs?.setString(_kUserType, _userType!);
     }
   }
 

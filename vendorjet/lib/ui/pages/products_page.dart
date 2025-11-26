@@ -9,6 +9,7 @@ import 'package:vendorjet/services/import/mock_import_service.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/products/category_manager_sheet.dart';
 import 'package:vendorjet/ui/pages/products/product_edit_sheet.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/ui/widgets/product_tag_pill.dart';
 import 'package:vendorjet/ui/widgets/product_thumbnail.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
@@ -340,11 +341,9 @@ class _ProductsPageState extends State<ProductsPage> {
     context.read<DataRefreshCoordinator>().notifyProductChanged(saved);
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(initial == null ? t.productsCreated : t.productEditSaved),
-      ),
-    );
+    context
+        .read<NotificationTicker>()
+        .push(initial == null ? t.productsCreated : t.productEditSaved);
   }
 
   Future<void> _confirmDelete(Product product) async {
@@ -374,14 +373,12 @@ class _ProductsPageState extends State<ProductsPage> {
     context.read<DataRefreshCoordinator>().notifyProductChanged(product);
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.productsDeleted)));
+    context.read<NotificationTicker>().push(t.productsDeleted);
   }
 
   Future<void> _runXlsxImport() async {
     final t = AppLocalizations.of(context)!;
-    final messenger = ScaffoldMessenger.of(context);
+    final ticker = context.read<NotificationTicker>();
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx'],
@@ -390,20 +387,14 @@ class _ProductsPageState extends State<ProductsPage> {
     final file = result.files.single;
     final bytes = file.bytes;
     if (bytes == null) {
-      messenger.showSnackBar(SnackBar(content: Text(t.productsXlsxNoData)));
+      ticker.push(t.productsXlsxNoData);
       return;
     }
     final importResult = await _importService.importProducts(bytes);
     if (!mounted) return;
     await _load();
     if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          t.productsXlsxImported(importResult.success, importResult.processed),
-        ),
-      ),
-    );
+    ticker.push(t.productsXlsxImported(importResult.success, importResult.processed));
   }
 
   Future<void> _openCategoryManager() async {

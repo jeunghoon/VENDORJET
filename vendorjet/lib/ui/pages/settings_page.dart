@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/tenant.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 
 class SettingsPage extends StatefulWidget {
   final Locale? currentLocale;
@@ -225,9 +226,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!mounted) return;
     final t = AppLocalizations.of(context)!;
     if (!ok) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.tenantSwitchFailed)));
+      context.read<NotificationTicker>().push(t.tenantSwitchFailed);
     }
   }
 
@@ -235,9 +234,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final email = _inviteCtrl.text.trim();
     final t = AppLocalizations.of(context)!;
     if (email.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.inviteEmailPlaceholder)));
+      context.read<NotificationTicker>().push(t.inviteEmailPlaceholder);
       return;
     }
     final auth = context.read<AuthController>();
@@ -246,8 +243,6 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!mounted) return;
     setState(() => _inviting = false);
     _inviteCtrl.clear();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.inviteSuccess)));
+    context.read<NotificationTicker>().push(t.inviteSuccess);
   }
 }

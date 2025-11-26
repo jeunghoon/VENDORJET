@@ -1,7 +1,6 @@
-import 'dart:math';
-
 import 'package:vendorjet/models/order.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
+import 'package:vendorjet/repositories/order_repository.dart';
 
 class DashboardSnapshot {
   final int todayOrders;
@@ -33,23 +32,18 @@ abstract class DashboardService {
 }
 
 class MockDashboardService implements DashboardService {
-  final MockOrderRepository orderRepository;
+  final OrderRepository orderRepository;
   final MockProductRepository productRepository;
   final Duration cacheDuration;
-  final bool simulateFlakyNetwork;
-  final double failureRate;
 
   DashboardSnapshot? _cache;
   DateTime? _cacheTimestamp;
-  final _rnd = Random(42);
 
   MockDashboardService({
-    MockOrderRepository? orderRepository,
+    OrderRepository? orderRepository,
     MockProductRepository? productRepository,
     this.cacheDuration = const Duration(seconds: 30),
-    this.simulateFlakyNetwork = true,
-    this.failureRate = 0.1,
-  }) : orderRepository = orderRepository ?? MockOrderRepository(),
+  }) : orderRepository = orderRepository ?? OrderRepository(),
        productRepository = productRepository ?? MockProductRepository();
 
   @override
@@ -86,11 +80,6 @@ class MockDashboardService implements DashboardService {
   }
 
   Future<DashboardSnapshot> _fetchSnapshot() async {
-    await Future<void>.delayed(const Duration(milliseconds: 200));
-    if (simulateFlakyNetwork && _rnd.nextDouble() < failureRate) {
-      throw DashboardServiceException('Mock service temporary failure');
-    }
-
     final orders = await orderRepository.fetch();
     final products = await productRepository.fetch();
     final now = DateTime.now();

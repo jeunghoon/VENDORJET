@@ -4,10 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'l10n/app_localizations.dart';
-import 'services/api/api_client.dart';
 import 'services/auth/api_auth_service.dart';
 import 'services/auth/auth_controller.dart';
-import 'services/auth/auth_service.dart';
 import 'services/sync/data_refresh_coordinator.dart';
 import 'theme/app_theme.dart';
 import 'ui/pages/auth/sign_in_page.dart';
@@ -44,7 +42,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    final authService = useLocalApi ? ApiAuthService() : MockAuthService();
+    final authService = ApiAuthService();
     _authController = AuthController(authService)..load();
     _router = _createRouter();
   }
@@ -76,6 +74,10 @@ class _MyAppState extends State<MyApp> {
 
         if (!signedIn && !loggingIn) {
           return '/sign-in';
+        }
+
+        if (signedIn && _authController.isBuyer && !state.matchedLocation.startsWith('/buyer')) {
+          return '/buyer';
         }
 
         if (signedIn && loggingIn) {
@@ -153,7 +155,13 @@ class _MyAppState extends State<MyApp> {
             GoRoute(
               path: '/admin',
               name: 'admin',
-              builder: (context, state) => const AdminPage(),
+              builder: (context, state) {
+                final auth = context.read<AuthController>();
+                if (auth.email?.toLowerCase() != 'admin@vendorjet.com') {
+                  return const SizedBox.shrink();
+                }
+                return const AdminPage();
+              },
             ),
             GoRoute(
               path: '/profile',
@@ -305,10 +313,16 @@ class _HomeShell extends StatelessWidget {
               children: [
                 Text(t.appTitle),
                 const SizedBox(width: 8),
-                IconButton(
-                  tooltip: '글로벌 관리자',
-                  icon: const Icon(Icons.admin_panel_settings_outlined),
-                  onPressed: () => context.go('/admin'),
+                Consumer<AuthController>(
+                  builder: (context, auth, _) {
+                    final isGlobalAdmin = auth.email?.toLowerCase() == 'admin@vendorjet.com';
+                    if (!isGlobalAdmin) return const SizedBox.shrink();
+                    return IconButton(
+                      tooltip: '글로벌 관리자',
+                      icon: const Icon(Icons.admin_panel_settings_outlined),
+                      onPressed: () => context.go('/admin'),
+                    );
+                  },
                 ),
               ],
             ),

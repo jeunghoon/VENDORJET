@@ -61,8 +61,8 @@ class ApiClient {
     return _decode(resp);
   }
 
-  static Future<void> delete(String path) async {
-    final resp = await _client.delete(_uri(path), headers: _headers());
+  static Future<void> delete(String path, {Map<String, String?>? query}) async {
+    final resp = await _client.delete(_uri(path, query), headers: _headers());
     _decode(resp, allowNoContent: true);
   }
 

@@ -1,12 +1,11 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
-import 'package:vendorjet/repositories/mock_repository.dart';
+import 'package:vendorjet/repositories/order_repository.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/orders/order_edit_sheet.dart';
 
@@ -23,7 +22,7 @@ class OrderDetailPage extends StatefulWidget {
 }
 
 class _OrderDetailPageState extends State<OrderDetailPage> {
-  final _repo = MockOrderRepository();
+  final _repo = OrderRepository();
   late final Future<Order?> _future = _repo.findById(widget.orderId);
 
   Order? _localOrder;
@@ -40,7 +39,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(onPressed: () => context.go('/orders')),
-        title: Text(t.ordersDetailTitle),
+        title: FutureBuilder<Order?>(
+          future: _future,
+          builder: (context, snapshot) {
+            final code = (_localOrder ?? snapshot.data)?.code;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t.ordersDetailTitle),
+                if (code != null) ...[
+                  const SizedBox(width: 8),
+                  Chip(label: Text(code)),
+                ],
+              ],
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -67,14 +81,25 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           }
 
           final currentOrder = _localOrder ?? order;
-          final plannedShip = _plannedShipOverride ?? _defaultPlannedShip(currentOrder);
-          final lastUpdated = _lastUpdatedOverride ?? _defaultLastUpdated(currentOrder);
-          final note = (_noteOverride ?? _defaultNote(currentOrder)).trim();
+          final plannedShip = _plannedShipOverride ??
+              currentOrder.desiredDeliveryDate ??
+              _defaultPlannedShip(currentOrder);
+          final lastUpdated = _lastUpdatedOverride ??
+              currentOrder.statusUpdatedAt ??
+              currentOrder.updatedAt ??
+              currentOrder.createdAt;
+          final note = (_noteOverride ?? currentOrder.updateNote ?? '').trim();
 
-          final lines = _mockLines(currentOrder, t);
+          final lines = _buildLines(currentOrder);
           final statusLabel = _statusLabel(currentOrder.status, t);
           final localizations = MaterialLocalizations.of(context);
-          final owner = _ownerFor(currentOrder);
+          final owner = currentOrder.createdBy?.trim().isNotEmpty == true
+              ? currentOrder.createdBy!
+              : t.orderBuyerUnknown;
+          final channel = currentOrder.createdSource ?? 'manual';
+
+          final sortedEvents = [...currentOrder.events]
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -86,8 +111,56 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        currentOrder.code,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                        '구매자 정보',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 8,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.store_mall_directory_outlined, size: 18),
+                              const SizedBox(width: 6),
+                              Text('상호명 ${currentOrder.buyerName.isEmpty ? t.orderBuyerUnknown : currentOrder.buyerName}'),
+                            ],
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.contact_phone_outlined, size: 18),
+                              const SizedBox(width: 6),
+                              Text('전화번호 ${currentOrder.buyerContact.isEmpty ? t.orderBuyerUnknown : currentOrder.buyerContact}'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if ((currentOrder.buyerNote ?? '').isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.sticky_note_2_outlined),
+                    title: Text('구매자 메모'),
+                    subtitle: Text(currentOrder.buyerNote ?? ''),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '주문 정보',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 12),
                       Wrap(
@@ -95,7 +168,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         runSpacing: 8,
                         children: [
                           _InfoChip(
-                            label: t.orderPlacedOn,
+                            label: '주문 입력일자',
                             value: localizations.formatMediumDate(currentOrder.createdAt),
                           ),
                           _InfoChip(
@@ -112,84 +185,27 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        t.orderBuyerSectionTitle,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                      ),
                       const SizedBox(height: 12),
                       _InfoRow(
-                        icon: Icons.store_mall_directory_outlined,
-                        label: t.orderBuyerName,
-                        value: currentOrder.buyerName.isEmpty ? t.orderBuyerUnknown : currentOrder.buyerName,
+                        icon: Icons.person_outline,
+                        label: '접수자',
+                        value: owner,
                       ),
                       const SizedBox(height: 8),
                       _InfoRow(
-                        icon: Icons.contact_phone_outlined,
-                        label: t.orderBuyerContact,
-                        value: currentOrder.buyerContact.isEmpty ? t.orderBuyerUnknown : currentOrder.buyerContact,
+                        icon: Icons.campaign_outlined,
+                        label: '접수 방식',
+                        value: channel,
                       ),
-                      if ((currentOrder.buyerNote ?? '').isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _InfoRow(
-                          icon: Icons.sticky_note_2_outlined,
-                          label: t.orderBuyerNote,
-                          value: currentOrder.buyerNote ?? '',
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        t.orderMetaTitle,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 12),
-                      _InfoRow(
-                        icon: Icons.event_available_outlined,
-                        label: t.orderMetaPlannedShip,
-                        value: localizations.formatMediumDate(plannedShip),
-                      ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       _InfoRow(
                         icon: Icons.update_outlined,
                         label: t.orderMetaLastUpdated,
-                        value: '${localizations.formatMediumDate(lastUpdated)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(lastUpdated))}',
-                      ),
-                      if (order.updateNote != null && order.updateNote!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _InfoRow(
-                          icon: Icons.history,
-                          label: t.orderUpdateNote,
-                          value: order.updateNote!,
-                        ),
-                      ],
-                      const SizedBox(height: 10),
-                      _InfoRow(
-                        icon: Icons.person_outline,
-                        label: t.orderMetaOwner,
-                        value: owner,
+                        value:
+                            '${localizations.formatMediumDate(lastUpdated)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(lastUpdated))}',
                       ),
                       if (note.isNotEmpty) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _InfoRow(
                           icon: Icons.note_outlined,
                           label: t.orderMetaNote,
@@ -200,10 +216,25 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                t.orderItems,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '품목 내역',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.event_available_outlined, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        localizations.formatMediumDate(plannedShip),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               ...lines.map(
@@ -222,6 +253,61 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   ),
                 ),
               ),
+              if (lines.isEmpty)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(t.ordersEmptyMessage),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              ExpansionTile(
+                initiallyExpanded: false,
+                leading: const Icon(Icons.history),
+                title: const Text('변경 기록'),
+                children: sortedEvents.isEmpty
+                    ? [
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text('변경 기록이 없습니다.'),
+                        ),
+                      ]
+                    : sortedEvents
+                        .map(
+                          (e) => ListTile(
+                            leading: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: color.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            title: Text(_timelineTitle(e)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${localizations.formatMediumDate(e.createdAt)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(e.createdAt))}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                if ((e.note ?? '').isNotEmpty)
+                                  Text(
+                                    e.note!,
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                              ],
+                            ),
+                            trailing: Text(e.actor.isEmpty ? t.orderBuyerUnknown : e.actor),
+                          ),
+                        )
+                        .toList(),
+              ),
             ],
           );
         },
@@ -234,8 +320,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final snapshot = await _future;
     if (!context.mounted || snapshot == null) return;
     final currentOrder = _localOrder ?? snapshot;
-    final plannedShip = _plannedShipOverride ?? _defaultPlannedShip(currentOrder);
-    final note = (_noteOverride ?? _defaultNote(currentOrder)).trim();
+    final plannedShip = _plannedShipOverride ??
+        currentOrder.desiredDeliveryDate ??
+        _defaultPlannedShip(currentOrder);
+    final note = (_noteOverride ?? currentOrder.updateNote ?? '').trim();
 
     final result = await showModalBottomSheet<OrderEditResult>(
       context: context,
@@ -246,18 +334,29 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         initialStatus: currentOrder.status,
         initialPlannedShip: plannedShip,
         initialNote: note,
+        initialLines: currentOrder.lines,
+        compactMode: false,
+        orderCode: currentOrder.code,
+        buyerName: currentOrder.buyerName,
+        buyerContact: currentOrder.buyerContact,
+        buyerNote: currentOrder.buyerNote ?? '',
+        createdAt: currentOrder.createdAt,
       ),
     );
 
     if (!context.mounted || result == null) return;
+    final updatedLines = result.lines;
+    final updatedItemCount = updatedLines.fold<int>(0, (sum, l) => sum + l.quantity);
+    final updatedTotal = updatedLines.fold<double>(0, (sum, l) => sum + l.lineTotal);
 
-    final updatedOrder = Order(
-      id: currentOrder.id,
-      code: currentOrder.code,
-      itemCount: currentOrder.itemCount,
-      total: currentOrder.total,
-      createdAt: currentOrder.createdAt,
+    final updatedOrder = currentOrder.copyWith(
       status: result.status,
+      updateNote: result.note,
+      desiredDeliveryDate: result.plannedShip,
+      updatedAt: DateTime.now(),
+      lines: updatedLines,
+      itemCount: updatedItemCount,
+      total: updatedTotal,
     );
 
     await _repo.save(updatedOrder);
@@ -266,33 +365,30 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
     setState(() {
       _localOrder = updatedOrder;
-      _plannedShipOverride = result.plannedShip;
-      _lastUpdatedOverride = DateTime.now();
-      _noteOverride = result.note;
+      _plannedShipOverride = updatedOrder.desiredDeliveryDate;
+      _lastUpdatedOverride = updatedOrder.updatedAt;
+      _noteOverride = updatedOrder.updateNote;
     });
 
     context.read<DataRefreshCoordinator>().notifyOrderChanged(updatedOrder);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t.orderEditSaved)),
-    );
+    context.read<NotificationTicker>().push(t.orderEditSaved);
   }
 
-  List<_OrderLine> _mockLines(Order order, AppLocalizations t) {
-    final rnd = Random(order.id.hashCode);
-    final count = max(1, order.itemCount);
-    return List.generate(count, (index) {
-      final qty = 1 + rnd.nextInt(4);
-      final unit = ((rnd.nextDouble() * 80) + 20).clamp(10, 120).toDouble();
-      final total = double.parse((qty * unit).toStringAsFixed(2));
+  List<_OrderLine> _buildLines(Order order) {
+    if (order.lines.isEmpty) return const [];
+    return order.lines.asMap().entries.map((entry) {
+      final idx = entry.key;
+      final line = entry.value;
+      final total = double.parse((line.quantity * line.unitPrice).toStringAsFixed(2));
       return _OrderLine(
-        position: index + 1,
-        name: t.orderLinePlaceholder(index + 1),
-        quantity: qty,
-        unitPrice: double.parse(unit.toStringAsFixed(2)),
+        position: idx + 1,
+        name: line.productName.isNotEmpty ? line.productName : line.productId,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
         total: total,
       );
-    });
+    }).toList();
   }
 }
 
@@ -313,25 +409,21 @@ String _statusLabel(OrderStatus status, AppLocalizations t) {
   }
 }
 
-String _ownerFor(Order order) {
-  final owners = ['Alex Kim', 'Morgan Lee', 'Jamie Park', 'Taylor Choi', 'Jordan Han'];
-  final index = order.id.hashCode.abs() % owners.length;
-  return owners[index];
-}
+DateTime _defaultPlannedShip(Order order) =>
+    order.desiredDeliveryDate ?? order.createdAt.add(const Duration(days: 1));
 
-DateTime _defaultPlannedShip(Order order) => order.createdAt.add(Duration(days: 2 + order.id.hashCode.abs() % 3));
-
-DateTime _defaultLastUpdated(Order order) => order.createdAt.add(Duration(hours: 10 + order.id.hashCode.abs() % 18));
-
-String _defaultNote(Order order) {
-  final notes = [
-    'Follow up with shipping partner.',
-    'Awaiting customer confirmation.',
-    'Prepare return label just in case.',
-    'Bundle with next outbound shipment.',
-    'Flagged for finance review.',
-  ];
-  return notes[order.id.hashCode.abs() % notes.length];
+String _timelineTitle(OrderEvent event) {
+  if ((event.note ?? '').isNotEmpty) return event.note!;
+  switch (event.action) {
+    case 'created':
+      return '주문 접수';
+    case 'status_changed':
+      return '상태 변경';
+    case 'updated':
+      return '주문 정보 수정';
+    default:
+      return event.action;
+  }
 }
 
 class _OrderLine {

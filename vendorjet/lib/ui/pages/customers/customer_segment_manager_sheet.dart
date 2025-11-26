@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
 
@@ -220,9 +222,7 @@ class _CustomerSegmentManagerSheetState
     if (confirmed != true) return;
     await widget.repository.deleteSegment(name);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t.categoryManagerDeleted)),
-    );
+    context.read<NotificationTicker>().push(t.categoryManagerDeleted);
     await _load();
   }
 }

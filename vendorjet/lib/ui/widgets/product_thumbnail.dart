@@ -18,14 +18,7 @@ class ProductThumbnail extends StatelessWidget {
     final placeholder = Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        gradient: LinearGradient(
-          colors: [
-            scheme.surfaceContainerHighest,
-            scheme.surfaceVariant,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: scheme.surfaceContainerHighest,
       ),
       child: Icon(
         Icons.image_outlined,

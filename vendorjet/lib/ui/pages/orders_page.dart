@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
-import 'package:vendorjet/repositories/mock_repository.dart';
+import 'package:vendorjet/repositories/order_repository.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
-import 'package:vendorjet/ui/pages/orders/order_form_sheet.dart';
+import 'package:vendorjet/ui/pages/orders/order_edit_sheet.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
 class OrderListPreset {
@@ -33,7 +33,7 @@ class OrdersPage extends StatefulWidget {
 }
 
 class _OrdersPageState extends State<OrdersPage> {
-  final _repo = MockOrderRepository();
+  final _repo = OrderRepository();
   final _queryCtrl = TextEditingController();
 
   List<Order> _items = const [];
@@ -291,7 +291,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                   ),
                                 ],
                               ),
-                              onTap: () => context.go('/orders/${o.id}'),
+                              onTap: () => _openOrderEditor(o),
                             ),
                           );
                         },
@@ -337,14 +337,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
   Future<void> _openOrderForm({Order? initial}) async {
     final t = AppLocalizations.of(context)!;
-    final result = await showModalBottomSheet<OrderFormResult>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => OrderFormSheet(t: t, initial: initial),
-    );
-    if (result == null) return;
-    final base =
-        initial ??
+    final base = initial ??
         Order(
           id: '',
           code: '',
@@ -354,32 +347,100 @@ class _OrdersPageState extends State<OrdersPage> {
           status: OrderStatus.pending,
           buyerName: '',
           buyerContact: '',
+          desiredDeliveryDate: DateTime.now().add(const Duration(days: 1)),
+          lines: const [],
         );
+
+    final result = await showModalBottomSheet<OrderEditResult>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => OrderEditSheet(
+        t: t,
+        localeName: t.localeName,
+        initialStatus: base.status,
+        initialPlannedShip: base.desiredDeliveryDate ?? DateTime.now().add(const Duration(days: 1)),
+        initialNote: '',
+        initialLines: base.lines,
+        compactMode: false,
+        orderCode: '',
+        buyerName: '',
+        buyerContact: '',
+        buyerNote: '',
+        createdAt: base.createdAt,
+      ),
+    );
+    if (result == null) return;
+
     final now = DateTime.now();
     final order = base.copyWith(
-      itemCount: result.itemCount,
-      total: result.total,
-      createdAt: result.createdAt,
+      itemCount: _calcItemCount(result.lines),
+      total: result.lines.fold<double>(0, (s, l) => s + l.lineTotal),
+      createdAt: base.createdAt,
+      desiredDeliveryDate: result.plannedShip,
       status: result.status,
-      code: base.code,
-      buyerName: base.buyerName.isNotEmpty ? base.buyerName : result.buyerName,
-      buyerContact:
-          base.buyerContact.isNotEmpty ? base.buyerContact : result.buyerContact,
-      buyerNote: result.buyerNote ?? base.buyerNote,
+      buyerName: base.buyerName,
+      buyerContact: base.buyerContact,
+      buyerNote: result.note.isEmpty ? base.buyerNote : result.note,
+      lines: result.lines,
       updatedAt: now,
-      updateNote: initial == null ? t.ordersCreated : t.ordersUpdated,
+      updateNote: t.ordersCreated,
     );
     final saved = await _repo.save(order);
     if (!mounted) return;
     context.read<DataRefreshCoordinator>().notifyOrderChanged(saved);
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(initial == null ? t.ordersCreated : t.ordersUpdated),
+    context.read<NotificationTicker>().push(t.ordersCreated);
+  }
+
+  Future<void> _openOrderEditor(Order order, {bool compact = false}) async {
+    final t = AppLocalizations.of(context)!;
+    final full = await _repo.findById(order.id) ?? order;
+    if (!mounted) return;
+    final result = await showModalBottomSheet<OrderEditResult>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => OrderEditSheet(
+        t: t,
+        localeName: t.localeName,
+        initialStatus: full.status,
+        initialPlannedShip: full.desiredDeliveryDate ?? DateTime.now(),
+        initialNote: full.updateNote ?? '',
+        initialLines: full.lines,
+        compactMode: compact,
+        orderCode: full.code,
+        buyerName: full.buyerName,
+        buyerContact: full.buyerContact,
+        buyerNote: full.buyerNote ?? '',
+        createdAt: full.createdAt,
       ),
     );
+    if (result == null) return;
+    if (!mounted) return;
+    final updatedLines = compact ? full.lines : result.lines;
+    final updatedItemCount = updatedLines.fold<int>(0, (sum, l) => sum + l.quantity);
+    final updatedTotal = compact
+        ? (result.totalOverride ?? full.total)
+        : updatedLines.fold<double>(0, (sum, l) => sum + l.lineTotal);
+    final updatedOrder = full.copyWith(
+      status: result.status,
+      updateNote: result.note,
+      desiredDeliveryDate: result.plannedShip,
+      updatedAt: DateTime.now(),
+      lines: updatedLines,
+      itemCount: updatedItemCount,
+      total: updatedTotal,
+    );
+    final saved = await _repo.save(updatedOrder);
+    if (!mounted) return;
+    context.read<DataRefreshCoordinator>().notifyOrderChanged(saved);
+    await _load();
+    if (!mounted) return;
+    context.read<NotificationTicker>().push(t.ordersUpdated);
   }
+
+  int _calcItemCount(List<OrderLine> lines) =>
+      lines.fold<int>(0, (sum, l) => sum + l.quantity);
 
   Future<void> _changeStatus(Order order) async {
     final t = AppLocalizations.of(context)!;
@@ -427,9 +488,7 @@ class _OrdersPageState extends State<OrdersPage> {
     context.read<DataRefreshCoordinator>().notifyOrderChanged(updated);
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t.ordersStatusUpdated)),
-    );
+    context.read<NotificationTicker>().push(t.ordersStatusUpdated);
   }
 
   Future<void> _confirmDelete(Order order) async {
@@ -459,9 +518,7 @@ class _OrdersPageState extends State<OrdersPage> {
     context.read<DataRefreshCoordinator>().notifyOrderChanged(order);
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.ordersDeleted)));
+    context.read<NotificationTicker>().push(t.ordersDeleted);
   }
 }
 

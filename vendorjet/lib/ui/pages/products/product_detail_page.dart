@@ -9,6 +9,7 @@ import 'package:vendorjet/models/product.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/products/product_edit_sheet.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final String productId;
@@ -125,9 +126,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     context.read<DataRefreshCoordinator>().notifyProductChanged(updatedProduct);
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.productEditSaved)));
+    context.read<NotificationTicker>().push(t.productEditSaved);
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -158,9 +157,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     await _repo.delete(product.id);
     if (!context.mounted) return;
     context.read<DataRefreshCoordinator>().notifyProductChanged(product);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.productsDeleted)));
+    context.read<NotificationTicker>().push(t.productsDeleted);
     context.go('/products');
   }
 }

@@ -9,7 +9,7 @@ db.pragma('foreign_keys = ON');
 const nowIso = new Date().toISOString();
 const schemaPath = path.join(__dirname, '..', 'schema.sql');
 
-// 스키마 보강: 핵심 테이블이 없을 때만 schema.sql 적용
+// 코어 테이블이 없을 때만 스키마 전체 적용
 const schemaSql = fs.readFileSync(schemaPath, 'utf8');
 const names = db
   .prepare("SELECT name FROM sqlite_master WHERE type='table';")
@@ -21,7 +21,15 @@ if (missingCore) {
   db.exec(schemaSql);
 }
 
-// ensure missing tables (for fresh DB)
+function ensureColumn(table: string, column: string, type: string) {
+  const info = db.prepare(`PRAGMA table_info(${table});`).all() as any[];
+  const columnExists = info.some((c) => c.name === column);
+  if (!columnExists) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
+  }
+}
+
+// 누락 테이블 보강
 db.exec(`
   CREATE TABLE IF NOT EXISTS buyer_requests (
     id TEXT PRIMARY KEY,
@@ -53,7 +61,32 @@ db.exec(`
     requester_type TEXT,
     created_at TEXT
   );
+  CREATE TABLE IF NOT EXISTS order_code_sequences (
+    date TEXT PRIMARY KEY,
+    last_seq INTEGER
+  );
+  CREATE TABLE IF NOT EXISTS order_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id TEXT,
+    tenant_id TEXT,
+    action TEXT,
+    actor TEXT,
+    note TEXT,
+    created_at TEXT
+  );
 `);
+
+// ensure missing columns on existing DB
+ensureColumn('users', 'user_type', 'TEXT');
+ensureColumn('users', 'last_login_at', 'TEXT');
+ensureColumn('users', 'created_at', 'TEXT');
+ensureColumn('users', 'updated_at', 'TEXT');
+ensureColumn('orders', 'created_source', 'TEXT');
+ensureColumn('orders', 'created_by', 'TEXT');
+ensureColumn('orders', 'updated_by', 'TEXT');
+ensureColumn('orders', 'status_updated_by', 'TEXT');
+ensureColumn('orders', 'status_updated_at', 'TEXT');
+ensureColumn('buyer_requests', 'buyer_tenant_id', 'TEXT');
 
 function resetTables() {
   db.exec(`
@@ -61,6 +94,8 @@ function resetTables() {
     DELETE FROM membership_requests;
     DELETE FROM order_lines;
     DELETE FROM orders;
+    DELETE FROM order_code_sequences;
+    DELETE FROM order_events;
     DELETE FROM customers;
     DELETE FROM segments;
     DELETE FROM products;
@@ -82,14 +117,29 @@ function seedTenantsUsersMemberships() {
   tenants.forEach((t) => insertTenant.run(t.id, t.name, t.locale, nowIso, t.phone, t.address));
 
   const insertUser = db.prepare(
-    'INSERT OR REPLACE INTO users (id, email, password_hash, name, phone) VALUES (?,?,?,?,?)'
+    'INSERT OR REPLACE INTO users (id, email, password_hash, name, phone, user_type) VALUES (?,?,?,?,?,?)'
   );
-  insertUser.run('u_admin', 'alex@vendorjet.com', 'welcome1', 'Alex Admin', '010-0000-0000');
+  const users = [
+    { id: 'u_admin', email: 'admin@vendorjet.com', name: 'Alex Admin', phone: '010-0000-0000', password: 'welcome1', type: 'wholesale' },
+    { id: 'u_seller_acme', email: 'seller@acme.com', name: 'Acme Owner', phone: '010-1111-2222', password: 'welcome1', type: 'wholesale' },
+    { id: 'u_staff_acme', email: 'staff@acme.com', name: 'Acme Staff', phone: '010-3333-4444', password: 'welcome1', type: 'wholesale' },
+    { id: 'u_seller_nova', email: 'seller@nova.com', name: 'Nova Owner', phone: '010-5555-6666', password: 'welcome1', type: 'wholesale' },
+    { id: 'u_buyer_bright', email: 'buyer@bright.com', name: 'Bright Retail Buyer', phone: '010-7777-8888', password: 'welcome1', type: 'retail' },
+    { id: 'u_buyer_sunrise', email: 'buyer@sunrise.com', name: 'Sunrise Buyer', phone: '010-9999-0000', password: 'welcome1', type: 'retail' },
+    { id: 'u_buyer_metro', email: 'buyer@metro.com', name: 'Metro Buyer', phone: '010-1212-3434', password: 'welcome1', type: 'retail' },
+  ];
+  users.forEach((u) => insertUser.run(u.id, u.email, u.password, u.name, u.phone, u.type));
 
   const insertMembership = db.prepare(
     'INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
   );
   tenants.forEach((t) => insertMembership.run('u_admin', t.id, 'owner', 'approved'));
+  insertMembership.run('u_seller_acme', 't_acme', 'owner', 'approved');
+  insertMembership.run('u_staff_acme', 't_acme', 'staff', 'approved');
+  insertMembership.run('u_seller_nova', 't_nova', 'owner', 'approved');
+  insertMembership.run('u_buyer_bright', 't_acme', 'staff', 'approved');
+  insertMembership.run('u_buyer_sunrise', 't_acme', 'staff', 'approved');
+  insertMembership.run('u_buyer_metro', 't_nova', 'staff', 'approved');
 }
 
 function seedSegments() {
@@ -175,22 +225,46 @@ function seedCustomers() {
   );
 }
 
+function nextOrderCode(date: Date) {
+  const datePart = format(date, 'yyMMdd');
+  const current = db
+    .prepare('SELECT last_seq FROM order_code_sequences WHERE date = ?')
+    .get(datePart) as { last_seq?: number } | undefined;
+  const next = (current?.last_seq ?? 0) + 1;
+  db.prepare(
+    `INSERT INTO order_code_sequences (date, last_seq) VALUES (?, ?)
+     ON CONFLICT(date) DO UPDATE SET last_seq = excluded.last_seq`
+  ).run(datePart, next);
+  return `PO${datePart}${`${next}`.padStart(4, '0')}`;
+}
+
 function seedOrders() {
   const insertOrder = db.prepare(
-    'INSERT INTO orders (id, tenant_id, code, buyer_name, buyer_contact, buyer_note, status, total, item_count, created_at, updated_at, update_note, desired_delivery_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)'
+    `INSERT INTO orders (
+      id, tenant_id, code, created_source, buyer_name, buyer_contact, buyer_note, status, total, item_count,
+      created_at, created_by, updated_at, updated_by, update_note, status_updated_at, status_updated_by,
+      desired_delivery_date
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   );
   const insertLine = db.prepare(
     'INSERT INTO order_lines (order_id, product_id, product_name, quantity, unit_price) VALUES (?,?,?,?,?)'
   );
+  const insertEvent = db.prepare(
+    'INSERT INTO order_events (order_id, tenant_id, action, actor, note, created_at) VALUES (?,?,?,?,?,?)'
+  );
   for (let i = 0; i < 5; i++) {
     const tenantId = i % 2 === 0 ? 't_acme' : 't_nova';
     const createdAt = new Date(Date.now() - i * 3600000);
-    const code = `PO${format(createdAt, 'yyMMdd')}${(i + 1).toString().padStart(4, '0')}`;
-    const orderId = `o_${i + 1}`;
+    const code = nextOrderCode(createdAt);
+    const orderId = code;
+    const actor = tenantId === 't_acme' ? 'u_staff_acme' : 'u_seller_nova';
+    const productA = tenantId === 't_acme' ? 'p_acm_1' : 'p_nov_1';
+    const productB = tenantId === 't_acme' ? 'p_acm_2' : 'p_nov_2';
     insertOrder.run(
       orderId,
       tenantId,
       code,
+      tenantId === 't_acme' ? 'seller_portal' : 'buyer_portal',
       `Buyer ${i + 1}`,
       '010-1234-5678',
       i % 2 === 0 ? '메모 확인' : null,
@@ -198,12 +272,17 @@ function seedOrders() {
       100 + i * 10,
       2 + i,
       createdAt.toISOString(),
+      actor,
       createdAt.toISOString(),
-      'Auto-generated',
+      actor,
+      'Auto-generated seed order',
+      createdAt.toISOString(),
+      actor,
       new Date(createdAt.getTime() + 86400000).toISOString()
     );
-    insertLine.run(orderId, 'p_1', 'Sample Product 1', 1 + i, 10 + i);
-    insertLine.run(orderId, 'p_2', 'Sample Product 2', 1, 12.5);
+    insertLine.run(orderId, productA, 'Starter Pack', 1 + i, 10 + i);
+    insertLine.run(orderId, productB, 'Add-on Item', 1, 12.5);
+    insertEvent.run(orderId, tenantId, 'created', actor, 'seed order created', createdAt.toISOString());
   }
 }
 

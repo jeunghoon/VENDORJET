@@ -12,6 +12,7 @@ class AuthController extends ChangeNotifier {
   bool _signedIn = false;
   bool _pendingApproval = false;
   String? _email;
+  String? _userType;
   List<Tenant> _tenants = const [];
 
   AuthController(this.service);
@@ -20,6 +21,8 @@ class AuthController extends ChangeNotifier {
   bool get signedIn => _signedIn;
   bool get pendingApproval => _pendingApproval;
   String? get email => _email;
+  String? get userType => _userType;
+  bool get isBuyer => (_userType ?? 'wholesale') == 'retail';
   Tenant? get tenant => service.currentTenant;
   TenantMemberRole? get role => service.currentRole;
   List<TenantMembership> get memberships => service.memberships;
@@ -34,6 +37,7 @@ class AuthController extends ChangeNotifier {
       await service.init();
       _signedIn = await service.isSignedIn();
       _email = service.currentEmail;
+      _userType = service is ApiAuthService ? (service as ApiAuthService).userType : null;
       _tenants = _signedIn ? await service.fetchTenants() : const [];
       _pendingApproval = _signedIn && (service.memberships.isEmpty || service.currentTenant == null);
     } catch (_) {
@@ -51,6 +55,7 @@ class AuthController extends ChangeNotifier {
     _signedIn = ok;
     if (ok) {
       _email = service.currentEmail;
+      _userType = service is ApiAuthService ? (service as ApiAuthService).userType : null;
       _tenants = await service.fetchTenants();
       _pendingApproval = service.memberships.isEmpty || service.currentTenant == null;
     }
@@ -84,6 +89,7 @@ class AuthController extends ChangeNotifier {
     required String email,
     required String password,
     String role = 'staff',
+    bool isNew = true,
   }) async {
     if (service is ApiAuthService) {
       final ok = await (service as ApiAuthService).registerSeller(
@@ -95,6 +101,7 @@ class AuthController extends ChangeNotifier {
         email: email,
         password: password,
         role: role,
+        isNew: isNew,
       );
       if (ok) {
         // pending 가입 등 토큰이 없을 수 있으니, 토큰이 있을 때만 테넌트 목록 요청
@@ -118,6 +125,7 @@ class AuthController extends ChangeNotifier {
     required String password,
     String attachmentUrl = '',
     String role = 'staff',
+    bool isNewBuyerCompany = true,
   }) async {
     if (service is ApiAuthService) {
       return await (service as ApiAuthService).registerBuyer(
@@ -130,6 +138,7 @@ class AuthController extends ChangeNotifier {
         password: password,
         attachmentUrl: attachmentUrl,
         role: role,
+        isNewBuyerCompany: isNewBuyerCompany,
       );
     }
     return false;
@@ -246,6 +255,7 @@ class AuthController extends ChangeNotifier {
     await service.signOut();
     _signedIn = false;
     _email = null;
+    _userType = null;
     _tenants = const [];
     _pendingApproval = false;
     notifyListeners();

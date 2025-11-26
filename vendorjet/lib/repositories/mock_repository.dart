@@ -524,44 +524,6 @@ class MockCustomerRepository {
 
   factory MockCustomerRepository() => _instance;
 
-  final List<Customer> _items = [];
-  final _idCounter = _IdCounter(prefix: 'c_');
-  final List<String> _segments = [];
-
-  void _ensureSegments() {
-    if (_segments.isNotEmpty) return;
-    _segments.addAll(['Restaurant', 'Hotel', 'Mart', 'Cafe']);
-  }
-
-  void _seed() {
-    if (useLocalApi) return;
-    _ensureSegments();
-    if (_items.isNotEmpty) return;
-    final tiers = CustomerTier.values;
-    final names = [
-      'Bright Retail',
-      'Sunrise Market',
-      'Metro Shops',
-      'Harbor Traders',
-      'Northwind Stores',
-      'Everest Mart',
-    ];
-    for (var i = 0; i < names.length; i++) {
-      _items.add(
-        Customer(
-          id: 'c_${i + 1}',
-          name: names[i],
-          contactName: ['Alex Kim', 'Jamie Park', 'Morgan Lee'][i % 3],
-          email: 'buyer${i + 1}@retail.com',
-          tier: tiers[i % tiers.length],
-          createdAt: DateTime.now().subtract(Duration(days: (i + 1) * 12)),
-          segment: _segments[i % _segments.length],
-        ),
-      );
-    }
-    _idCounter.seed(_items.map((e) => e.id));
-  }
-
   Future<List<Customer>> fetch({
     String query = '',
     CustomerTier? tier,
@@ -722,6 +684,12 @@ Order _orderFromJson(Map<String, dynamic> json) {
     buyerContact: json['buyerContact'] as String? ?? json['buyer_contact'] as String? ?? '',
     buyerNote: json['buyerNote'] as String? ?? json['buyer_note'] as String?,
     updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? json['updated_at'] as String? ?? ''),
+    createdBy: json['createdBy'] as String? ?? json['created_by'] as String?,
+    updatedBy: json['updatedBy'] as String? ?? json['updated_by'] as String?,
+    statusUpdatedBy: json['statusUpdatedBy'] as String? ?? json['status_updated_by'] as String?,
+    statusUpdatedAt: DateTime.tryParse(
+      json['statusUpdatedAt'] as String? ?? json['status_updated_at'] as String? ?? '',
+    ),
     updateNote: json['updateNote'] as String? ?? json['update_note'] as String?,
     lines: lines,
     desiredDeliveryDate: DateTime.tryParse(

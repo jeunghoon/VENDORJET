@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 
-// __dirname = server/src/db → 최상위까지 두 단계 올라감
+// DB 파일 경로/스키마 경로를 고정 정의
 const dbPath = path.join(__dirname, '..', '..', 'vendorjet.db');
 const schemaPath = path.join(__dirname, '..', '..', 'schema.sql');
 export const db: Database.Database = new Database(dbPath);
@@ -77,7 +77,27 @@ function ensureSchema() {
       );`
     );
 
-    // 확장 컬럼 확인
+    ensureTable(
+      'order_code_sequences',
+      `CREATE TABLE IF NOT EXISTS order_code_sequences (
+        date TEXT PRIMARY KEY,
+        last_seq INTEGER
+      );`
+    );
+    ensureTable(
+      'order_events',
+      `CREATE TABLE IF NOT EXISTS order_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT,
+        tenant_id TEXT,
+        action TEXT,
+        actor TEXT,
+        note TEXT,
+        created_at TEXT
+      );`
+    );
+
+    // 추가 컬럼/인덱스 확인
     ensureColumn('tenants', 'phone', 'TEXT');
     ensureColumn('tenants', 'address', 'TEXT');
     ensureColumn('users', 'name', 'TEXT');
@@ -92,6 +112,16 @@ function ensureSchema() {
     ensureColumn('buyer_requests', 'seller_address', 'TEXT');
     ensureColumn('buyer_requests', 'role', 'TEXT');
     ensureColumn('buyer_requests', 'user_id', 'TEXT');
+    ensureColumn('orders', 'created_by', 'TEXT');
+    ensureColumn('orders', 'updated_by', 'TEXT');
+    ensureColumn('orders', 'status_updated_by', 'TEXT');
+    ensureColumn('orders', 'status_updated_at', 'TEXT');
+    ensureColumn('orders', 'created_source', 'TEXT');
+    ensureIndex(
+      'orders',
+      'idx_orders_code_unique',
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_code_unique ON orders(code);'
+    );
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[db] schema check failed:', err);
@@ -116,5 +146,15 @@ function ensureColumn(table: string, column: string, type: string) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
     // eslint-disable-next-line no-console
     console.log(`[db] column added: ${table}.${column}`);
+  }
+}
+
+function ensureIndex(table: string, name: string, createSql: string) {
+  const info = db.prepare(`PRAGMA index_list(${table});`).all() as any[];
+  const exists = info.some((idx) => idx.name === name);
+  if (!exists) {
+    db.exec(createSql);
+    // eslint-disable-next-line no-console
+    console.log(`[db] index created: ${name}`);
   }
 }

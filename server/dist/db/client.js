@@ -9,7 +9,7 @@ exports.mapRows = mapRows;
 const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-// __dirname = server/src/db → 최상위까지 두 단계 올라감
+// DB 파일 경로/스키마 경로를 고정 정의
 const dbPath = path_1.default.join(__dirname, '..', '..', 'vendorjet.db');
 const schemaPath = path_1.default.join(__dirname, '..', '..', 'schema.sql');
 exports.db = new better_sqlite3_1.default(dbPath);
@@ -71,16 +71,40 @@ function ensureSchema() {
         status TEXT,
         created_at TEXT
       );`);
-        // 확장 컬럼 확인
+        ensureTable('order_code_sequences', `CREATE TABLE IF NOT EXISTS order_code_sequences (
+        date TEXT PRIMARY KEY,
+        last_seq INTEGER
+      );`);
+        ensureTable('order_events', `CREATE TABLE IF NOT EXISTS order_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT,
+        tenant_id TEXT,
+        action TEXT,
+        actor TEXT,
+        note TEXT,
+        created_at TEXT
+      );`);
+        // 추가 컬럼/인덱스 확인
         ensureColumn('tenants', 'phone', 'TEXT');
         ensureColumn('tenants', 'address', 'TEXT');
         ensureColumn('users', 'name', 'TEXT');
         ensureColumn('users', 'phone', 'TEXT');
+        ensureColumn('users', 'address', 'TEXT');
+        ensureColumn('users', 'created_at', 'TEXT');
+        ensureColumn('users', 'last_login_at', 'TEXT');
+        ensureColumn('users', 'user_type', 'TEXT');
         ensureColumn('memberships', 'status', 'TEXT');
         ensureColumn('membership_requests', 'company_phone', 'TEXT');
         ensureColumn('buyer_requests', 'seller_phone', 'TEXT');
         ensureColumn('buyer_requests', 'seller_address', 'TEXT');
         ensureColumn('buyer_requests', 'role', 'TEXT');
+        ensureColumn('buyer_requests', 'user_id', 'TEXT');
+        ensureColumn('orders', 'created_by', 'TEXT');
+        ensureColumn('orders', 'updated_by', 'TEXT');
+        ensureColumn('orders', 'status_updated_by', 'TEXT');
+        ensureColumn('orders', 'status_updated_at', 'TEXT');
+        ensureColumn('orders', 'created_source', 'TEXT');
+        ensureIndex('orders', 'idx_orders_code_unique', 'CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_code_unique ON orders(code);');
     }
     catch (err) {
         // eslint-disable-next-line no-console
@@ -104,6 +128,15 @@ function ensureColumn(table, column, type) {
         exports.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
         // eslint-disable-next-line no-console
         console.log(`[db] column added: ${table}.${column}`);
+    }
+}
+function ensureIndex(table, name, createSql) {
+    const info = exports.db.prepare(`PRAGMA index_list(${table});`).all();
+    const exists = info.some((idx) => idx.name === name);
+    if (!exists) {
+        exports.db.exec(createSql);
+        // eslint-disable-next-line no-console
+        console.log(`[db] index created: ${name}`);
     }
 }
 //# sourceMappingURL=client.js.map

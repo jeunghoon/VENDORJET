@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/services/api/api_client.dart';
 
 class SignInPage extends StatefulWidget {
@@ -168,11 +169,9 @@ class _SignInPageState extends State<SignInPage> {
     if (!mounted) return;
     setState(() => _signingIn = false);
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.invalidCredentials),
-        ),
-      );
+      context.read<NotificationTicker>().push(
+            AppLocalizations.of(context)!.invalidCredentials,
+          );
     }
   }
 
@@ -180,14 +179,12 @@ class _SignInPageState extends State<SignInPage> {
     final t = AppLocalizations.of(context)!;
     final email = _emailCtrl.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.email)));
+      context.read<NotificationTicker>().push(t.email);
       return;
     }
     await context.read<AuthController>().requestPasswordReset(email);
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(t.passwordResetSent)));
+    context.read<NotificationTicker>().push(t.passwordResetSent);
   }
 
   Future<void> _showRegistrationDialog() async {
@@ -235,6 +232,7 @@ class _SignInPageState extends State<SignInPage> {
       companies = [];
     }
 
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (dialogContext) {
@@ -368,7 +366,6 @@ class _SignInPageState extends State<SignInPage> {
                 ),
                 FilledButton(
                   onPressed: () async {
-                    final messenger = ScaffoldMessenger.maybeOf(dialogContext);
                     final navigator = Navigator.of(dialogContext);
                     bool ok = false;
                     try {
@@ -383,6 +380,7 @@ class _SignInPageState extends State<SignInPage> {
                             email: sellerEmailCtrl.text.trim(),
                             password: sellerPwCtrl.text,
                             role: sellerIsNew ? 'owner' : sellerRole.value,
+                            isNew: sellerIsNew,
                           );
                         }
                       } else {
@@ -400,17 +398,16 @@ class _SignInPageState extends State<SignInPage> {
                             password: buyerPwCtrl.text,
                             attachmentUrl: buyerAttachmentCtrl.text.trim(),
                             role: roleToUse,
+                            isNewBuyerCompany: buyerCompanyIsNew,
                           );
                         }
                       }
                     } catch (_) {
                       ok = false;
                     }
-                    if (!mounted) return;
+                    if (!mounted || !dialogContext.mounted) return;
                     try {
-                      messenger?.showSnackBar(
-                        SnackBar(
-                          content: Text(
+                      dialogContext.read<NotificationTicker>().push(
                             ok
                                 ? _tr(
                                     'Submitted (may require approval)',
@@ -420,9 +417,7 @@ class _SignInPageState extends State<SignInPage> {
                                     'Registration failed',
                                     '등록에 실패했습니다',
                                   ),
-                          ),
-                        ),
-                      );
+                          );
                       if (ok) navigator.pop();
                     } catch (_) {
                       // ignore messenger errors

@@ -21,7 +21,8 @@ router.get('/history', (req, res) => {
     if (!tenantId)
         return res.status(400).json({ error: 'tenantId missing' });
     const limit = Number(req.query.limit ?? 10);
-    const ordersStmt = client_1.db.prepare('SELECT id, code, buyer_name, buyer_contact, buyer_note, total, item_count, created_at, desired_delivery_date FROM orders WHERE tenant_id = ? ORDER BY created_at DESC LIMIT ?');
+    const ordersStmt = client_1.db.prepare(`SELECT id, code, buyer_name, buyer_contact, buyer_note, total, item_count, created_at, desired_delivery_date
+     FROM orders WHERE tenant_id = ? ORDER BY created_at DESC LIMIT ?`);
     const orders = (0, client_1.mapRows)(ordersStmt.all([tenantId, limit]));
     const history = orders.map((o) => ({
         ...o,
@@ -31,6 +32,7 @@ router.get('/history', (req, res) => {
 });
 router.post('/cart', (req, res) => {
     const tenantId = req.user?.tenantId;
+    const actor = req.user?.userId ?? 'unknown';
     if (!tenantId)
         return res.status(400).json({ error: 'tenantId missing' });
     const { storeId, buyerContact = '', desiredDeliveryDate, note = '', items = [] } = req.body || {};
@@ -41,12 +43,16 @@ router.post('/cart', (req, res) => {
         .prepare('SELECT name FROM customers WHERE id = ? AND tenant_id = ?')
         .get([storeId, tenantId]);
     const buyerName = customer?.name ?? 'Unspecified Store';
-    const id = `o_${Date.now()}`;
     const code = (0, code_generator_1.generateOrderCode)(new Date());
+    const id = code;
     const createdAt = new Date();
     let itemCount = 0;
     let total = 0;
-    const insertOrder = client_1.db.prepare('INSERT INTO orders (id, tenant_id, code, buyer_name, buyer_contact, buyer_note, status, total, item_count, created_at, updated_at, update_note, desired_delivery_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    const insertOrder = client_1.db.prepare(`INSERT INTO orders (
+      id, tenant_id, code, created_source, buyer_name, buyer_contact, buyer_note, status, total, item_count,
+      created_at, created_by, updated_at, updated_by, update_note, status_updated_at, status_updated_by,
+      desired_delivery_date
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     const insertLine = client_1.db.prepare('INSERT INTO order_lines (order_id, product_id, product_name, quantity, unit_price) VALUES (?,?,?,?,?)');
     const trx = client_1.db.transaction(() => {
         const normalized = items.map((it) => ({
@@ -60,10 +66,11 @@ router.post('/cart', (req, res) => {
             total += n.quantity * n.unitPrice;
         });
         total = parseFloat(total.toFixed(2));
-        insertOrder.run(id, tenantId, code, buyerName, buyerContact, note, 'pending', total, itemCount, createdAt.toISOString(), createdAt.toISOString(), 'Created via buyer portal', desiredDeliveryDate ?? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString());
+        insertOrder.run(id, tenantId, code, 'buyer_portal', buyerName, buyerContact, note, 'pending', total, itemCount, createdAt.toISOString(), actor, createdAt.toISOString(), actor, 'Created via buyer portal', createdAt.toISOString(), actor, desiredDeliveryDate ?? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString());
         normalized.forEach((n) => insertLine.run(id, n.productId, n.productName, n.quantity, n.unitPrice));
     });
     trx();
+    client_1.db.prepare('INSERT INTO order_events (order_id, tenant_id, action, actor, note, created_at) VALUES (?,?,?,?,?,?)').run(id, tenantId, 'created', actor, '주문 접수(바이어)', createdAt.toISOString());
     res.status(201).json({ id, code, total, itemCount, buyerName, buyerContact });
 });
 exports.buyerController = router;

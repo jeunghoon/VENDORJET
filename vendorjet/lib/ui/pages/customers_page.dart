@@ -8,6 +8,7 @@ import 'package:vendorjet/services/auth/auth_controller.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/customers/customer_form_sheet.dart';
 import 'package:vendorjet/ui/pages/customers/customer_segment_manager_sheet.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
 class CustomersPage extends StatefulWidget {
@@ -82,6 +83,7 @@ class _CustomersPageState extends State<CustomersPage> {
         _loading = false;
         _error = err.toString();
       });
+      context.read<NotificationTicker>().push(err.toString());
     }
   }
 
@@ -319,13 +321,9 @@ class _CustomersPageState extends State<CustomersPage> {
     context.read<DataRefreshCoordinator>().notifyCustomerChanged();
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          customer == null ? t.customersCreated : t.customersUpdated,
-        ),
-      ),
-    );
+    context
+        .read<NotificationTicker>()
+        .push(customer == null ? t.customersCreated : t.customersUpdated);
   }
 
   Future<void> _openSegmentManager() async {
@@ -348,16 +346,14 @@ class _CustomersPageState extends State<CustomersPage> {
     setState(() => _approvalsLoading = true);
     List<Map<String, dynamic>> buyerRequests = [];
     try {
-      final resp = await ApiClient.get('/admin/requests') as Map<String, dynamic>;
+      final resp = await ApiClient.get('/admin/requests', query: {}) as Map<String, dynamic>;
       final list = (resp['buyerRequests'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       buyerRequests = tenantName == null
           ? list
           : list.where((r) => (r['sellerCompany'] as String?) == tenantName).toList();
     } catch (err) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(err.toString())));
-      }
+      if (!mounted) return;
+      context.read<NotificationTicker>().push(err.toString());
     } finally {
       if (mounted) setState(() => _approvalsLoading = false);
     }
@@ -425,7 +421,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                                 '/admin/requests/${r['id']}',
                                                 body: {'status': 'approved'},
                                               );
-                                              if (mounted) {
+                                              if (ctx.mounted) {
                                                 Navigator.of(ctx).pop();
                                                 _openApprovalPanel();
                                               }
@@ -441,7 +437,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                                 '/admin/requests/${r['id']}',
                                                 body: {'status': 'denied'},
                                               );
-                                              if (mounted) {
+                                              if (ctx.mounted) {
                                                 Navigator.of(ctx).pop();
                                                 _openApprovalPanel();
                                               }
@@ -452,8 +448,8 @@ class _CustomersPageState extends State<CustomersPage> {
                                     IconButton(
                                       tooltip: '삭제',
                                       onPressed: () async {
-                                        await ApiClient.delete('/admin/requests/${r['id']}');
-                                        if (mounted) {
+                                        await ApiClient.delete('/admin/requests/${r['id']}', query: {});
+                                        if (ctx.mounted) {
                                           Navigator.of(ctx).pop();
                                           _openApprovalPanel();
                                         }
@@ -505,9 +501,7 @@ class _CustomersPageState extends State<CustomersPage> {
     context.read<DataRefreshCoordinator>().notifyCustomerChanged();
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.customersDeleted)));
+    context.read<NotificationTicker>().push(t.customersDeleted);
   }
 
   String _tierLabel(CustomerTier tier, AppLocalizations t) {

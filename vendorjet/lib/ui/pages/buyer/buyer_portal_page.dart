@@ -7,9 +7,11 @@ import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
 import 'package:vendorjet/models/product.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
+import 'package:vendorjet/repositories/order_repository.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/buyer/buyer_cart_controller.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/ui/widgets/product_tag_pill.dart';
 import 'package:vendorjet/ui/widgets/product_thumbnail.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
@@ -26,7 +28,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   static const _orderTabIndex = 2;
 
   final _productsRepo = MockProductRepository();
-  final _ordersRepo = MockOrderRepository();
+  final _ordersRepo = OrderRepository();
   final _customersRepo = MockCustomerRepository();
   final _searchCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
@@ -93,6 +95,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       });
       return;
     }
+    final mountedContext = mounted;
     if (!mounted) return;
     setState(() {
       _productsLoading = true;
@@ -104,14 +107,14 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
         topCategory: _selectedCategory,
       );
       final categories = _productsRepo.topCategories();
-      if (!mounted) return;
+      if (!mountedContext || !mounted) return;
       setState(() {
         _products = items;
         _categories = categories;
         _productsLoading = false;
       });
     } catch (err) {
-      if (!mounted) return;
+      if (!mountedContext || !mounted) return;
       setState(() {
         _productsLoading = false;
         _productsError = err.toString();
@@ -128,6 +131,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       });
       return;
     }
+    final mountedContext = mounted;
     if (!mounted) return;
     setState(() {
       _historyLoading = true;
@@ -135,7 +139,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     });
     try {
       final items = await _ordersRepo.fetch();
-      if (!mounted) return;
+      if (!mountedContext || !mounted) return;
       setState(() {
         _history = items;
         _historyLoading = false;
@@ -158,6 +162,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       });
       return;
     }
+    final mountedContext = mounted;
     if (!mounted) return;
     setState(() {
       _storesLoading = true;
@@ -166,7 +171,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     try {
       final customers = await _customersRepo.fetch();
       final names = customers.map((c) => c.name).toSet().toList()..sort();
-      if (!mounted) return;
+      if (!mountedContext || !mounted) return;
       setState(() {
         _storeOptions = names;
         _storesLoading = false;
@@ -260,12 +265,10 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     TabController? tabController,
   ) async {
     final success = await _prefillCartFromOrder(providerContext, order);
-    if (!mounted) return;
+    if (!mounted || !providerContext.mounted) return;
     final t = AppLocalizations.of(providerContext)!;
     if (!success) {
-      ScaffoldMessenger.of(
-        providerContext,
-      ).showSnackBar(SnackBar(content: Text(t.buyerOrderPrefillMissing)));
+      providerContext.read<NotificationTicker>().push(t.buyerOrderPrefillMissing);
       return;
     }
     setState(() {
@@ -290,9 +293,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     });
     tabController?.animateTo(_orderTabIndex);
     final label = order.code.isEmpty ? order.buyerName : order.code;
-    ScaffoldMessenger.of(
-      providerContext,
-    ).showSnackBar(SnackBar(content: Text(t.buyerDashboardLoaded(label))));
+    providerContext.read<NotificationTicker>().push(t.buyerDashboardLoaded(label));
   }
 
   Future<bool> _prefillCartFromOrder(
@@ -317,9 +318,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   Future<void> _submitOrder(BuyerCartController cart) async {
     final t = AppLocalizations.of(context)!;
     if (cart.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.buyerCheckoutCartEmpty)));
+      if (mounted) context.read<NotificationTicker>().push(t.buyerCheckoutCartEmpty);
       return;
     }
     if (!(_orderFormKey.currentState?.validate() ?? false)) {
@@ -366,14 +365,12 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
         _noteCtrl.clear();
       });
       await _loadHistory();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.buyerCheckoutSuccess(saved.code))),
-      );
+      if (mounted) {
+        context.read<NotificationTicker>().push(t.buyerCheckoutSuccess(saved.code));
+      }
     } catch (err) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(err.toString())));
+      context.read<NotificationTicker>().push(err.toString());
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
@@ -392,10 +389,6 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     if (auth?.pendingApproval == true) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => context.pop(),
-          ),
           title: Text(AppLocalizations.of(context)!.buyerPortalTitle),
         ),
         body: Center(
@@ -430,10 +423,6 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
             final tabController = DefaultTabController.of(context);
             return Scaffold(
               appBar: AppBar(
-                leading: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => context.pop(),
-                ),
                 title: Text(t.buyerPortalTitle),
                 bottom: TabBar(
                   isScrollable: true,
@@ -444,6 +433,27 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                   ],
                 ),
                 actions: [
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      switch (value) {
+                        case 'profile':
+                          if (context.mounted) context.go('/profile');
+                          break;
+                        case 'settings':
+                          if (context.mounted) context.go('/settings');
+                          break;
+                        case 'logout':
+                          await context.read<AuthController>().signOut();
+                          if (context.mounted) context.go('/sign-in');
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'profile', child: Text('프로필/사업장 설정')),
+                      const PopupMenuItem(value: 'settings', child: Text('설정')),
+                      const PopupMenuItem(value: 'logout', child: Text('로그아웃')),
+                    ],
+                  ),
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: TextButton.icon(
@@ -641,7 +651,7 @@ class _BuyerCatalogTab extends StatelessWidget {
                     builder: (context, constraints) {
                       final isWide = constraints.maxWidth >= 900;
                       final crossAxisCount = isWide ? 4 : 2;
-                      final aspectRatio = isWide ? 0.9 : 0.85;
+                      final aspectRatio = isWide ? 0.72 : 0.68;
                       return GridView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -729,10 +739,10 @@ class _CatalogCard extends StatelessWidget {
           children: [
             ProductThumbnail(
               imageUrl: product.imageUrl,
-              aspectRatio: compact ? 4 / 3 : 16 / 9,
+              aspectRatio: compact ? 4 / 3 : 16 / 10,
               borderRadius: 12,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               product.name,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -780,7 +790,7 @@ class _CatalogCard extends StatelessWidget {
                   ProductTagPill(label: t.productTagNew),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Row(
               children: [
                 _QuantitySelector(
@@ -926,7 +936,7 @@ class _BuyerDashboardTab extends StatelessWidget {
     final timeFormatter = DateFormat.Hm(localeName);
     final lastOrderLabel = lastOrder == null
         ? t.buyerDashboardMetricEmptyValue
-        : '${dateFormatter.format(lastOrder.createdAt)} 쨌 ${timeFormatter.format(lastOrder.createdAt)}';
+        : '${dateFormatter.format(lastOrder.createdAt)} · ${timeFormatter.format(lastOrder.createdAt)}';
     final storeCounts = <String, int>{};
     for (final order in orders) {
       final name = order.buyerName.trim();
@@ -1378,7 +1388,7 @@ class _DashboardOrderCard extends StatelessWidget {
     final t = AppLocalizations.of(context)!;
     final material = MaterialLocalizations.of(context);
     final dateLabel =
-        '${material.formatMediumDate(order.createdAt)} 쨌 ${material.formatTimeOfDay(TimeOfDay.fromDateTime(order.createdAt))}';
+        '${material.formatMediumDate(order.createdAt)} · ${material.formatTimeOfDay(TimeOfDay.fromDateTime(order.createdAt))}';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1400,7 +1410,7 @@ class _DashboardOrderCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${order.code} 쨌 $dateLabel',
+            '${order.code} · $dateLabel',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
