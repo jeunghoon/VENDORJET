@@ -112,6 +112,8 @@
 - 구매자 미리보기 플로우(BuyerPortal) 추가: 카탈로그·장바구니·주문 제출과 판매자 데이터 동기화 시뮬레이션
 - 주문 모델/목록/대시보드에 buyerName·buyerContact·buyerNote 노출
 - Firebase Auth·Firestore 통합 계획 문서 초안 작성(docs/backend/firebase_plan.md)
+- 회원가입 UX 개선 진행 중: 이메일 중복 확인/비밀번호 확인 로직 추가, 도매·소매 검색 필터 일부 정리, 공용 스낵바 헬퍼(app_snackbar) 도입(전체 교체는 미완료), 기존 업체 선택 시 필드 읽기 전용/회색 처리 작업 일부 적용(추가 정리 필요)
+- 코드 재사용성 개선 요구(예정): 회사 검색(도매/소매/글로벌), 알림창, 공통 다이얼로그 등 반복되는 패턴을 공용 함수/위젯으로 모듈화하고, 인수만 받아 호출하는 형태로 단순화 필요(현재는 중복 코드 다수).
 ## 다음 실행 과정(체크리스트)
 1) Firebase Auth SDK 연동 준비: AuthController에 Firebase 모드 스위치 추가 및 커스텀 클레임 발급 Function 스켈레톤 작성
 2) Firestore Repository 1차 구현: 주문/상품/고객 read-only 계층 도입 후 UI 병행 주입
@@ -123,6 +125,12 @@
 - 주문/상품/고객 CRUD UI와 API 동기화 확인: `lib/ui/pages/orders_page.dart`, `lib/ui/pages/products_page.dart`, `lib/ui/pages/customers_page.dart`.
 - 문서/운영 자료: 로컬 API 사용법/플래그 정리(add .vscode/launch.json 안내).
 - 가입/승인 확장: 판매자/구매자 가입 탭 UI, 회사 신규/기존 검색, 역할(대표/관리자/직원), 승인 대기/요청 테이블(membership_requests, buyer_requests) 반영.
+- 회원가입 공통 알림/검색/스타일 정리: app_snackbar 헬퍼로 스낵바 통일, 회사 검색 필터(도매/소매) 공용 함수화, 기존 업체 선택 시 회사명/주소/전화 회색 읽기 전용 스타일 마무리.
+- 코드 중복/가독성 개선(다음 차수): 
+  - 회사 검색 공용 헬퍼(도매/소매/관리자 등 type 인수만 받는 함수)로 일원화.
+  - 알림창 공용 헬퍼(app_snackbar)로 전면 교체, 흰색 스낵바 제거.
+  - 공통 다이얼로그/창 레이아웃을 재사용 위젯으로 분리, 내용만 인수로 주입하는 형태로 정리.
+  - ChoiceChip 라벨, read-only 필드 스타일 등 UI 깨짐/중복된 로직 정리.
 ## 진행 상황 체크리스트
 - [x] P0 기본 프레임 구축 및 다국어 적용
 - [x] GoRouter 기반 라우팅과 주문/상품 상세 페이지 초안
