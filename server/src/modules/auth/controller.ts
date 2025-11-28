@@ -21,19 +21,26 @@ router.post('/login', (req, res) => {
   }
 
   const membershipsRows = db
-    .prepare('SELECT user_id, tenant_id, role FROM memberships WHERE user_id = ?')
-    .all(user.id) as { user_id: string; tenant_id: string; role: string }[];
+    .prepare(
+      `SELECT user_id, tenant_id, role, status
+       FROM memberships
+       WHERE user_id = ?
+       ORDER BY (status = 'approved') DESC, rowid DESC`
+    )
+    .all(user.id) as { user_id: string; tenant_id: string; role: string; status?: string }[];
   const memberships = membershipsRows.map((m) => ({
     tenantId: m.tenant_id,
     role: m.role,
   }));
 
+  const primaryMembership = membershipsRows.find((m) => (m.status ?? 'approved') === 'approved') ?? membershipsRows[0];
+
   const token = jwt.sign(
     {
       userId: user.id,
       email: user.email,
-      tenantId: memberships[0]?.tenantId ?? '',
-      role: memberships[0]?.role ?? 'admin',
+      tenantId: primaryMembership?.tenant_id ?? '',
+      role: primaryMembership?.role ?? 'admin',
       userType: user.user_type ?? 'wholesale',
     },
     env.jwtSecret,
@@ -46,6 +53,13 @@ router.post('/login', (req, res) => {
     user: { id: user.id, email: user.email, userType: user.user_type ?? 'wholesale' },
     memberships,
   });
+});
+
+router.get('/check-email', (req, res) => {
+  const email = (req.query.email as string | undefined)?.toLowerCase();
+  if (!email) return res.status(400).json({ error: 'email required' });
+  const exists = db.prepare('SELECT 1 FROM users WHERE email = ? LIMIT 1').get(email);
+  return res.json({ exists: !!exists });
 });
 
 router.get('/me', authMiddleware, (req, res) => {
@@ -120,10 +134,58 @@ router.get('/tenants', authMiddleware, (_req, res) => {
 });
 
 router.get('/tenants-public', (_req, res) => {
-  const rows = mapRows<{ id: string; name: string; phone: string; address: string }>(
-    db.prepare('SELECT id, name, phone, address FROM tenants').all()
+  const includeRetail = (_req.query.includeRetail as string | undefined) === 'true';
+  const type = (_req.query.type as string | undefined)?.toLowerCase();
+  let whereClause = "COALESCE(u.user_type, 'wholesale') != 'retail'";
+  if (type === 'retail') {
+    whereClause = "COALESCE(u.user_type, 'wholesale') = 'retail'";
+  } else if (type === 'wholesale') {
+    whereClause = "COALESCE(u.user_type, 'wholesale') != 'retail'";
+  } else if (includeRetail) {
+    whereClause = '1=1';
+  }
+
+  const rows = mapRows<{
+    id: string;
+    name: string;
+    phone: string;
+    address: string;
+    tenantType: string;
+    segment: string;
+  }>(
+    db
+      .prepare(
+        `SELECT
+            t.id,
+            t.name,
+            COALESCE(t.phone, '') AS phone,
+            COALESCE(t.address, '') AS address,
+            CASE WHEN COALESCE(u.user_type, 'wholesale') = 'retail' THEN 'retail' ELSE 'wholesale' END AS tenantType,
+            COALESCE((
+              SELECT COALESCE(br.selected_segment, br.requested_segment, '')
+              FROM buyer_requests br
+              WHERE br.buyer_company = t.name
+              ORDER BY br.created_at DESC
+              LIMIT 1
+            ), '') AS segment
+         FROM tenants t
+         INNER JOIN memberships m ON m.tenant_id = t.id AND m.role = 'owner'
+         INNER JOIN users u ON u.id = m.user_id
+         WHERE ${whereClause}
+         ORDER BY LOWER(t.name)`
+      )
+      .all()
   );
-  res.json(rows);
+  res.json(
+    rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      phone: row.phone ?? '',
+      address: row.address ?? '',
+      type: row.tenantType,
+      segment: row.segment ?? '',
+    })),
+  );
 });
 
 // seller registration: mode=new -> company owner, mode=existing -> membership request pending
@@ -142,6 +204,9 @@ router.post('/register', (req, res) => {
   if (!companyName || !email || !password) {
     return res.status(400).json({ error: 'companyName, email, password required' });
   }
+  const normalizedEmail = email.toLowerCase();
+  const existingEmail = db.prepare('SELECT 1 FROM users WHERE email = ? LIMIT 1').get(normalizedEmail);
+  if (existingEmail) return res.status(409).json({ error: 'email already exists' });
   if (mode !== 'new' && mode !== 'existing') {
     return res.status(400).json({ error: 'mode must be new or existing' });
   }
@@ -162,14 +227,14 @@ router.post('/register', (req, res) => {
         companyAddress
       );
       db.prepare('INSERT INTO users (id, email, password_hash, name, phone, address, created_at, user_type) VALUES (?,?,?,?,?,?,?,?)')
-        .run(userId, email, password, name, phone, companyAddress, nowIso, 'wholesale');
+        .run(userId, normalizedEmail, password, name, phone, companyAddress, nowIso, 'wholesale');
       db.prepare('INSERT INTO memberships (user_id, tenant_id, role) VALUES (?,?,?)').run(userId, tenantId, 'owner');
       db.prepare(
         'INSERT INTO membership_requests (id, tenant_id, email, name, phone, role, status, company_name, company_address, company_phone, requester_type, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
       ).run(
         `mr_${Date.now()}`,
         tenantId,
-        email,
+        normalizedEmail,
         name,
         phone,
         'owner',
@@ -200,7 +265,7 @@ router.post('/register', (req, res) => {
   ).run(
     reqId,
     (existingTenant as any).id,
-    email,
+    normalizedEmail,
     name,
     phone,
     role ?? 'staff',
@@ -225,11 +290,19 @@ router.post('/register-buyer', (req, res) => {
     email,
     password,
     attachmentUrl = '',
+    buyerSegment = '',
     role = 'staff',
     mode = 'new',
   } = req.body || {};
-  if (!sellerCompanyName || !buyerCompanyName || !email || !password) {
-    return res.status(400).json({ error: 'sellerCompanyName, buyerCompanyName, email, password required' });
+  const isNewBuyerCompany = mode === 'new';
+  if (!buyerCompanyName || !email || !password) {
+    return res.status(400).json({ error: 'buyerCompanyName, email, password required' });
+  }
+  if (isNewBuyerCompany && !sellerCompanyName) {
+    return res.status(400).json({ error: 'sellerCompanyName required for new company' });
+  }
+  if (!buyerSegment || buyerSegment.toString().trim().length === 0) {
+    return res.status(400).json({ error: 'buyerSegment required' });
   }
   if (mode !== 'new' && mode !== 'existing') {
     return res.status(400).json({ error: 'mode must be new or existing' });
@@ -237,24 +310,31 @@ router.post('/register-buyer', (req, res) => {
   const reqId = `br_${Date.now()}`;
   const nowIso = new Date().toISOString();
 
-  const existingUser = db.prepare('SELECT id FROM users WHERE email = ? LIMIT 1').get(email) as
+  const normalizedEmail = email.toLowerCase();
+  const existingUser = db.prepare('SELECT id FROM users WHERE email = ? LIMIT 1').get(normalizedEmail) as
     | { id: string }
     | undefined;
-  const userId = existingUser?.id ?? `u_${Date.now()}`;
-  const upsertUser = db.transaction(() => {
-    if (existingUser) {
-      db.prepare(
-        'UPDATE users SET password_hash = COALESCE(?, password_hash), name = COALESCE(?, name), phone = COALESCE(?, phone), address = COALESCE(?, address), user_type = COALESCE(?, user_type), updated_at = ? WHERE id = ?'
-      ).run(password, name, phone, buyerAddress, 'retail', nowIso, userId);
-    } else {
-      db.prepare(
-        'INSERT INTO users (id, email, password_hash, name, phone, address, created_at, user_type) VALUES (?,?,?,?,?,?,?,?)'
-      ).run(userId, email, password, name, phone, buyerAddress, nowIso, 'retail');
-    }
-  });
-  upsertUser();
+  if (existingUser) {
+    return res.status(409).json({ error: 'email already exists' });
+  }
+  const userId = `u_${Date.now()}`;
+  db.prepare(
+    'INSERT INTO users (id, email, password_hash, name, phone, address, created_at, user_type) VALUES (?,?,?,?,?,?,?,?)'
+  ).run(userId, normalizedEmail, password, name, phone, buyerAddress, nowIso, 'retail');
 
-  const sellerTenant = db.prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1').get(sellerCompanyName) as any;
+  let resolvedSellerCompany = sellerCompanyName;
+  if (!resolvedSellerCompany && mode === 'existing') {
+    const prev = db
+      .prepare('SELECT seller_company FROM buyer_requests WHERE buyer_company = ? ORDER BY created_at DESC LIMIT 1')
+      .get(buyerCompanyName) as { seller_company?: string } | undefined;
+    resolvedSellerCompany = prev?.seller_company;
+  }
+  if (!resolvedSellerCompany) {
+    return res.status(400).json({ error: 'sellerCompanyName required' });
+  }
+  const sellerTenant = db
+    .prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1')
+    .get(resolvedSellerCompany) as any;
   if (!sellerTenant) {
     return res.status(404).json({ error: 'seller company not found' });
   }
@@ -283,13 +363,13 @@ router.post('/register-buyer', (req, res) => {
   }
 
   db.prepare(
-    'INSERT INTO buyer_requests (id, seller_company, buyer_company, buyer_address, email, name, phone, role, attachment_url, status, created_at, user_id, buyer_tenant_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)'
+    'INSERT INTO buyer_requests (id, seller_company, buyer_company, buyer_address, email, name, phone, role, attachment_url, status, created_at, user_id, buyer_tenant_id, requested_segment) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
   ).run(
     reqId,
-    sellerCompanyName,
+    resolvedSellerCompany,
     buyerCompanyName,
     buyerAddress,
-    email,
+    normalizedEmail,
     name,
     phone,
     role,
@@ -297,7 +377,8 @@ router.post('/register-buyer', (req, res) => {
     'pending',
     nowIso,
     userId,
-    buyerTenantId ?? ''
+    buyerTenantId ?? '',
+    buyerSegment
   );
 
   return res.status(202).json({

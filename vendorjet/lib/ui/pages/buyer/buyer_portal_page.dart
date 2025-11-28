@@ -138,7 +138,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       _historyError = null;
     });
     try {
-      final items = await _ordersRepo.fetch();
+      final items = await _ordersRepo.fetch(createdSource: 'buyer_portal');
       if (!mountedContext || !mounted) return;
       setState(() {
         _history = items;
@@ -170,7 +170,12 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     });
     try {
       final customers = await _customersRepo.fetch();
-      final names = customers.map((c) => c.name).toSet().toList()..sort();
+      final email = auth?.email?.toLowerCase();
+      final filtered = email == null || email.isEmpty
+          ? customers
+          : customers.where((c) => c.email.toLowerCase() == email).toList();
+      final list = filtered.isEmpty ? customers : filtered;
+      final names = list.map((c) => c.name).toSet().toList()..sort();
       if (!mountedContext || !mounted) return;
       setState(() {
         _storeOptions = names;
@@ -492,6 +497,9 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                         product,
                         quantity,
                       );
+                      setState(() {
+                        _quantityDrafts[product.id] = 1;
+                      });
                     },
                     gridView: _catalogGridView,
                     onToggleView: () =>
@@ -639,11 +647,13 @@ class _BuyerCatalogTab extends StatelessWidget {
                   );
                 }
                 if (products.isEmpty) {
-                  return StateMessageView(
-                    icon: Icons.search_off_outlined,
-                    title: t.productsEmptyMessage,
-                    message: t.buyerCatalogEmptyHint,
-                  );
+                  if (products.isEmpty && error == null && !loading) {
+                    return StateMessageView(
+                      icon: Icons.hourglass_empty_outlined,
+                      title: t.productsEmptyMessage,
+                      message: t.buyerCatalogEmptyHint,
+                    );
+                  }
                 }
 
                 if (gridView) {
@@ -796,6 +806,7 @@ class _CatalogCard extends StatelessWidget {
                 _QuantitySelector(
                   value: quantity,
                   onChanged: onQuantityChanged,
+                  onSubmit: onAdd,
                   dense: compact,
                 ),
                 const SizedBox(width: 12),
@@ -828,11 +839,13 @@ class _CatalogCard extends StatelessWidget {
 class _QuantitySelector extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
+  final VoidCallback? onSubmit;
   final bool dense;
 
   const _QuantitySelector({
     required this.value,
     required this.onChanged,
+    this.onSubmit,
     this.dense = false,
   });
 
@@ -872,6 +885,7 @@ class _QuantitySelector extends StatelessWidget {
             onSubmitted: (text) {
               final parsed = int.tryParse(text);
               onChanged((parsed ?? value).clamp(1, 999));
+              if (onSubmit != null) onSubmit!();
             },
           ),
         ),

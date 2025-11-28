@@ -49,7 +49,7 @@ function recordEvent(orderId: string, tenantId: string, action: string, actor: s
 }
 
 router.get('/', (req, res) => {
-  const { q = '', status, openOnly, date } = req.query as Record<string, string>;
+  const { q = '', status, openOnly, date, createdSource } = req.query as Record<string, string>;
   const tenantId = req.user?.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'tenantId missing' });
 
@@ -58,6 +58,10 @@ router.get('/', (req, res) => {
   if (status) {
     base += ' AND status = ?';
     params.push(status);
+  }
+  if (createdSource) {
+    base += ' AND created_source = ?';
+    params.push(createdSource);
   }
   if (openOnly === 'true') {
     base += " AND status IN ('pending','confirmed','shipped')";
@@ -91,7 +95,7 @@ router.post('/', (req, res) => {
   const tenantId = req.user?.tenantId;
   const actor = req.user?.userId ?? 'unknown';
   if (!tenantId) return res.status(400).json({ error: 'tenantId missing' });
-  const { buyerName = '', buyerContact = '', buyerNote = null, items = [], desiredDeliveryDate } =
+  const { buyerName = '', buyerContact = '', buyerNote = null, items = [], desiredDeliveryDate, createdSource } =
     req.body || {};
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'items required' });
@@ -133,7 +137,7 @@ router.post('/', (req, res) => {
       id,
       tenantId,
       code,
-      'seller_portal',
+      createdSource ?? 'seller_portal',
       buyerName,
       buyerContact,
       buyerNote,

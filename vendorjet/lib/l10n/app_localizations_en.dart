@@ -374,6 +374,142 @@ class AppLocalizationsEn extends AppLocalizations {
       'Try alex@vendorjet.com / welcome1 to explore.';
 
   @override
+  String get signUpButtonLabel => 'Sign up';
+
+  @override
+  String get signUpTabSeller => 'Seller';
+
+  @override
+  String get signUpTabBuyer => 'Buyer';
+
+  @override
+  String get signUpModeNew => 'New company';
+
+  @override
+  String get signUpModeExisting => 'Existing company';
+
+  @override
+  String get signUpSearchCompany => 'Search company';
+
+  @override
+  String get signUpSearchBuyerCompany => 'Search buyer company';
+
+  @override
+  String get signUpSearchSellerCompany => 'Search seller company';
+
+  @override
+  String get signUpSearchByName => 'Search by name';
+
+  @override
+  String get signUpCompanyNameLabel => 'Company name';
+
+  @override
+  String get signUpCompanyNameHint => 'Enter company name';
+
+  @override
+  String get signUpCompanyPhoneLabel => 'Company phone';
+
+  @override
+  String get signUpCompanyPhoneHint => 'Enter phone';
+
+  @override
+  String get signUpCompanyAddressLabel => 'Company address';
+
+  @override
+  String get signUpCompanyAddressHint => 'Enter address';
+
+  @override
+  String get signUpUserNameLabel => 'Your name';
+
+  @override
+  String get signUpUserNameHint => 'Enter your name';
+
+  @override
+  String get signUpUserPhoneLabel => 'Your phone';
+
+  @override
+  String get signUpUserPhoneHint => 'Enter your phone';
+
+  @override
+  String get signUpEmailHint => 'Enter email';
+
+  @override
+  String get signUpPasswordLabel => 'Password';
+
+  @override
+  String get signUpPasswordHint => 'Min 6 chars';
+
+  @override
+  String get signUpSellerNewHint =>
+      'New company: you will be registered as owner.';
+
+  @override
+  String get signUpSellerExistingHint =>
+      'Existing company: access after owner/manager approval.';
+
+  @override
+  String get signUpBuyerCompanyLabel => 'Buyer company';
+
+  @override
+  String get signUpBuyerCompanyHint => 'Enter company';
+
+  @override
+  String get signUpBuyerAddressLabel => 'Buyer address';
+
+  @override
+  String get signUpBuyerPhoneLabel => 'Buyer phone';
+
+  @override
+  String get signUpBuyerSegmentLabel => 'Business type';
+
+  @override
+  String get signUpBuyerSegmentHint => 'Enter classification';
+
+  @override
+  String get signUpLoginPasswordLabel => 'Password (login)';
+
+  @override
+  String get signUpLoginPasswordHint => 'Enter password';
+
+  @override
+  String get signUpSellerTargetLabel => 'Target seller name';
+
+  @override
+  String get signUpAttachmentLabel => 'Attachment URL (optional)';
+
+  @override
+  String get signUpAttachmentHelper =>
+      'Business license if the seller requires it (optional)';
+
+  @override
+  String get signUpSellerSummary => 'Seller';
+
+  @override
+  String get signUpBuyerApprovalHint =>
+      'After seller approval, you can view products.';
+
+  @override
+  String get signUpSubmitAction => 'Submit';
+
+  @override
+  String get signUpSubmitSuccess => 'Submitted (may require approval)';
+
+  @override
+  String get signUpSubmitFailure => 'Registration failed';
+
+  @override
+  String get signUpSelectSellerPrompt => 'Select a seller company first';
+
+  @override
+  String get signUpSelectExistingPrompt => 'Select your existing company';
+
+  @override
+  String get commonCancel => 'Cancel';
+
+  @override
+  String get commonSearch => 'Search';
+
+  @override
   String get tenantSectionTitle => 'Organization';
 
   @override

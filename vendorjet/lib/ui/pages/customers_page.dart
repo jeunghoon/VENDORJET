@@ -343,14 +343,20 @@ class _CustomersPageState extends State<CustomersPage> {
   Future<void> _openApprovalPanel() async {
     final auth = context.read<AuthController?>();
     final tenantName = auth?.tenant?.name;
+    final t = AppLocalizations.of(context)!;
     setState(() => _approvalsLoading = true);
     List<Map<String, dynamic>> buyerRequests = [];
+    List<String> segments = _segments;
     try {
       final resp = await ApiClient.get('/admin/requests', query: {}) as Map<String, dynamic>;
       final list = (resp['buyerRequests'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-      buyerRequests = tenantName == null
+      final scoped = tenantName == null
           ? list
           : list.where((r) => (r['sellerCompany'] as String?) == tenantName).toList();
+      buyerRequests =
+          scoped.where((r) => (r['status'] as String? ?? '').toLowerCase() == 'pending').toList();
+      segments = await _repo.fetchSegments();
+      if (mounted) setState(() => _segments = segments);
     } catch (err) {
       if (!mounted) return;
       context.read<NotificationTicker>().push(err.toString());
@@ -394,74 +400,148 @@ class _CustomersPageState extends State<CustomersPage> {
                       itemBuilder: (context, index) {
                         final r = buyerRequests[index];
                         final status = (r['status'] as String? ?? '').toLowerCase();
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  r['buyerCompany'] ?? '',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                Text('${r['name'] ?? ''} · ${r['email'] ?? ''}'),
-                                Text('상태: ${status == 'pending' ? '대기' : status}'),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
+                        final requestedSegment = (r['requestedSegment'] as String? ?? '').toString();
+                        final initialSegment = ((r['selectedSegment'] as String? ?? '').toString().trim().isNotEmpty
+                                ? r['selectedSegment']
+                                : requestedSegment)
+                            .toString();
+                        final segmentCtrl = TextEditingController(text: initialSegment);
+                        String selectedTier =
+                            ((r['selectedTier'] as String? ?? '').toString().trim().isNotEmpty
+                                    ? r['selectedTier']
+                                    : CustomerTier.silver.name)
+                                .toString();
+                        return StatefulBuilder(
+                          builder: (context, setStateCard) {
+                            return Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    TextButton(
-                                      onPressed: status == 'approved'
-                                          ? null
-                                          : () async {
-                                              await ApiClient.patch(
-                                                '/admin/requests/${r['id']}',
-                                                body: {'status': 'approved'},
-                                              );
-                                              if (ctx.mounted) {
-                                                Navigator.of(ctx).pop();
-                                                _openApprovalPanel();
-                                              }
-                                            },
-                                      child: const Text('승인'),
+                                    Text(
+                                      r['buyerCompany'] ?? '',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(fontWeight: FontWeight.w700),
                                     ),
-                                    const SizedBox(width: 4),
-                                    TextButton(
-                                      onPressed: status == 'denied'
-                                          ? null
-                                          : () async {
-                                              await ApiClient.patch(
-                                                '/admin/requests/${r['id']}',
-                                                body: {'status': 'denied'},
-                                              );
-                                              if (ctx.mounted) {
-                                                Navigator.of(ctx).pop();
-                                                _openApprovalPanel();
-                                              }
-                                            },
-                                      child: const Text('거절'),
+                                    Text('${r['name'] ?? ''} · ${r['email'] ?? ''}'),
+                                    Text('상태: ${status == 'pending' ? '대기' : status}'),
+                                    if (requestedSegment.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text('신청 분류: $requestedSegment'),
+                                      ),
+                                    const SizedBox(height: 8),
+                                    TextField(
+                                      controller: segmentCtrl,
+                                      decoration: const InputDecoration(
+                                        labelText: '승인할 분류 (입력/선택)',
+                                        hintText: '예: Cafe, Mart, Hotel',
+                                      ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    IconButton(
-                                      tooltip: '삭제',
-                                      onPressed: () async {
-                                        await ApiClient.delete('/admin/requests/${r['id']}', query: {});
-                                        if (ctx.mounted) {
-                                          Navigator.of(ctx).pop();
-                                          _openApprovalPanel();
-                                        }
+                                    if (segments.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: [
+                                          for (final s in segments)
+                                            ChoiceChip(
+                                              label: Text(s),
+                                              selected: segmentCtrl.text == s,
+                                              onSelected: (_) {
+                                                segmentCtrl.text = s;
+                                                setStateCard(() {});
+                                              },
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                    const SizedBox(height: 8),
+                                    DropdownButtonFormField<String>(
+                                      initialValue: selectedTier,
+                                      decoration: const InputDecoration(labelText: '승인 시 고객 등급'),
+                                      items: CustomerTier.values
+                                          .map(
+                                            (ct) => DropdownMenuItem(
+                                              value: ct.name,
+                                              child: Text(_tierLabel(ct, t)),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (v) {
+                                        if (v != null) setStateCard(() => selectedTier = v);
                                       },
-                                      icon: const Icon(Icons.delete_outline),
-                                      color: Theme.of(context).colorScheme.error,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton(
+                                          onPressed: status == 'approved'
+                                              ? null
+                                              : () async {
+                                                  final refresh = context.read<DataRefreshCoordinator>();
+                                                  await ApiClient.patch(
+                                                    '/admin/requests/${r['id']}',
+                                                    body: {
+                                                      'status': 'approved',
+                                                      'segment': segmentCtrl.text.trim(),
+                                                      'tier': selectedTier,
+                                                    },
+                                                  );
+                                                  await _load();
+                                                  if (!mounted) return;
+                                                  refresh.notifyCustomerChanged();
+                                                  if (ctx.mounted) {
+                                                    Navigator.of(ctx).pop();
+                                                    _openApprovalPanel();
+                                                  }
+                                                },
+                                          child: const Text('승인'),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        TextButton(
+                                          onPressed: status == 'denied'
+                                              ? null
+                                              : () async {
+                                                  await ApiClient.patch(
+                                                    '/admin/requests/${r['id']}',
+                                                    body: {'status': 'denied'},
+                                                  );
+                                                  await _load();
+                                                  if (!mounted) return;
+                                                  if (ctx.mounted) {
+                                                    Navigator.of(ctx).pop();
+                                                    _openApprovalPanel();
+                                                  }
+                                                },
+                                          child: const Text('거절'),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        IconButton(
+                                          tooltip: '삭제',
+                                          onPressed: () async {
+                                            await ApiClient.delete('/admin/requests/${r['id']}', query: {});
+                                            await _load();
+                                            if (!mounted) return;
+                                            if (ctx.mounted) {
+                                              Navigator.of(ctx).pop();
+                                              _openApprovalPanel();
+                                            }
+                                          },
+                                          icon: const Icon(Icons.delete_outline),
+                                          color: Theme.of(context).colorScheme.error,
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

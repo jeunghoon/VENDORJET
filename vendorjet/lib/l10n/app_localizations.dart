@@ -800,6 +800,270 @@ abstract class AppLocalizations {
   /// **'Try alex@vendorjet.com / welcome1 to explore.'**
   String get signInHelperCredentials;
 
+  /// No description provided for @signUpButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up'**
+  String get signUpButtonLabel;
+
+  /// No description provided for @signUpTabSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Seller'**
+  String get signUpTabSeller;
+
+  /// No description provided for @signUpTabBuyer.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer'**
+  String get signUpTabBuyer;
+
+  /// No description provided for @signUpModeNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New company'**
+  String get signUpModeNew;
+
+  /// No description provided for @signUpModeExisting.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing company'**
+  String get signUpModeExisting;
+
+  /// No description provided for @signUpSearchCompany.
+  ///
+  /// In en, this message translates to:
+  /// **'Search company'**
+  String get signUpSearchCompany;
+
+  /// No description provided for @signUpSearchBuyerCompany.
+  ///
+  /// In en, this message translates to:
+  /// **'Search buyer company'**
+  String get signUpSearchBuyerCompany;
+
+  /// No description provided for @signUpSearchSellerCompany.
+  ///
+  /// In en, this message translates to:
+  /// **'Search seller company'**
+  String get signUpSearchSellerCompany;
+
+  /// No description provided for @signUpSearchByName.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name'**
+  String get signUpSearchByName;
+
+  /// No description provided for @signUpCompanyNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Company name'**
+  String get signUpCompanyNameLabel;
+
+  /// No description provided for @signUpCompanyNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter company name'**
+  String get signUpCompanyNameHint;
+
+  /// No description provided for @signUpCompanyPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Company phone'**
+  String get signUpCompanyPhoneLabel;
+
+  /// No description provided for @signUpCompanyPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter phone'**
+  String get signUpCompanyPhoneHint;
+
+  /// No description provided for @signUpCompanyAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Company address'**
+  String get signUpCompanyAddressLabel;
+
+  /// No description provided for @signUpCompanyAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter address'**
+  String get signUpCompanyAddressHint;
+
+  /// No description provided for @signUpUserNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name'**
+  String get signUpUserNameLabel;
+
+  /// No description provided for @signUpUserNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name'**
+  String get signUpUserNameHint;
+
+  /// No description provided for @signUpUserPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone'**
+  String get signUpUserPhoneLabel;
+
+  /// No description provided for @signUpUserPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your phone'**
+  String get signUpUserPhoneHint;
+
+  /// No description provided for @signUpEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter email'**
+  String get signUpEmailHint;
+
+  /// No description provided for @signUpPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get signUpPasswordLabel;
+
+  /// No description provided for @signUpPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Min 6 chars'**
+  String get signUpPasswordHint;
+
+  /// No description provided for @signUpSellerNewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'New company: you will be registered as owner.'**
+  String get signUpSellerNewHint;
+
+  /// No description provided for @signUpSellerExistingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing company: access after owner/manager approval.'**
+  String get signUpSellerExistingHint;
+
+  /// No description provided for @signUpBuyerCompanyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer company'**
+  String get signUpBuyerCompanyLabel;
+
+  /// No description provided for @signUpBuyerCompanyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter company'**
+  String get signUpBuyerCompanyHint;
+
+  /// No description provided for @signUpBuyerAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer address'**
+  String get signUpBuyerAddressLabel;
+
+  /// No description provided for @signUpBuyerPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer phone'**
+  String get signUpBuyerPhoneLabel;
+
+  /// No description provided for @signUpBuyerSegmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Business type'**
+  String get signUpBuyerSegmentLabel;
+
+  /// No description provided for @signUpBuyerSegmentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter classification'**
+  String get signUpBuyerSegmentHint;
+
+  /// No description provided for @signUpLoginPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password (login)'**
+  String get signUpLoginPasswordLabel;
+
+  /// No description provided for @signUpLoginPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter password'**
+  String get signUpLoginPasswordHint;
+
+  /// No description provided for @signUpSellerTargetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Target seller name'**
+  String get signUpSellerTargetLabel;
+
+  /// No description provided for @signUpAttachmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment URL (optional)'**
+  String get signUpAttachmentLabel;
+
+  /// No description provided for @signUpAttachmentHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Business license if the seller requires it (optional)'**
+  String get signUpAttachmentHelper;
+
+  /// No description provided for @signUpSellerSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Seller'**
+  String get signUpSellerSummary;
+
+  /// No description provided for @signUpBuyerApprovalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'After seller approval, you can view products.'**
+  String get signUpBuyerApprovalHint;
+
+  /// No description provided for @signUpSubmitAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get signUpSubmitAction;
+
+  /// No description provided for @signUpSubmitSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted (may require approval)'**
+  String get signUpSubmitSuccess;
+
+  /// No description provided for @signUpSubmitFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration failed'**
+  String get signUpSubmitFailure;
+
+  /// No description provided for @signUpSelectSellerPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a seller company first'**
+  String get signUpSelectSellerPrompt;
+
+  /// No description provided for @signUpSelectExistingPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your existing company'**
+  String get signUpSelectExistingPrompt;
+
+  /// No description provided for @commonCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get commonCancel;
+
+  /// No description provided for @commonSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get commonSearch;
+
   /// No description provided for @tenantSectionTitle.
   ///
   /// In en, this message translates to:

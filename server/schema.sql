@@ -85,6 +85,11 @@ CREATE TABLE buyer_requests (
   phone TEXT,
   role TEXT,
   attachment_url TEXT,
+  buyer_tenant_id TEXT,
+  requested_segment TEXT,
+  selected_segment TEXT,
+  selected_tier TEXT,
+  user_id TEXT,
   status TEXT,
   created_at TEXT
 );

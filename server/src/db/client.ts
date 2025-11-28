@@ -72,6 +72,11 @@ function ensureSchema() {
         phone TEXT,
         role TEXT,
         attachment_url TEXT,
+        buyer_tenant_id TEXT,
+        requested_segment TEXT,
+        selected_segment TEXT,
+        selected_tier TEXT,
+        user_id TEXT,
         status TEXT,
         created_at TEXT
       );`
@@ -112,6 +117,10 @@ function ensureSchema() {
     ensureColumn('buyer_requests', 'seller_address', 'TEXT');
     ensureColumn('buyer_requests', 'role', 'TEXT');
     ensureColumn('buyer_requests', 'user_id', 'TEXT');
+    ensureColumn('buyer_requests', 'buyer_tenant_id', 'TEXT');
+    ensureColumn('buyer_requests', 'requested_segment', 'TEXT');
+    ensureColumn('buyer_requests', 'selected_segment', 'TEXT');
+    ensureColumn('buyer_requests', 'selected_tier', 'TEXT');
     ensureColumn('orders', 'created_by', 'TEXT');
     ensureColumn('orders', 'updated_by', 'TEXT');
     ensureColumn('orders', 'status_updated_by', 'TEXT');

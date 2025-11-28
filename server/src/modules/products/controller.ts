@@ -27,10 +27,6 @@ router.get('/', (req, res) => {
   let base = 'SELECT * FROM products WHERE tenant_id = ?';
   const params: any[] = [tenantId];
 
-  if (topCategory) {
-    base += ' AND json_extract(categories, "$[0]") = ?';
-    params.push(topCategory);
-  }
   if (lowStockOnly === 'true') {
     base += ' AND low_stock = 1';
   }
@@ -40,12 +36,18 @@ router.get('/', (req, res) => {
   }
 
   const rows = db.prepare(base).all(params as any);
-  const products = mapRows<ProductRow>(rows as any[]).map((r: any) => ({
+  let products = mapRows<ProductRow>(rows as any[]).map((r: any) => ({
     ...r,
     categories: safeJson(r.categories, []),
     tags: safeJson(r.tags, []),
     lowStock: Boolean(r.lowStock ?? r.low_stock),
   }));
+  if (topCategory) {
+    const target = topCategory.toString();
+    products = products.filter(
+      (p: any) => Array.isArray(p.categories) && p.categories.length > 0 && p.categories[0] === target
+    );
+  }
   res.json(products);
 });
 

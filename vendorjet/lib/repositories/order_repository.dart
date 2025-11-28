@@ -14,12 +14,14 @@ class OrderRepository {
     OrderStatus? status,
     bool openOnly = false,
     DateTime? dateEquals,
+    String? createdSource,
   }) async {
     final data = await ApiClient.get('/orders', query: {
       'q': query,
       'status': status?.name,
       'openOnly': openOnly ? 'true' : null,
       'date': dateEquals != null ? DateFormat('yyyy-MM-dd').format(dateEquals) : null,
+      'createdSource': createdSource,
     }) as List<dynamic>;
     final orders = data.map((e) => _orderFromJson(e as Map<String, dynamic>)).toList();
     return orders..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -41,6 +43,7 @@ class OrderRepository {
         'buyerContact': order.buyerContact,
         'buyerNote': order.buyerNote,
         'desiredDeliveryDate': order.desiredDeliveryDate?.toIso8601String(),
+        'createdSource': order.createdSource ?? 'buyer_portal',
         'items': order.lines
             .map((l) => {
                   'productId': l.productId,

@@ -1,11 +1,11 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
 import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 
-/// 계정/업체 관리
+/// 계정/업체 관리 페이지
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -19,6 +19,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _passwordConfirmCtrl = TextEditingController();
   bool _loading = true;
   bool _saving = false;
 
@@ -44,6 +45,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _saveProfile() async {
     if (!mounted) return;
+    if (_passwordCtrl.text.isNotEmpty && _passwordCtrl.text != _passwordConfirmCtrl.text) {
+      _ticker.push('비밀번호가 일치하지 않습니다');
+      return;
+    }
     setState(() => _saving = true);
     final ok = await context.read<AuthController>().updateProfile(
           name: _nameCtrl.text.trim(),
@@ -83,6 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
     _passwordCtrl.dispose();
+    _passwordConfirmCtrl.dispose();
     super.dispose();
   }
 
@@ -114,7 +120,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _passwordCtrl,
-                  decoration: const InputDecoration(labelText: '새 비밀번호 (변경 시만 입력)'),
+                  decoration: const InputDecoration(labelText: '새 비밀번호 (변경 시에만 입력)'),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _passwordConfirmCtrl,
+                  decoration: const InputDecoration(labelText: '새 비밀번호 확인'),
                   obscureText: true,
                 ),
                 const SizedBox(height: 12),
@@ -146,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       subtitle: Text([
                         if (tenant.phone.isNotEmpty) '전화: ${tenant.phone}',
                         if (tenant.address.isNotEmpty) '주소: ${tenant.address}',
-                      ].join('\n')),
+                      ].where((e) => e.isNotEmpty).join('\n')),
                       trailing: PopupMenuButton<String>(
                         onSelected: (value) {
                           if (!mounted) return;
