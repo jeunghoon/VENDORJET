@@ -705,6 +705,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get customersSegmentManagerDescription => '거래처 유형을 추가하거나 수정합니다.';
 
   @override
+  String get customerWithdrawnLabel => '탈퇴한 회원';
+
+  @override
   String get ordersFilterToday => '오늘';
 
   @override
@@ -805,7 +808,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get categoryManagerPrimaryRequired => '최소 1단계 카테고리를 입력하세요.';
 
   @override
-  String get buyerPortalTitle => '구매처 미리보기';
+  String get buyerPortalTitle => '구매처 포털';
 
   @override
   String get buyerPortalTabDashboard => '대시보드';
@@ -815,6 +818,26 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get buyerPortalTabOrder => '주문서';
+
+  @override
+  String get buyerPendingTitle => '도매 업체 승인 대기 중입니다';
+
+  @override
+  String get buyerPendingMessage => '담당 도매 업체에서 승인을 완료하면 상품 조회와 주문이 가능합니다.';
+
+  @override
+  String buyerPendingSeller(String sellerName) {
+    return '$sellerName에서 승인 대기 중입니다.';
+  }
+
+  @override
+  String get buyerMenuProfile => '프로필/사업장 설정';
+
+  @override
+  String get buyerMenuSettings => '설정';
+
+  @override
+  String get buyerMenuLogout => '로그아웃';
 
   @override
   String get buyerPreviewTitle => '구매자 미리보기';

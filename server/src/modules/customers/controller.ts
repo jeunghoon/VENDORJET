@@ -21,22 +21,42 @@ router.get('/', (req, res) => {
   const tenantId = req.user?.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'tenantId missing' });
 
-  let base = 'SELECT * FROM customers WHERE tenant_id = ?';
-  const params: any[] = [tenantId];
+  const tenantRow = db.prepare('SELECT name FROM tenants WHERE id = ? LIMIT 1').get(tenantId) as { name?: string } | undefined;
+  const sellerName = tenantRow?.name ?? null;
+  const statusSubquery = sellerName
+    ? `(SELECT status FROM buyer_requests br WHERE br.email = c.email AND br.seller_company = ? ORDER BY br.created_at DESC LIMIT 1)`
+    : `(SELECT status FROM buyer_requests br WHERE br.email = c.email ORDER BY br.created_at DESC LIMIT 1)`;
+  const phoneSubquery = sellerName
+    ? `(SELECT COALESCE(br.phone, '') FROM buyer_requests br WHERE br.seller_company = ? AND br.buyer_company = c.name ORDER BY br.created_at DESC LIMIT 1)`
+    : `(SELECT COALESCE(br.phone, '') FROM buyer_requests br WHERE br.buyer_company = c.name ORDER BY br.created_at DESC LIMIT 1)`;
+  const addressSubquery = sellerName
+    ? `(SELECT COALESCE(br.buyer_address, '') FROM buyer_requests br WHERE br.seller_company = ? AND br.buyer_company = c.name ORDER BY br.created_at DESC LIMIT 1)`
+    : `(SELECT COALESCE(br.buyer_address, '') FROM buyer_requests br WHERE br.buyer_company = c.name ORDER BY br.created_at DESC LIMIT 1)`;
+
+  let base = `SELECT c.*,
+        COALESCE(${statusSubquery}, '') AS buyer_status,
+        COALESCE(${phoneSubquery}, '') AS contact_phone,
+        COALESCE(${addressSubquery}, '') AS contact_address
+      FROM customers c WHERE c.tenant_id = ?`;
+  const params: any[] = [];
+  if (sellerName) {
+    params.push(sellerName, sellerName, sellerName);
+  }
+  params.push(tenantId);
   if (tier) {
-    base += ' AND tier = ?';
+    base += ' AND c.tier = ?';
     params.push(tier);
   }
   if (segment) {
-    base += ' AND segment = ?';
+    base += ' AND c.segment = ?';
     params.push(segment);
   }
   if (q) {
-    base += ' AND (LOWER(name) LIKE ? OR LOWER(contact_name) LIKE ? OR LOWER(email) LIKE ?)';
+    base += ' AND (LOWER(c.name) LIKE ? OR LOWER(c.contact_name) LIKE ? OR LOWER(c.email) LIKE ?)';
     const like = `%${q.toLowerCase()}%`;
     params.push(like, like, like);
   }
-  base += ' ORDER BY created_at DESC';
+  base += ' ORDER BY c.created_at DESC';
 
   const rows = db.prepare(base).all(params as any);
   res.json(mapRows(rows as any[]));

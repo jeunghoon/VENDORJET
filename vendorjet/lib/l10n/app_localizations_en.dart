@@ -716,6 +716,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add or update the retailer types you work with.';
 
   @override
+  String get customerWithdrawnLabel => 'Withdrawn member';
+
+  @override
   String get ordersFilterToday => 'Today';
 
   @override
@@ -819,7 +822,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter at least the first level.';
 
   @override
-  String get buyerPortalTitle => 'Buyer preview';
+  String get buyerPortalTitle => 'Buyer portal';
 
   @override
   String get buyerPortalTabDashboard => 'Dashboard';
@@ -829,6 +832,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get buyerPortalTabOrder => 'Order sheet';
+
+  @override
+  String get buyerPendingTitle => 'Waiting for seller approval';
+
+  @override
+  String get buyerPendingMessage =>
+      'Your wholesaler needs to approve your access before you can view the catalog and submit orders.';
+
+  @override
+  String buyerPendingSeller(String sellerName) {
+    return 'Waiting for approval from $sellerName.';
+  }
+
+  @override
+  String get buyerMenuProfile => 'Profile / Store settings';
+
+  @override
+  String get buyerMenuSettings => 'Settings';
+
+  @override
+  String get buyerMenuLogout => 'Sign out';
 
   @override
   String get buyerPreviewTitle => 'Buyer preview';

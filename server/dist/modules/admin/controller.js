@@ -108,6 +108,8 @@ router.get('/requests', (_req, res) => {
     const buyerRequests = (0, client_1.mapRows)(client_1.db
         .prepare(`SELECT id,
                 seller_company AS sellerCompany,
+                seller_phone AS sellerPhone,
+                seller_address AS sellerAddress,
                 buyer_company AS buyerCompany,
                 buyer_address AS buyerAddress,
                 email,
@@ -116,6 +118,10 @@ router.get('/requests', (_req, res) => {
                 role,
                 attachment_url AS attachmentUrl,
                 user_id AS userId,
+                buyer_tenant_id AS buyerTenantId,
+                requested_segment AS requestedSegment,
+                selected_segment AS selectedSegment,
+                selected_tier AS selectedTier,
                 status,
                 created_at AS createdAt
          FROM buyer_requests`)
@@ -125,7 +131,7 @@ router.get('/requests', (_req, res) => {
 // 요청 승인/거절 (간단히 status만 변경)
 router.patch('/requests/:id', (req, res) => {
     const { id } = req.params;
-    const { status = 'approved' } = req.body || {};
+    const { status = 'approved', segment, tier } = req.body || {};
     if (!['approved', 'denied', 'pending'].includes(status)) {
         return res.status(400).json({ error: 'invalid status' });
     }
@@ -152,13 +158,45 @@ router.patch('/requests/:id', (req, res) => {
             .get(id);
         if (!reqRow)
             return res.status(404).json({ error: 'request not found' });
-        client_1.db.prepare('UPDATE buyer_requests SET status = ? WHERE id = ?').run(status, id);
+        client_1.db.prepare('UPDATE buyer_requests SET status = ?, selected_segment = COALESCE(?, selected_segment), selected_tier = COALESCE(?, selected_tier) WHERE id = ?').run(status, segment, tier, id);
         if (status === 'approved' && reqRow.seller_company && reqRow.user_id) {
             const tenant = client_1.db
                 .prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1')
                 .get(reqRow.seller_company);
             if (tenant) {
                 client_1.db.prepare('INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)').run(reqRow.user_id, tenant.id, reqRow.role ?? 'staff', 'approved');
+                const nowIso = new Date().toISOString();
+                const resolvedSegment = (segment ?? '').toString().trim() ||
+                    (reqRow.selected_segment ?? '').toString().trim() ||
+                    (reqRow.requested_segment ?? '').toString().trim();
+                const resolvedTier = (tier ?? '').toString().trim() ||
+                    (reqRow.selected_tier ?? '').toString().trim() ||
+                    'silver';
+                if (resolvedSegment) {
+                    const existingSeg = client_1.db
+                        .prepare('SELECT 1 FROM segments WHERE tenant_id = ? AND name = ? LIMIT 1')
+                        .get(tenant.id, resolvedSegment);
+                    if (!existingSeg) {
+                        client_1.db.prepare('INSERT INTO segments (tenant_id, name) VALUES (?, ?)').run(tenant.id, resolvedSegment);
+                    }
+                }
+                if (reqRow.buyer_company) {
+                    const existingCustomer = client_1.db
+                        .prepare('SELECT id FROM customers WHERE tenant_id = ? AND name = ? LIMIT 1')
+                        .get(tenant.id, reqRow.buyer_company);
+                    if (existingCustomer) {
+                        client_1.db.prepare(`UPDATE customers
+               SET contact_name = COALESCE(?, contact_name),
+                   email = COALESCE(?, email),
+                   tier = ?,
+                   segment = COALESCE(?, segment)
+               WHERE id = ? AND tenant_id = ?`).run(reqRow.name, reqRow.email, resolvedTier, resolvedSegment, existingCustomer.id, tenant.id);
+                    }
+                    else {
+                        const customerId = `c_${Date.now()}`;
+                        client_1.db.prepare('INSERT INTO customers (id, tenant_id, name, contact_name, email, tier, created_at, segment) VALUES (?,?,?,?,?,?,?,?)').run(customerId, tenant.id, reqRow.buyer_company, reqRow.name ?? '', reqRow.email ?? '', resolvedTier, nowIso, resolvedSegment);
+                    }
+                }
             }
         }
     }

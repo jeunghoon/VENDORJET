@@ -3,9 +3,14 @@ import 'package:http/http.dart' as http;
 
 // dart-define로 전달: --dart-define=USE_LOCAL_API=true --dart-define=API_BASE_URL=http://localhost:4110
 // 기본값을 true/localhost:4110으로 두어 F5 실행 시 자동으로 로컬 서버와 연결되도록 함.
-const bool useLocalApi = bool.fromEnvironment('USE_LOCAL_API', defaultValue: true);
-const String apiBaseUrl =
-    String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:4110');
+const bool useLocalApi = bool.fromEnvironment(
+  'USE_LOCAL_API',
+  defaultValue: true,
+);
+const String apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://localhost:4110',
+);
 
 class ApiClient {
   static final http.Client _client = http.Client();
@@ -13,7 +18,9 @@ class ApiClient {
   static String? tenantId;
 
   static Uri _uri(String path, [Map<String, String?>? query]) {
-    final base = apiBaseUrl.endsWith('/') ? apiBaseUrl.substring(0, apiBaseUrl.length - 1) : apiBaseUrl;
+    final base = apiBaseUrl.endsWith('/')
+        ? apiBaseUrl.substring(0, apiBaseUrl.length - 1)
+        : apiBaseUrl;
     final uri = Uri.parse('$base$path');
     if (query == null) return uri;
     final cleaned = <String, String>{};
@@ -24,10 +31,10 @@ class ApiClient {
   }
 
   static Map<String, String> _headers() => {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-        if (tenantId != null) 'X-Tenant-Id': tenantId!,
-      };
+    'Content-Type': 'application/json',
+    if (token != null) 'Authorization': 'Bearer $token',
+    if (tenantId != null) 'X-Tenant-Id': tenantId!,
+  };
 
   static Future<dynamic> get(String path, {Map<String, String?>? query}) async {
     final resp = await _client.get(_uri(path, query), headers: _headers());
@@ -74,7 +81,10 @@ class ApiClient {
         throw ApiClientException(resp.statusCode, decoded);
       } catch (e) {
         if (resp.statusCode >= 400) {
-          throw ApiClientException(resp.statusCode, resp.body.isEmpty ? null : resp.body);
+          throw ApiClientException(
+            resp.statusCode,
+            resp.body.isEmpty ? null : resp.body,
+          );
         }
         rethrow;
       }

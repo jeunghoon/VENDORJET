@@ -76,7 +76,9 @@ class _MyAppState extends State<MyApp> {
           return '/sign-in';
         }
 
-        if (signedIn && _authController.isBuyer && !state.matchedLocation.startsWith('/buyer')) {
+        if (signedIn &&
+            _authController.isBuyer &&
+            !state.matchedLocation.startsWith('/buyer')) {
           return '/buyer';
         }
 
@@ -315,7 +317,8 @@ class _HomeShell extends StatelessWidget {
                 const SizedBox(width: 8),
                 Consumer<AuthController>(
                   builder: (context, auth, _) {
-                    final isGlobalAdmin = auth.email?.toLowerCase() == 'admin@vendorjet.com';
+                    final isGlobalAdmin =
+                        auth.email?.toLowerCase() == 'admin@vendorjet.com';
                     if (!isGlobalAdmin) return const SizedBox.shrink();
                     return IconButton(
                       tooltip: '글로벌 관리자',

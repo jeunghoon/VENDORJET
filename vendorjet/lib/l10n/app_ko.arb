@@ -279,6 +279,7 @@
   "customersNoSegmentsHint": "식당·호텔·마트 등 분류를 추가해 관리하세요.",
   "customersSegmentManagerTitle": "고객 분류",
   "customersSegmentManagerDescription": "거래처 유형을 추가하거나 수정합니다.",
+  "customerWithdrawnLabel": "\uD0C8\uD1F4\uD55C \uD68C\uC6D0",
   "customersEmptyMessage": "등록된 고객이 없습니다.",
   "customersEmptyFiltered": "{tier} 고객이 없습니다.",
   "@customersDeleteConfirm": {
@@ -358,10 +359,23 @@
   "categoryManagerDeleted": "카테고리를 삭제했습니다.",
   "categoryManagerEmpty": "등록된 카테고리가 없습니다.",
   "categoryManagerPrimaryRequired": "최소 1단계 카테고리를 입력하세요.",
-  "buyerPortalTitle": "구매처 미리보기",
+  "buyerPortalTitle": "구매처 포털",
   "buyerPortalTabDashboard": "대시보드",
   "buyerPortalTabCatalog": "카탈로그",
   "buyerPortalTabOrder": "주문서",
+  "buyerPendingTitle": "도매 업체 승인 대기 중입니다",
+  "buyerPendingMessage": "담당 도매 업체에서 승인을 완료하면 상품 조회와 주문이 가능합니다.",
+  "buyerPendingSeller": "{sellerName}에서 승인 대기 중입니다.",
+  "@buyerPendingSeller": {
+    "placeholders": {
+      "sellerName": {
+        "type": "String"
+      }
+    }
+  },
+  "buyerMenuProfile": "프로필/사업장 설정",
+  "buyerMenuSettings": "설정",
+  "buyerMenuLogout": "로그아웃",
   "buyerPreviewTitle": "구매자 미리보기",
   "buyerPreviewSubtitle": "소매상 화면에서 상품 탐색과 주문을 테스트합니다.",
   "buyerCatalogSearchHint": "상품 검색",

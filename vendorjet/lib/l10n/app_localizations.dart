@@ -1448,6 +1448,12 @@ abstract class AppLocalizations {
   /// **'Add or update the retailer types you work with.'**
   String get customersSegmentManagerDescription;
 
+  /// No description provided for @customerWithdrawnLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawn member'**
+  String get customerWithdrawnLabel;
+
   /// No description provided for @ordersFilterToday.
   ///
   /// In en, this message translates to:
@@ -1637,7 +1643,7 @@ abstract class AppLocalizations {
   /// No description provided for @buyerPortalTitle.
   ///
   /// In en, this message translates to:
-  /// **'Buyer preview'**
+  /// **'Buyer portal'**
   String get buyerPortalTitle;
 
   /// No description provided for @buyerPortalTabDashboard.
@@ -1657,6 +1663,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Order sheet'**
   String get buyerPortalTabOrder;
+
+  /// No description provided for @buyerPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for seller approval'**
+  String get buyerPendingTitle;
+
+  /// No description provided for @buyerPendingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your wholesaler needs to approve your access before you can view the catalog and submit orders.'**
+  String get buyerPendingMessage;
+
+  /// No description provided for @buyerPendingSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval from {sellerName}.'**
+  String buyerPendingSeller(String sellerName);
+
+  /// No description provided for @buyerMenuProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile / Store settings'**
+  String get buyerMenuProfile;
+
+  /// No description provided for @buyerMenuSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get buyerMenuSettings;
+
+  /// No description provided for @buyerMenuLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get buyerMenuLogout;
 
   /// No description provided for @buyerPreviewTitle.
   ///

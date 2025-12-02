@@ -289,6 +289,7 @@
   "customersNoSegmentsHint": "Create segments to group customers (Restaurant, Hotel, Mart...).",
   "customersSegmentManagerTitle": "Customer segments",
   "customersSegmentManagerDescription": "Add or update the retailer types you work with.",
+  "customerWithdrawnLabel": "Withdrawn member",
   "@customersDeleteConfirm": {
     "placeholders": {
       "name": {
@@ -348,10 +349,23 @@
   "categoryManagerDeleted": "Category removed.",
   "categoryManagerEmpty": "No categories registered yet.",
   "categoryManagerPrimaryRequired": "Enter at least the first level.",
-  "buyerPortalTitle": "Buyer preview",
+  "buyerPortalTitle": "Buyer portal",
   "buyerPortalTabDashboard": "Dashboard",
   "buyerPortalTabCatalog": "Catalog",
   "buyerPortalTabOrder": "Order sheet",
+  "buyerPendingTitle": "Waiting for seller approval",
+  "buyerPendingMessage": "Your wholesaler needs to approve your access before you can view the catalog and submit orders.",
+  "buyerPendingSeller": "Waiting for approval from {sellerName}.",
+  "@buyerPendingSeller": {
+    "placeholders": {
+      "sellerName": {
+        "type": "String"
+      }
+    }
+  },
+  "buyerMenuProfile": "Profile / Store settings",
+  "buyerMenuSettings": "Settings",
+  "buyerMenuLogout": "Sign out",
   "buyerPreviewTitle": "Buyer preview",
   "buyerPreviewSubtitle": "Simulate the retailer-side ordering flow.",
   "buyerCatalogSearchHint": "Search catalog",

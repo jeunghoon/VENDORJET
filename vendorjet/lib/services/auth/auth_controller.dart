@@ -7,7 +7,6 @@ import 'auth_service.dart';
 /// 인증/테넌트 상태를 관리하는 ChangeNotifier
 class AuthController extends ChangeNotifier {
   final AuthService service;
-
   bool _loading = true;
   bool _signedIn = false;
   bool _pendingApproval = false;
@@ -28,7 +27,8 @@ class AuthController extends ChangeNotifier {
   List<TenantMembership> get memberships => service.memberships;
   List<Tenant> get tenants => _tenants;
 
-  ApiAuthService? get _api => service is ApiAuthService ? service as ApiAuthService : null;
+  ApiAuthService? get _api =>
+      service is ApiAuthService ? service as ApiAuthService : null;
 
   Future<void> load() async {
     _loading = true;
@@ -37,9 +37,13 @@ class AuthController extends ChangeNotifier {
       await service.init();
       _signedIn = await service.isSignedIn();
       _email = service.currentEmail;
-      _userType = service is ApiAuthService ? (service as ApiAuthService).userType : null;
+      _userType = service is ApiAuthService
+          ? (service as ApiAuthService).userType
+          : null;
       _tenants = _signedIn ? await service.fetchTenants() : const [];
-      _pendingApproval = _signedIn && (service.memberships.isEmpty || service.currentTenant == null);
+      _pendingApproval =
+          _signedIn &&
+          (service.memberships.isEmpty || service.currentTenant == null);
     } catch (_) {
       _signedIn = false;
       _email = null;
@@ -55,9 +59,12 @@ class AuthController extends ChangeNotifier {
     _signedIn = ok;
     if (ok) {
       _email = service.currentEmail;
-      _userType = service is ApiAuthService ? (service as ApiAuthService).userType : null;
+      _userType = service is ApiAuthService
+          ? (service as ApiAuthService).userType
+          : null;
       _tenants = await service.fetchTenants();
-      _pendingApproval = service.memberships.isEmpty || service.currentTenant == null;
+      _pendingApproval =
+          service.memberships.isEmpty || service.currentTenant == null;
     }
     notifyListeners();
     return ok;
@@ -112,7 +119,11 @@ class AuthController extends ChangeNotifier {
       }
       return ok;
     }
-    return registerTenant(tenantName: companyName, email: email, password: password);
+    return registerTenant(
+      tenantName: companyName,
+      email: email,
+      password: password,
+    );
   }
 
   Future<bool> registerBuyer({
@@ -165,7 +176,8 @@ class AuthController extends ChangeNotifier {
     String? name,
     String? password,
   }) async {
-    final ok = await _api?.updateProfile(
+    final ok =
+        await _api?.updateProfile(
           email: email,
           phone: phone,
           address: address,
@@ -199,7 +211,8 @@ class AuthController extends ChangeNotifier {
     final profile = await fetchProfile();
     final userId = profile?['id'] as String?;
     if (userId == null) return false;
-    final ok = await _api?.createTenantForUser(
+    final ok =
+        await _api?.createTenantForUser(
           userId: userId,
           name: name,
           phone: phone,
@@ -219,7 +232,8 @@ class AuthController extends ChangeNotifier {
     String? phone,
     String? address,
   }) async {
-    final ok = await _api?.updateTenant(
+    final ok =
+        await _api?.updateTenant(
           tenantId: tenantId,
           name: name,
           phone: phone,

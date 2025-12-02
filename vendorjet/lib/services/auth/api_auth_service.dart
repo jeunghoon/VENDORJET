@@ -38,22 +38,29 @@ class ApiAuthService implements AuthService {
   @override
   Future<bool> signIn(String email, String password) async {
     try {
-      final resp = await ApiClient.post('/auth/login', body: {
-        'email': email,
-        'password': password,
-      }) as Map<String, dynamic>;
+      final resp =
+          await ApiClient.post(
+                '/auth/login',
+                body: {'email': email, 'password': password},
+              )
+              as Map<String, dynamic>;
       final token = resp['token'] as String?;
       if (token == null) return false;
       ApiClient.token = token;
       _email = email.toLowerCase();
-      _userType = (resp['user'] as Map<String, dynamic>?)?['userType'] as String?;
+      _userType =
+          (resp['user'] as Map<String, dynamic>?)?['userType'] as String?;
       _memberships = (resp['memberships'] as List<dynamic>? ?? [])
-          .map((m) => TenantMembership(
-                tenantId: m['tenantId'] as String,
-                role: _roleFromString(m['role'] as String?),
-              ))
+          .map(
+            (m) => TenantMembership(
+              tenantId: m['tenantId'] as String,
+              role: _roleFromString(m['role'] as String?),
+            ),
+          )
           .toList();
-      _currentTenantId = _memberships.isNotEmpty ? _memberships.first.tenantId : null;
+      _currentTenantId = _memberships.isNotEmpty
+          ? _memberships.first.tenantId
+          : null;
       ApiClient.tenantId = _currentTenantId;
       _tenants = await fetchTenants();
       await _persist();
@@ -130,10 +137,14 @@ class ApiAuthService implements AuthService {
 
   @override
   Tenant? get currentTenant {
-    if (_currentTenantId == null) return _tenants.isNotEmpty ? _tenants.first : null;
+    if (_currentTenantId == null) {
+      return _tenants.isNotEmpty ? _tenants.first : null;
+    }
     return _tenants.firstWhere(
       (t) => t.id == _currentTenantId,
-      orElse: () => _tenants.isNotEmpty ? _tenants.first : Tenant(id: '', name: '', createdAt: DateTime.now()),
+      orElse: () => _tenants.isNotEmpty
+          ? _tenants.first
+          : Tenant(id: '', name: '', createdAt: DateTime.now()),
     );
   }
 
@@ -144,7 +155,9 @@ class ApiAuthService implements AuthService {
     return _memberships
         .firstWhere(
           (m) => m.tenantId == tId,
-          orElse: () => _memberships.isNotEmpty ? _memberships.first : TenantMembership(tenantId: '', role: TenantMemberRole.staff),
+          orElse: () => _memberships.isNotEmpty
+              ? _memberships.first
+              : TenantMembership(tenantId: '', role: TenantMemberRole.staff),
         )
         .role;
   }
@@ -157,14 +170,18 @@ class ApiAuthService implements AuthService {
     try {
       final resp = await ApiClient.get('/auth/tenants') as List<dynamic>;
       final tenants = resp
-          .map((e) => Tenant(
-                id: e['id'] as String,
-                name: e['name'] as String,
-                phone: (e['phone'] as String?) ?? '',
-                address: (e['address'] as String?) ?? '',
-                type: _typeFromString(e['type'] as String?),
-                createdAt: DateTime.tryParse((e['createdAt'] ?? '') as String? ?? '') ?? DateTime.now(),
-              ))
+          .map(
+            (e) => Tenant(
+              id: e['id'] as String,
+              name: e['name'] as String,
+              phone: (e['phone'] as String?) ?? '',
+              address: (e['address'] as String?) ?? '',
+              type: _typeFromString(e['type'] as String?),
+              createdAt:
+                  DateTime.tryParse((e['createdAt'] ?? '') as String? ?? '') ??
+                  DateTime.now(),
+            ),
+          )
           .toList();
       _tenants = tenants;
       return tenants;
@@ -210,17 +227,22 @@ class ApiAuthService implements AuthService {
     bool isNew = true,
   }) async {
     try {
-      final resp = await ApiClient.post('/auth/register', body: {
-        'companyName': companyName,
-        'companyAddress': companyAddress,
-        'companyPhone': companyPhone,
-        'name': name,
-        'phone': phone,
-        'email': email,
-        'password': password,
-        'role': role,
-        'mode': isNew ? 'new' : 'existing',
-      }) as Map<String, dynamic>;
+      final resp =
+          await ApiClient.post(
+                '/auth/register',
+                body: {
+                  'companyName': companyName,
+                  'companyAddress': companyAddress,
+                  'companyPhone': companyPhone,
+                  'name': name,
+                  'phone': phone,
+                  'email': email,
+                  'password': password,
+                  'role': role,
+                  'mode': isNew ? 'new' : 'existing',
+                },
+              )
+              as Map<String, dynamic>;
       final token = resp['token'] as String?;
       // 신규 테넌트는 201 + token, 기존 테넌트는 202(pending)로 token이 없을 수 있음
       if (token == null) {
@@ -230,12 +252,16 @@ class ApiAuthService implements AuthService {
       ApiClient.token = token;
       _email = email.toLowerCase();
       _memberships = (resp['memberships'] as List<dynamic>? ?? [])
-          .map((m) => TenantMembership(
-                tenantId: m['tenantId'] as String,
-                role: _roleFromString(m['role'] as String?),
-              ))
+          .map(
+            (m) => TenantMembership(
+              tenantId: m['tenantId'] as String,
+              role: _roleFromString(m['role'] as String?),
+            ),
+          )
           .toList();
-      _currentTenantId = _memberships.isNotEmpty ? _memberships.first.tenantId : null;
+      _currentTenantId = _memberships.isNotEmpty
+          ? _memberships.first.tenantId
+          : null;
       _tenants = await fetchTenants();
       await _persist();
       return true;
@@ -258,19 +284,22 @@ class ApiAuthService implements AuthService {
     bool isNewBuyerCompany = true,
   }) async {
     try {
-      await ApiClient.post('/auth/register-buyer', body: {
-        'sellerCompanyName': sellerCompanyName,
-        'buyerCompanyName': buyerCompanyName,
-        'buyerAddress': buyerAddress,
-        'buyerSegment': buyerSegment,
-        'name': name,
-        'phone': phone,
-        'email': email,
-        'password': password,
-        'attachmentUrl': attachmentUrl,
-        'role': role,
-        'mode': isNewBuyerCompany ? 'new' : 'existing',
-      });
+      await ApiClient.post(
+        '/auth/register-buyer',
+        body: {
+          'sellerCompanyName': sellerCompanyName,
+          'buyerCompanyName': buyerCompanyName,
+          'buyerAddress': buyerAddress,
+          'buyerSegment': buyerSegment,
+          'name': name,
+          'phone': phone,
+          'email': email,
+          'password': password,
+          'attachmentUrl': attachmentUrl,
+          'role': role,
+          'mode': isNewBuyerCompany ? 'new' : 'existing',
+        },
+      );
       return true;
     } catch (_) {
       return false;
@@ -297,12 +326,15 @@ class ApiAuthService implements AuthService {
     String address = '',
   }) async {
     try {
-      await ApiClient.post('/admin/tenants', body: {
-        'userId': userId,
-        'name': name,
-        'phone': phone,
-        'address': address,
-      });
+      await ApiClient.post(
+        '/admin/tenants',
+        body: {
+          'userId': userId,
+          'name': name,
+          'phone': phone,
+          'address': address,
+        },
+      );
       return true;
     } catch (_) {
       return false;

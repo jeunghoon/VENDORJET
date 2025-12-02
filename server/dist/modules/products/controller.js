@@ -13,10 +13,6 @@ router.get('/', (req, res) => {
         return res.status(400).json({ error: 'tenantId missing' });
     let base = 'SELECT * FROM products WHERE tenant_id = ?';
     const params = [tenantId];
-    if (topCategory) {
-        base += ' AND json_extract(categories, "$[0]") = ?';
-        params.push(topCategory);
-    }
     if (lowStockOnly === 'true') {
         base += ' AND low_stock = 1';
     }
@@ -25,12 +21,16 @@ router.get('/', (req, res) => {
         params.push(`%${q.toLowerCase()}%`, `%${q.toLowerCase()}%`);
     }
     const rows = client_1.db.prepare(base).all(params);
-    const products = (0, client_1.mapRows)(rows).map((r) => ({
+    let products = (0, client_1.mapRows)(rows).map((r) => ({
         ...r,
         categories: safeJson(r.categories, []),
         tags: safeJson(r.tags, []),
         lowStock: Boolean(r.lowStock ?? r.low_stock),
     }));
+    if (topCategory) {
+        const target = topCategory.toString();
+        products = products.filter((p) => Array.isArray(p.categories) && p.categories.length > 0 && p.categories[0] === target);
+    }
     res.json(products);
 });
 router.get('/:id', (req, res) => {

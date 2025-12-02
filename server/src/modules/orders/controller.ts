@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { db, mapRow, mapRows } from '../../db/client';
 import { authMiddleware } from '../../middleware/auth';
 import { generateOrderCode } from '../../utils/code_generator';
+import type { AuthUser } from '../../middleware/auth';
 
 type OrderRow = {
   id: string;
@@ -55,6 +56,10 @@ router.get('/', (req, res) => {
 
   let base = 'SELECT * FROM orders WHERE tenant_id = ?';
   const params: any[] = [tenantId];
+  if ((req.user as AuthUser | undefined)?.userType === 'retail' && req.user?.userId) {
+    base += ' AND created_by = ?';
+    params.push(req.user.userId);
+  }
   if (status) {
     base += ' AND status = ?';
     params.push(status);

@@ -71,7 +71,20 @@ router.get('/profile', authMiddleware, (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'unauthorized' });
   const row = db
     .prepare('SELECT id, email, name, phone, address, created_at, last_login_at, user_type FROM users WHERE id = ?')
-    .get(req.user.userId);
+    .get(req.user.userId) as { [key: string]: any } | undefined;
+  if (!row) return res.status(404).json({ error: 'not found' });
+  if ((row.user_type ?? '') === 'retail') {
+    const pending = db
+      .prepare(
+        `SELECT seller_company
+         FROM buyer_requests
+         WHERE user_id = ? AND status = 'pending'
+         ORDER BY created_at DESC
+         LIMIT 1`
+      )
+      .get(req.user.userId) as { seller_company?: string } | undefined;
+    row.pending_seller = pending?.seller_company ?? null;
+  }
   return res.json(row);
 });
 
@@ -110,7 +123,14 @@ router.patch('/profile', authMiddleware, (req, res) => {
 router.delete('/profile', authMiddleware, (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'unauthorized' });
   const uid = req.user.userId;
+  const userRow = db
+    .prepare('SELECT email, user_type FROM users WHERE id = ? LIMIT 1')
+    .get(uid) as { email?: string; user_type?: string } | undefined;
+  if (!userRow) return res.status(404).json({ error: 'not found' });
   const tx = db.transaction(() => {
+    if ((userRow.user_type ?? '') === 'retail' && userRow.email) {
+      db.prepare("UPDATE buyer_requests SET status = 'withdrawn' WHERE email = ?").run(userRow.email);
+    }
     db.prepare('DELETE FROM memberships WHERE user_id = ?').run(uid);
     db.prepare('DELETE FROM users WHERE id = ?').run(uid);
   });

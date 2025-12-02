@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -52,6 +52,8 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   String? _storesError;
   String? _selectedCategory;
   String? _selectedStore;
+  String? _pendingSellerName;
+  bool _pendingSellerRequested = false;
 
   @override
   void initState() {
@@ -59,6 +61,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     _loadProducts();
     _loadHistory();
     _loadStores();
+    _loadPendingSellerName();
     _searchCtrl.addListener(_handleQueryChanged);
   }
 
@@ -87,14 +90,6 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadProducts() async {
-    final auth = context.read<AuthController?>();
-    if (auth?.pendingApproval == true) {
-      setState(() {
-        _productsLoading = false;
-        _products = const [];
-      });
-      return;
-    }
     final mountedContext = mounted;
     if (!mounted) return;
     setState(() {
@@ -123,14 +118,6 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadHistory() async {
-    final auth = context.read<AuthController?>();
-    if (auth?.pendingApproval == true) {
-      setState(() {
-        _historyLoading = false;
-        _history = const [];
-      });
-      return;
-    }
     final mountedContext = mounted;
     if (!mounted) return;
     setState(() {
@@ -154,14 +141,6 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _loadStores() async {
-    final auth = context.read<AuthController?>();
-    if (auth?.pendingApproval == true) {
-      setState(() {
-        _storesLoading = false;
-        _storeOptions = const [];
-      });
-      return;
-    }
     final mountedContext = mounted;
     if (!mounted) return;
     setState(() {
@@ -169,12 +148,12 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       _storesError = null;
     });
     try {
+      final auth = context.read<AuthController?>();
       final customers = await _customersRepo.fetch();
       final email = auth?.email?.toLowerCase();
-      final filtered = email == null || email.isEmpty
+      final list = email == null || email.isEmpty
           ? customers
           : customers.where((c) => c.email.toLowerCase() == email).toList();
-      final list = filtered.isEmpty ? customers : filtered;
       final names = list.map((c) => c.name).toSet().toList()..sort();
       if (!mountedContext || !mounted) return;
       setState(() {
@@ -242,6 +221,25 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     setState(() => _selectedStore = value);
   }
 
+  Future<void> _loadPendingSellerName() async {
+    if (_pendingSellerRequested) return;
+    _pendingSellerRequested = true;
+    final auth = context.read<AuthController?>();
+    try {
+      final profile = await auth?.fetchProfile();
+      if (!mounted) return;
+      setState(() {
+        final value = profile?['pendingSeller'] ?? profile?['pending_seller'];
+        _pendingSellerName = value?.toString();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _pendingSellerName = null;
+      });
+    }
+  }
+
   String _deriveContactName(String? email) {
     if (email == null || email.isEmpty) {
       return 'Buyer';
@@ -273,7 +271,9 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     if (!mounted || !providerContext.mounted) return;
     final t = AppLocalizations.of(providerContext)!;
     if (!success) {
-      providerContext.read<NotificationTicker>().push(t.buyerOrderPrefillMissing);
+      providerContext.read<NotificationTicker>().push(
+        t.buyerOrderPrefillMissing,
+      );
       return;
     }
     setState(() {
@@ -298,7 +298,9 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     });
     tabController?.animateTo(_orderTabIndex);
     final label = order.code.isEmpty ? order.buyerName : order.code;
-    providerContext.read<NotificationTicker>().push(t.buyerDashboardLoaded(label));
+    providerContext.read<NotificationTicker>().push(
+      t.buyerDashboardLoaded(label),
+    );
   }
 
   Future<bool> _prefillCartFromOrder(
@@ -323,7 +325,9 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   Future<void> _submitOrder(BuyerCartController cart) async {
     final t = AppLocalizations.of(context)!;
     if (cart.isEmpty) {
-      if (mounted) context.read<NotificationTicker>().push(t.buyerCheckoutCartEmpty);
+      if (mounted) {
+        context.read<NotificationTicker>().push(t.buyerCheckoutCartEmpty);
+      }
       return;
     }
     if (!(_orderFormKey.currentState?.validate() ?? false)) {
@@ -371,7 +375,9 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       });
       await _loadHistory();
       if (mounted) {
-        context.read<NotificationTicker>().push(t.buyerCheckoutSuccess(saved.code));
+        context.read<NotificationTicker>().push(
+          t.buyerCheckoutSuccess(saved.code),
+        );
       }
     } catch (err) {
       if (!mounted) return;
@@ -390,32 +396,9 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthController?>();
-    if (auth?.pendingApproval == true) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.buyerPortalTitle),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.hourglass_empty_outlined, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                '승인 대기 중입니다',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '담당 도매 업체에서 승인하면 상품을 조회하고 주문할 수 있습니다.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
-        ),
-      );
+    final pendingSeller = _pendingSellerName;
+    if (pendingSeller == null || pendingSeller.isEmpty) {
+      _loadPendingSellerName();
     }
 
     return ChangeNotifierProvider(
@@ -454,9 +437,18 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'profile', child: Text('프로필/사업장 설정')),
-                      const PopupMenuItem(value: 'settings', child: Text('설정')),
-                      const PopupMenuItem(value: 'logout', child: Text('로그아웃')),
+                      PopupMenuItem(
+                        value: 'profile',
+                        child: Text(t.buyerMenuProfile),
+                      ),
+                      PopupMenuItem(
+                        value: 'settings',
+                        child: Text(t.buyerMenuSettings),
+                      ),
+                      PopupMenuItem(
+                        value: 'logout',
+                        child: Text(t.buyerMenuLogout),
+                      ),
                     ],
                   ),
                   Padding(
@@ -488,6 +480,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                     selectedCategory: _selectedCategory,
                     loading: _productsLoading,
                     error: _productsError,
+                    pendingSellerName: pendingSeller,
                     onRefresh: _loadProducts,
                     onCategorySelected: _handleCategorySelected,
                     quantityFor: _quantityForProduct,
@@ -538,6 +531,7 @@ class _BuyerCatalogTab extends StatelessWidget {
   final String? selectedCategory;
   final bool loading;
   final String? error;
+  final String? pendingSellerName;
   final Future<void> Function() onRefresh;
   final ValueChanged<String?> onCategorySelected;
   final int Function(String productId) quantityFor;
@@ -553,6 +547,7 @@ class _BuyerCatalogTab extends StatelessWidget {
     required this.selectedCategory,
     required this.loading,
     required this.error,
+    required this.pendingSellerName,
     required this.onRefresh,
     required this.onCategorySelected,
     required this.quantityFor,
@@ -566,6 +561,7 @@ class _BuyerCatalogTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
+    final needsApproval = (pendingSellerName ?? '').isNotEmpty;
 
     return RefreshIndicator(
       onRefresh: onRefresh,
@@ -646,14 +642,19 @@ class _BuyerCatalogTab extends StatelessWidget {
                     ),
                   );
                 }
-                if (products.isEmpty) {
-                  if (products.isEmpty && error == null && !loading) {
+                if (products.isEmpty && error == null && !loading) {
+                  if (needsApproval) {
                     return StateMessageView(
-                      icon: Icons.hourglass_empty_outlined,
-                      title: t.productsEmptyMessage,
-                      message: t.buyerCatalogEmptyHint,
+                      icon: Icons.lock_clock,
+                      title: t.buyerPendingTitle,
+                      message: t.buyerPendingSeller(pendingSellerName!),
                     );
                   }
+                  return StateMessageView(
+                    icon: Icons.hourglass_empty_outlined,
+                    title: t.productsEmptyMessage,
+                    message: t.buyerCatalogEmptyHint,
+                  );
                 }
 
                 if (gridView) {
@@ -755,7 +756,9 @@ class _CatalogCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               product.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -1424,7 +1427,7 @@ class _DashboardOrderCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-            '${order.code} · $dateLabel',
+              '${order.code} · $dateLabel',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
@@ -1457,5 +1460,3 @@ class _DashboardOrderCard extends StatelessWidget {
     );
   }
 }
-
-

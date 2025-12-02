@@ -14,15 +14,23 @@ function recordEvent(orderId, tenantId, action, actor, note) {
     client_1.db.prepare('INSERT INTO order_events (order_id, tenant_id, action, actor, note, created_at) VALUES (?,?,?,?,?,?)').run(orderId, tenantId, action, actor, note ?? null, new Date().toISOString());
 }
 router.get('/', (req, res) => {
-    const { q = '', status, openOnly, date } = req.query;
+    const { q = '', status, openOnly, date, createdSource } = req.query;
     const tenantId = req.user?.tenantId;
     if (!tenantId)
         return res.status(400).json({ error: 'tenantId missing' });
     let base = 'SELECT * FROM orders WHERE tenant_id = ?';
     const params = [tenantId];
+    if (req.user?.userType === 'retail' && req.user?.userId) {
+        base += ' AND created_by = ?';
+        params.push(req.user.userId);
+    }
     if (status) {
         base += ' AND status = ?';
         params.push(status);
+    }
+    if (createdSource) {
+        base += ' AND created_source = ?';
+        params.push(createdSource);
     }
     if (openOnly === 'true') {
         base += " AND status IN ('pending','confirmed','shipped')";
@@ -55,7 +63,7 @@ router.post('/', (req, res) => {
     const actor = req.user?.userId ?? 'unknown';
     if (!tenantId)
         return res.status(400).json({ error: 'tenantId missing' });
-    const { buyerName = '', buyerContact = '', buyerNote = null, items = [], desiredDeliveryDate } = req.body || {};
+    const { buyerName = '', buyerContact = '', buyerNote = null, items = [], desiredDeliveryDate, createdSource } = req.body || {};
     if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: 'items required' });
     }
@@ -85,7 +93,7 @@ router.post('/', (req, res) => {
     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     const insertLine = client_1.db.prepare('INSERT INTO order_lines (order_id, product_id, product_name, quantity, unit_price) VALUES (?,?,?,?,?)');
     const trx = client_1.db.transaction(() => {
-        insertOrder.run(id, tenantId, code, 'seller_portal', buyerName, buyerContact, buyerNote, 'pending', total, itemCount, createdAt.toISOString(), actor, createdAt.toISOString(), actor, 'Created via API', createdAt.toISOString(), actor, desiredDeliveryDate ?? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString());
+        insertOrder.run(id, tenantId, code, createdSource ?? 'seller_portal', buyerName, buyerContact, buyerNote, 'pending', total, itemCount, createdAt.toISOString(), actor, createdAt.toISOString(), actor, 'Created via API', createdAt.toISOString(), actor, desiredDeliveryDate ?? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString());
         normalizedItems.forEach((line) => {
             insertLine.run(id, line.productId, line.productName, line.quantity, line.unitPrice);
         });

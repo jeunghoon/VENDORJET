@@ -211,6 +211,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       child: ListView.separated(
                         itemBuilder: (context, index) {
                           final customer = _items[index];
+                          final isWithdrawn = customer.isWithdrawn;
                           return Card(
                             child: ListTile(
                               leading: CircleAvatar(
@@ -225,6 +226,39 @@ class _CustomersPageState extends State<CustomersPage> {
                                   Text(
                                     '${customer.contactName} · ${customer.email}',
                                   ),
+                                  if (customer.phone.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(customer.phone),
+                                    ),
+                                  if (customer.address.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(
+                                        customer.address,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  if (isWithdrawn)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Chip(
+                                        label: Text(t.customerWithdrawnLabel),
+                                        visualDensity: VisualDensity.compact,
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.errorContainer,
+                                        labelStyle: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onErrorContainer,
+                                        ),
+                                      ),
+                                    ),
                                   if (customer.segment.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
@@ -302,11 +336,8 @@ class _CustomersPageState extends State<CustomersPage> {
     final result = await showModalBottomSheet<CustomerFormResult>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => CustomerFormSheet(
-        t: t,
-        customer: base,
-        segments: _segments,
-      ),
+      builder: (_) =>
+          CustomerFormSheet(t: t, customer: base, segments: _segments),
     );
     if (result == null) return;
     final updated = base.copyWith(
@@ -321,9 +352,9 @@ class _CustomersPageState extends State<CustomersPage> {
     context.read<DataRefreshCoordinator>().notifyCustomerChanged();
     await _load();
     if (!mounted) return;
-    context
-        .read<NotificationTicker>()
-        .push(customer == null ? t.customersCreated : t.customersUpdated);
+    context.read<NotificationTicker>().push(
+      customer == null ? t.customersCreated : t.customersUpdated,
+    );
   }
 
   Future<void> _openSegmentManager() async {
@@ -331,10 +362,7 @@ class _CustomersPageState extends State<CustomersPage> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => CustomerSegmentManagerSheet(
-        t: t,
-        repository: _repo,
-      ),
+      builder: (_) => CustomerSegmentManagerSheet(t: t, repository: _repo),
     );
     if (!mounted) return;
     await _load();
@@ -348,13 +376,21 @@ class _CustomersPageState extends State<CustomersPage> {
     List<Map<String, dynamic>> buyerRequests = [];
     List<String> segments = _segments;
     try {
-      final resp = await ApiClient.get('/admin/requests', query: {}) as Map<String, dynamic>;
-      final list = (resp['buyerRequests'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+      final resp =
+          await ApiClient.get('/admin/requests', query: {})
+              as Map<String, dynamic>;
+      final list = (resp['buyerRequests'] as List<dynamic>? ?? [])
+          .cast<Map<String, dynamic>>();
       final scoped = tenantName == null
           ? list
-          : list.where((r) => (r['sellerCompany'] as String?) == tenantName).toList();
-      buyerRequests =
-          scoped.where((r) => (r['status'] as String? ?? '').toLowerCase() == 'pending').toList();
+          : list
+                .where((r) => (r['sellerCompany'] as String?) == tenantName)
+                .toList();
+      buyerRequests = scoped
+          .where(
+            (r) => (r['status'] as String? ?? '').toLowerCase() == 'pending',
+          )
+          .toList();
       segments = await _repo.fetchSegments();
       if (mounted) setState(() => _segments = segments);
     } catch (err) {
@@ -377,7 +413,10 @@ class _CustomersPageState extends State<CustomersPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('승인 요청', style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      '승인 요청',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.of(ctx).pop(),
@@ -399,15 +438,26 @@ class _CustomersPageState extends State<CustomersPage> {
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final r = buyerRequests[index];
-                        final status = (r['status'] as String? ?? '').toLowerCase();
-                        final requestedSegment = (r['requestedSegment'] as String? ?? '').toString();
-                        final initialSegment = ((r['selectedSegment'] as String? ?? '').toString().trim().isNotEmpty
-                                ? r['selectedSegment']
-                                : requestedSegment)
-                            .toString();
-                        final segmentCtrl = TextEditingController(text: initialSegment);
+                        final status = (r['status'] as String? ?? '')
+                            .toLowerCase();
+                        final requestedSegment =
+                            (r['requestedSegment'] as String? ?? '').toString();
+                        final initialSegment =
+                            ((r['selectedSegment'] as String? ?? '')
+                                        .toString()
+                                        .trim()
+                                        .isNotEmpty
+                                    ? r['selectedSegment']
+                                    : requestedSegment)
+                                .toString();
+                        final segmentCtrl = TextEditingController(
+                          text: initialSegment,
+                        );
                         String selectedTier =
-                            ((r['selectedTier'] as String? ?? '').toString().trim().isNotEmpty
+                            ((r['selectedTier'] as String? ?? '')
+                                        .toString()
+                                        .trim()
+                                        .isNotEmpty
                                     ? r['selectedTier']
                                     : CustomerTier.silver.name)
                                 .toString();
@@ -424,10 +474,16 @@ class _CustomersPageState extends State<CustomersPage> {
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleSmall
-                                          ?.copyWith(fontWeight: FontWeight.w700),
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                     ),
-                                    Text('${r['name'] ?? ''} · ${r['email'] ?? ''}'),
-                                    Text('상태: ${status == 'pending' ? '대기' : status}'),
+                                    Text(
+                                      '${r['name'] ?? ''} · ${r['email'] ?? ''}',
+                                    ),
+                                    Text(
+                                      '상태: ${status == 'pending' ? '대기' : status}',
+                                    ),
                                     if (requestedSegment.isNotEmpty)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 4),
@@ -462,7 +518,9 @@ class _CustomersPageState extends State<CustomersPage> {
                                     const SizedBox(height: 8),
                                     DropdownButtonFormField<String>(
                                       initialValue: selectedTier,
-                                      decoration: const InputDecoration(labelText: '승인 시 고객 등급'),
+                                      decoration: const InputDecoration(
+                                        labelText: '승인 시 고객 등급',
+                                      ),
                                       items: CustomerTier.values
                                           .map(
                                             (ct) => DropdownMenuItem(
@@ -472,7 +530,9 @@ class _CustomersPageState extends State<CustomersPage> {
                                           )
                                           .toList(),
                                       onChanged: (v) {
-                                        if (v != null) setStateCard(() => selectedTier = v);
+                                        if (v != null) {
+                                          setStateCard(() => selectedTier = v);
+                                        }
                                       },
                                     ),
                                     const SizedBox(height: 12),
@@ -483,18 +543,24 @@ class _CustomersPageState extends State<CustomersPage> {
                                           onPressed: status == 'approved'
                                               ? null
                                               : () async {
-                                                  final refresh = context.read<DataRefreshCoordinator>();
+                                                  final refresh = context
+                                                      .read<
+                                                        DataRefreshCoordinator
+                                                      >();
                                                   await ApiClient.patch(
                                                     '/admin/requests/${r['id']}',
                                                     body: {
                                                       'status': 'approved',
-                                                      'segment': segmentCtrl.text.trim(),
+                                                      'segment': segmentCtrl
+                                                          .text
+                                                          .trim(),
                                                       'tier': selectedTier,
                                                     },
                                                   );
                                                   await _load();
                                                   if (!mounted) return;
-                                                  refresh.notifyCustomerChanged();
+                                                  refresh
+                                                      .notifyCustomerChanged();
                                                   if (ctx.mounted) {
                                                     Navigator.of(ctx).pop();
                                                     _openApprovalPanel();
@@ -524,7 +590,10 @@ class _CustomersPageState extends State<CustomersPage> {
                                         IconButton(
                                           tooltip: '삭제',
                                           onPressed: () async {
-                                            await ApiClient.delete('/admin/requests/${r['id']}', query: {});
+                                            await ApiClient.delete(
+                                              '/admin/requests/${r['id']}',
+                                              query: {},
+                                            );
                                             await _load();
                                             if (!mounted) return;
                                             if (ctx.mounted) {
@@ -532,8 +601,12 @@ class _CustomersPageState extends State<CustomersPage> {
                                               _openApprovalPanel();
                                             }
                                           },
-                                          icon: const Icon(Icons.delete_outline),
-                                          color: Theme.of(context).colorScheme.error,
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                          ),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
                                         ),
                                       ],
                                     ),
@@ -655,9 +728,9 @@ class _SegmentChips extends StatelessWidget {
     if (segments.isEmpty) {
       return Text(
         t.customersNoSegmentsHint,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).hintColor,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
       );
     }
     final options = <String?>[null, ...segments];
@@ -669,9 +742,7 @@ class _SegmentChips extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ChoiceChip(
-                label: Text(
-                  segment ?? t.customersSegmentFilterAll,
-                ),
+                label: Text(segment ?? t.customersSegmentFilterAll),
                 selected: segment == selected,
                 onSelected: (_) => onSelected(segment),
               ),

@@ -41,7 +41,6 @@ class _SignInPageState extends State<SignInPage> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(t.appTitle),
@@ -71,9 +70,7 @@ class _SignInPageState extends State<SignInPage> {
                   children: [
                     Text(
                       t.signInTitle,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
+                      style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 16),
@@ -142,7 +139,9 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                         TextButton(
                           onPressed: _showRegistrationDialog,
-                          child: Text(_tr('Sign up', '\uD68C\uC6D0\uAC00\uC785')),
+                          child: Text(
+                            _tr('Sign up', '\uD68C\uC6D0\uAC00\uC785'),
+                          ),
                         ),
                       ],
                     ),
@@ -169,7 +168,10 @@ class _SignInPageState extends State<SignInPage> {
     if (!mounted) return;
     setState(() => _signingIn = false);
     if (!ok) {
-      AppSnackbar.show(context, AppLocalizations.of(context)!.invalidCredentials);
+      AppSnackbar.show(
+        context,
+        AppLocalizations.of(context)!.invalidCredentials,
+      );
     }
   }
 
@@ -250,7 +252,9 @@ class _SignInPageState extends State<SignInPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ChoiceChip(
-                          label: Text(_tr('Seller', '\uB3C4\uB9E4\uC5C5\uCCB4')),
+                          label: Text(
+                            _tr('Seller', '\uB3C4\uB9E4\uC5C5\uCCB4'),
+                          ),
                           selected: tabIndex == 0,
                           onSelected: (_) => setState(() => tabIndex = 0),
                         ),
@@ -267,7 +271,7 @@ class _SignInPageState extends State<SignInPage> {
                       child: IndexedStack(
                         index: tabIndex,
                         children: [
-                                                    _buildSellerForm(
+                          _buildSellerForm(
                             formKey: sellerFormKey,
                             isNew: sellerIsNew,
                             onToggleNew: (v) => setState(() => sellerIsNew = v),
@@ -283,17 +287,18 @@ class _SignInPageState extends State<SignInPage> {
                             onSearchCompany: () async {
                               final picked = await _pickCompany(
                                 context,
-                                companies,
-                                _tr('Search company', '\uD68C\uC0AC\uBA85 \uAC80\uC0C9'),
+                                sellerCompanies,
+                                _tr(
+                                  'Search company',
+                                  '\uD68C\uC0AC\uBA85 \uAC80\uC0C9',
+                                ),
                               );
                               if (!dialogContext.mounted) return;
                               if (picked != null) {
                                 setState(() {
                                   selectedSellerCompany = picked;
-                                  sellerCompanyCtrl.text =
-                                      picked['name'] ?? '';
-                                  sellerPhoneCtrl.text =
-                                      picked['phone'] ?? '';
+                                  sellerCompanyCtrl.text = picked['name'] ?? '';
+                                  sellerPhoneCtrl.text = picked['phone'] ?? '';
                                   sellerAddressCtrl.text =
                                       picked['address'] ?? '';
                                 });
@@ -304,13 +309,18 @@ class _SignInPageState extends State<SignInPage> {
                             onCheckEmail: () async {
                               final email = sellerEmailCtrl.text.trim();
                               if (email.isEmpty) {
-                                _showSnack(dialogContext, _tr('Enter email', '???? ?????'));
+                                _showSnack(
+                                  dialogContext,
+                                  _tr('Enter email', '???? ?????'),
+                                );
                                 return;
                               }
                               setState(() {
                                 sellerEmailChecked = false;
                               });
-                              final available = await _checkEmailAvailable(email);
+                              final available = await _checkEmailAvailable(
+                                email,
+                              );
                               if (!dialogContext.mounted) return;
                               setState(() {
                                 sellerEmailChecked = true;
@@ -345,16 +355,17 @@ class _SignInPageState extends State<SignInPage> {
                               final picked = await _pickCompany(
                                 context,
                                 buyerCompanies,
-                                _tr('Search buyer company', '\uC18C\uB9E4 \uC5C5\uCCB4 \uAC80\uC0C9'),
+                                _tr(
+                                  'Search buyer company',
+                                  '\uC18C\uB9E4 \uC5C5\uCCB4 \uAC80\uC0C9',
+                                ),
                               );
                               if (!dialogContext.mounted) return;
                               if (picked != null) {
                                 setState(() {
                                   selectedBuyerCompany = picked;
-                                  buyerCompanyCtrl.text =
-                                      picked['name'] ?? '';
-                                  buyerPhoneCtrl.text =
-                                      picked['phone'] ?? '';
+                                  buyerCompanyCtrl.text = picked['name'] ?? '';
+                                  buyerPhoneCtrl.text = picked['phone'] ?? '';
                                   buyerAddressCtrl.text =
                                       picked['address'] ?? '';
                                   buyerSegmentCtrl.text =
@@ -368,14 +379,16 @@ class _SignInPageState extends State<SignInPage> {
                               final picked = await _pickCompany(
                                 context,
                                 sellerCompanies,
-                                _tr('Search seller company', '\uB3C4\uB9E4 \uC5C5\uCCB4 \uAC80\uC0C9'),
+                                _tr(
+                                  'Search seller company',
+                                  '\uB3C4\uB9E4 \uC5C5\uCCB4 \uAC80\uC0C9',
+                                ),
                               );
                               if (!dialogContext.mounted) return;
                               if (picked != null) {
                                 setState(() {
                                   selectedTargetSeller = picked;
-                                  sellerSearchCtrl.text =
-                                      picked['name'] ?? '';
+                                  sellerSearchCtrl.text = picked['name'] ?? '';
                                 });
                               }
                             },
@@ -385,13 +398,18 @@ class _SignInPageState extends State<SignInPage> {
                             onCheckEmail: () async {
                               final email = buyerEmailCtrl.text.trim();
                               if (email.isEmpty) {
-                                _showSnack(dialogContext, _tr('Enter email', '???? ?????'));
+                                _showSnack(
+                                  dialogContext,
+                                  _tr('Enter email', '???? ?????'),
+                                );
                                 return;
                               }
                               setState(() {
                                 buyerEmailChecked = false;
                               });
-                              final available = await _checkEmailAvailable(email);
+                              final available = await _checkEmailAvailable(
+                                email,
+                              );
                               if (!dialogContext.mounted) return;
                               setState(() {
                                 buyerEmailChecked = true;
@@ -426,7 +444,14 @@ class _SignInPageState extends State<SignInPage> {
                         if (sellerFormKey.currentState?.validate() ?? false) {
                           if (!sellerEmailChecked || !sellerEmailAvailable) {
                             messenger?.showSnackBar(
-                              SnackBar(content: Text(_tr('Check email to enable submit', '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.'))),
+                              SnackBar(
+                                content: Text(
+                                  _tr(
+                                    'Check email to enable submit',
+                                    '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.',
+                                  ),
+                                ),
+                              ),
                             );
                             return;
                           }
@@ -447,14 +472,22 @@ class _SignInPageState extends State<SignInPage> {
                         if (buyerFormKey.currentState?.validate() ?? false) {
                           if (!buyerEmailChecked || !buyerEmailAvailable) {
                             messenger?.showSnackBar(
-                              SnackBar(content: Text(_tr('Check email to enable submit', '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.'))),
+                              SnackBar(
+                                content: Text(
+                                  _tr(
+                                    'Check email to enable submit',
+                                    '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.',
+                                  ),
+                                ),
+                              ),
                             );
                             return;
                           }
                           final sellerNameToSend = buyerCompanyIsNew
                               ? sellerSearchCtrl.text.trim()
                               : sellerForExisting;
-                          if (buyerCompanyIsNew || sellerNameToSend.isNotEmpty) {
+                          if (buyerCompanyIsNew ||
+                              sellerNameToSend.isNotEmpty) {
                             ok = await auth.registerBuyer(
                               sellerCompanyName: sellerNameToSend,
                               buyerCompanyName: buyerCompanyCtrl.text.trim(),
@@ -495,10 +528,7 @@ class _SignInPageState extends State<SignInPage> {
                                     'Submitted (may require approval)',
                                     '제출 완료 (승인 대기일 수 있음)',
                                   )
-                                : _tr(
-                                    'Registration failed',
-                                    '등록에 실패했습니다',
-                                  ),
+                                : _tr('Registration failed', '등록에 실패했습니다'),
                           ),
                         ),
                       );
@@ -525,7 +555,12 @@ class _SignInPageState extends State<SignInPage> {
 
   Future<List<Map<String, String>>> _loadCompanies() async {
     try {
-      final resp = await ApiClient.get('/auth/tenants-public') as List<dynamic>;
+      final resp =
+          await ApiClient.get(
+                '/auth/tenants-public',
+                query: {'includeRetail': 'true'},
+              )
+              as List<dynamic>;
       final seen = <String>{};
       final list = <Map<String, String>>[];
       for (final raw in resp) {
@@ -553,14 +588,15 @@ class _SignInPageState extends State<SignInPage> {
 
   Future<bool> _checkEmailAvailable(String email) async {
     try {
-      final resp = await ApiClient.get('/auth/check-email', query: {'email': email}) as Map<String, dynamic>;
+      final resp =
+          await ApiClient.get('/auth/check-email', query: {'email': email})
+              as Map<String, dynamic>;
       final exists = resp['exists'] as bool? ?? false;
       return !exists;
     } catch (_) {
       return false;
     }
   }
-
 
   Widget _buildSellerForm({
     required GlobalKey<FormState> formKey,
@@ -597,7 +633,7 @@ class _SignInPageState extends State<SignInPage> {
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: const Text('??'),
+                  label: Text(_tr('Existing company', '\uAE30\uC874')),
                   selected: !isNew,
                   onSelected: (_) => onToggleNew(false),
                 ),
@@ -614,8 +650,12 @@ class _SignInPageState extends State<SignInPage> {
                       filled: existingLocked,
                     ),
                     readOnly: existingLocked,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? _tr('Enter company name', '\uD68C\uC0AC\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694') : null,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? _tr(
+                            'Enter company name',
+                            '\uD68C\uC0AC\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694',
+                          )
+                        : null,
                   ),
                 ),
                 if (!isNew) ...[
@@ -635,8 +675,12 @@ class _SignInPageState extends State<SignInPage> {
                 labelText: _tr('Company phone', '\uD68C\uC0AC \uC804\uD654'),
                 filled: existingLocked,
               ),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? _tr('Enter phone', '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694') : null,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr(
+                      'Enter phone',
+                      '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -646,22 +690,38 @@ class _SignInPageState extends State<SignInPage> {
                 labelText: _tr('Company address', '\uC8FC\uC18C'),
                 filled: existingLocked,
               ),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? _tr('Enter address', '\uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694') : null,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr(
+                      'Enter address',
+                      '\uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: nameCtrl,
-              decoration: InputDecoration(labelText: _tr('Your name', '\uC774\uB984')),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? _tr('Enter your name', '\uC774\uB984\uC744 \uC785\uB825\uD558\uC138\uC694') : null,
+              decoration: InputDecoration(
+                labelText: _tr('Your name', '\uC774\uB984'),
+              ),
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr(
+                      'Enter your name',
+                      '\uC774\uB984\uC744 \uC785\uB825\uD558\uC138\uC694',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: userPhoneCtrl,
-              decoration: InputDecoration(labelText: _tr('Your phone', '\uC804\uD654\uBC88\uD638')),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? _tr('Enter your phone', '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694') : null,
+              decoration: InputDecoration(
+                labelText: _tr('Your phone', '\uC804\uD654\uBC88\uD638'),
+              ),
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr(
+                      'Enter your phone',
+                      '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -669,11 +729,17 @@ class _SignInPageState extends State<SignInPage> {
                 Expanded(
                   child: TextFormField(
                     controller: emailCtrl,
-                    decoration: InputDecoration(labelText: _tr('Email', '\uC774\uBA54\uC77C')),
+                    decoration: InputDecoration(
+                      labelText: _tr('Email', '\uC774\uBA54\uC77C'),
+                    ),
                     keyboardType: TextInputType.emailAddress,
                     onChanged: (_) => onEmailChanged(),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? _tr('Enter email', '\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD558\uC138\uC694') : null,
+                    validator: (v) => v == null || v.isEmpty
+                        ? _tr(
+                            'Enter email',
+                            '\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD558\uC138\uC694',
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -687,25 +753,47 @@ class _SignInPageState extends State<SignInPage> {
             Text(
               emailChecked
                   ? (emailAvailable
-                      ? _tr('Email is available', '\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.')
-                      : _tr('Email already exists', '\uC774\uBBF8 \uB4F1\uB85D\uB41C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.'))
-                  : _tr('Check email to enable submit', '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.'),
+                        ? _tr(
+                            'Email is available',
+                            '\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.',
+                          )
+                        : _tr(
+                            'Email already exists',
+                            '\uC774\uBBF8 \uB4F1\uB85D\uB41C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.',
+                          ))
+                  : _tr(
+                      'Check email to enable submit',
+                      '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.',
+                    ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: pwCtrl,
-              decoration: InputDecoration(labelText: _tr('Password', '\uBE44\uBC00\uBC88\uD638')),
+              decoration: InputDecoration(
+                labelText: _tr('Password', '\uBE44\uBC00\uBC88\uD638'),
+              ),
               obscureText: true,
-              validator: (v) =>
-                  v == null || v.length < 6 ? _tr('Min 6 chars', '6\uC790 \uC774\uC0C1 \uC785\uB825') : null,
+              validator: (v) => v == null || v.length < 6
+                  ? _tr('Min 6 chars', '6\uC790 \uC774\uC0C1 \uC785\uB825')
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: pwConfirmCtrl,
-              decoration: InputDecoration(labelText: _tr('Confirm password', '\uBE44\uBC00\uBC88\uD638 \uD655\uC778')),
+              decoration: InputDecoration(
+                labelText: _tr(
+                  'Confirm password',
+                  '\uBE44\uBC00\uBC88\uD638 \uD655\uC778',
+                ),
+              ),
               obscureText: true,
-              validator: (v) => v != pwCtrl.text ? _tr('Passwords do not match', '\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4') : null,
+              validator: (v) => v != pwCtrl.text
+                  ? _tr(
+                      'Passwords do not match',
+                      '\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4',
+                    )
+                  : null,
             ),
             const SizedBox(height: 8),
             Text(
@@ -726,7 +814,7 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-Widget _buildBuyerForm({
+  Widget _buildBuyerForm({
     required GlobalKey<FormState> formKey,
     required bool isNewBuyerCompany,
     required ValueChanged<bool> onToggleBuyerNew,
@@ -767,7 +855,7 @@ Widget _buildBuyerForm({
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: const Text('??'),
+                  label: Text(_tr('Existing company', '\uAE30\uC874')),
                   selected: !isNewBuyerCompany,
                   onSelected: (_) => onToggleBuyerNew(false),
                 ),
@@ -780,12 +868,19 @@ Widget _buildBuyerForm({
                   child: TextFormField(
                     controller: buyerCompanyCtrl,
                     decoration: InputDecoration(
-                      labelText: _tr('Buyer company', '\uC18C\uB9E4 \uC5C5\uCCB4'),
+                      labelText: _tr(
+                        'Buyer company',
+                        '\uC18C\uB9E4 \uC5C5\uCCB4',
+                      ),
                       filled: existingLocked,
                     ),
                     readOnly: existingLocked,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? _tr('Enter company', '\uC5C5\uCCB4\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694') : null,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? _tr(
+                            'Enter company',
+                            '\uC5C5\uCCB4\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694',
+                          )
+                        : null,
                   ),
                 ),
                 if (!isNewBuyerCompany) ...[
@@ -806,8 +901,12 @@ Widget _buildBuyerForm({
                 labelText: _tr('Buyer address', '\uC8FC\uC18C'),
                 filled: existingLocked,
               ),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? _tr('Enter address', '\uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694') : null,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr(
+                      'Enter address',
+                      '\uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -818,8 +917,12 @@ Widget _buildBuyerForm({
                 labelText: _tr('Buyer phone', '\uC5F0\uB77D\uCC98'),
                 filled: existingLocked,
               ),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? _tr('Enter phone', '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694') : null,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr(
+                      'Enter phone',
+                      '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -834,9 +937,15 @@ Widget _buildBuyerForm({
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerNameCtrl,
-              decoration: InputDecoration(labelText: _tr('Your name', '\uC774\uB984')),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? _tr('Enter your name', '\uC774\uB984\uC744 \uC785\uB825\uD558\uC138\uC694') : null,
+              decoration: InputDecoration(
+                labelText: _tr('Your name', '\uC774\uB984'),
+              ),
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr(
+                      'Enter your name',
+                      '\uC774\uB984\uC744 \uC785\uB825\uD558\uC138\uC694',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -844,11 +953,17 @@ Widget _buildBuyerForm({
                 Expanded(
                   child: TextFormField(
                     controller: buyerEmailCtrl,
-                    decoration: InputDecoration(labelText: _tr('Email', '\uC774\uBA54\uC77C')),
+                    decoration: InputDecoration(
+                      labelText: _tr('Email', '\uC774\uBA54\uC77C'),
+                    ),
                     keyboardType: TextInputType.emailAddress,
                     onChanged: (_) => onEmailChanged(),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? _tr('Enter email', '\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD558\uC138\uC694') : null,
+                    validator: (v) => v == null || v.isEmpty
+                        ? _tr(
+                            'Enter email',
+                            '\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD558\uC138\uC694',
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -862,25 +977,53 @@ Widget _buildBuyerForm({
             Text(
               emailChecked
                   ? (emailAvailable
-                      ? _tr('Email is available', '\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.')
-                      : _tr('Email already exists', '\uC774\uBBF8 \uB4F1\uB85D\uB41C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.'))
-                  : _tr('Check email to enable submit', '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.'),
+                        ? _tr(
+                            'Email is available',
+                            '\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.',
+                          )
+                        : _tr(
+                            'Email already exists',
+                            '\uC774\uBBF8 \uB4F1\uB85D\uB41C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.',
+                          ))
+                  : _tr(
+                      'Check email to enable submit',
+                      '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.',
+                    ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerPwCtrl,
-              decoration: InputDecoration(labelText: _tr('Password (login)', '\uB85C\uADF8\uC778 \uBE44\uBC00\uBC88\uD638')),
+              decoration: InputDecoration(
+                labelText: _tr(
+                  'Password (login)',
+                  '\uB85C\uADF8\uC778 \uBE44\uBC00\uBC88\uD638',
+                ),
+              ),
               obscureText: true,
-              validator: (v) =>
-                  v == null || v.isEmpty ? _tr('Enter password', '\uBE44\uBC00\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694') : null,
+              validator: (v) => v == null || v.isEmpty
+                  ? _tr(
+                      'Enter password',
+                      '\uBE44\uBC00\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerPwConfirmCtrl,
-              decoration: InputDecoration(labelText: _tr('Confirm password', '\uBE44\uBC00\uBC88\uD638 \uD655\uC778')),
+              decoration: InputDecoration(
+                labelText: _tr(
+                  'Confirm password',
+                  '\uBE44\uBC00\uBC88\uD638 \uD655\uC778',
+                ),
+              ),
               obscureText: true,
-              validator: (v) => v != buyerPwCtrl.text ? _tr('Passwords do not match', '\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4') : null,
+              validator: (v) => v != buyerPwCtrl.text
+                  ? _tr(
+                      'Passwords do not match',
+                      '\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4',
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             if (sellerSelectionVisible) ...[
@@ -891,10 +1034,16 @@ Widget _buildBuyerForm({
                       controller: sellerSearchCtrl,
                       readOnly: true,
                       decoration: InputDecoration(
-                        labelText: _tr('Target seller name', '\uB3C4\uB9E4 \uC5C5\uCCB4\uBA85'),
+                        labelText: _tr(
+                          'Target seller name',
+                          '\uB3C4\uB9E4 \uC5C5\uCCB4\uBA85',
+                        ),
                       ),
                       validator: (v) => v == null || v.trim().isEmpty
-                          ? _tr('Select seller company', '\uB3C4\uB9E4 \uC5C5\uCCB4\uB97C \uC120\uD0DD\uD558\uC138\uC694')
+                          ? _tr(
+                              'Select seller company',
+                              '\uB3C4\uB9E4 \uC5C5\uCCB4\uB97C \uC120\uD0DD\uD558\uC138\uC694',
+                            )
                           : null,
                     ),
                   ),
@@ -917,7 +1066,10 @@ Widget _buildBuyerForm({
               TextFormField(
                 controller: attachmentCtrl,
                 decoration: InputDecoration(
-                  labelText: _tr('Attachment URL (optional)', '\uCCA8\uBD80\uD30C\uC77C URL (\uC120\uD0DD)'),
+                  labelText: _tr(
+                    'Attachment URL (optional)',
+                    '\uCCA8\uBD80\uD30C\uC77C URL (\uC120\uD0DD)',
+                  ),
                   helperText: _tr(
                     'Attach your business license if the seller requires it.',
                     '도매업체가 요청한 경우 사업자등록증 등을 첨부하세요.',
@@ -949,7 +1101,9 @@ Widget _buildBuyerForm({
         return StatefulBuilder(
           builder: (context, setState) {
             final list = companies
-                .where((c) => c['name']!.toLowerCase().contains(query.toLowerCase()))
+                .where(
+                  (c) => c['name']!.toLowerCase().contains(query.toLowerCase()),
+                )
                 .toList();
             return AlertDialog(
               title: Text(title),
@@ -959,7 +1113,9 @@ Widget _buildBuyerForm({
                 child: Column(
                   children: [
                     TextField(
-                      decoration: InputDecoration(labelText: _tr('Search by name', '회사명 검색')),
+                      decoration: InputDecoration(
+                        labelText: _tr('Search by name', '회사명 검색'),
+                      ),
                       onChanged: (v) => setState(() => query = v),
                     ),
                     const SizedBox(height: 12),
@@ -994,12 +1150,13 @@ Widget _buildBuyerForm({
     );
   }
 }
-  void _showSnack(BuildContext context, String message) {
-    final scheme = Theme.of(context).colorScheme;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: scheme.inverseSurface,
-        content: Text(message, style: TextStyle(color: scheme.onInverseSurface)),
-      ),
-    );
-  }
+
+void _showSnack(BuildContext context, String message) {
+  final scheme = Theme.of(context).colorScheme;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      backgroundColor: scheme.inverseSurface,
+      content: Text(message, style: TextStyle(color: scheme.onInverseSurface)),
+    ),
+  );
+}

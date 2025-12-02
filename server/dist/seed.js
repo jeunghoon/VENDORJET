@@ -43,6 +43,11 @@ db.exec(`
     phone TEXT,
     role TEXT,
     attachment_url TEXT,
+    buyer_tenant_id TEXT,
+    requested_segment TEXT,
+    selected_segment TEXT,
+    selected_tier TEXT,
+    user_id TEXT,
     status TEXT,
     created_at TEXT
   );
@@ -79,11 +84,16 @@ db.exec(`
 ensureColumn('users', 'user_type', 'TEXT');
 ensureColumn('users', 'last_login_at', 'TEXT');
 ensureColumn('users', 'created_at', 'TEXT');
+ensureColumn('users', 'updated_at', 'TEXT');
 ensureColumn('orders', 'created_source', 'TEXT');
 ensureColumn('orders', 'created_by', 'TEXT');
 ensureColumn('orders', 'updated_by', 'TEXT');
 ensureColumn('orders', 'status_updated_by', 'TEXT');
 ensureColumn('orders', 'status_updated_at', 'TEXT');
+ensureColumn('buyer_requests', 'buyer_tenant_id', 'TEXT');
+ensureColumn('buyer_requests', 'requested_segment', 'TEXT');
+ensureColumn('buyer_requests', 'selected_segment', 'TEXT');
+ensureColumn('buyer_requests', 'selected_tier', 'TEXT');
 function resetTables() {
     db.exec(`
     DELETE FROM buyer_requests;

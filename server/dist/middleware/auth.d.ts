@@ -4,6 +4,7 @@ export type AuthUser = {
     tenantId: string;
     role: string;
     email?: string;
+    userType?: string;
 };
 declare module 'express-serve-static-core' {
     interface Request {
