@@ -23,6 +23,7 @@ type OrderRow = {
   desired_delivery_date?: string | null;
   status_updated_at?: string | null;
   status_updated_by?: string | null;
+  line_count?: number | null;
 };
 
 type OrderLineRow = {
@@ -54,33 +55,43 @@ router.get('/', (req, res) => {
   const tenantId = req.user?.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'tenantId missing' });
 
-  let base = 'SELECT * FROM orders WHERE tenant_id = ?';
+  let base = `
+    SELECT
+      o.*,
+      (
+        SELECT COUNT(*)
+        FROM order_lines l
+        WHERE l.order_id = o.id
+      ) AS line_count
+    FROM orders o
+    WHERE o.tenant_id = ?`;
   const params: any[] = [tenantId];
   if ((req.user as AuthUser | undefined)?.userType === 'retail' && req.user?.userId) {
-    base += ' AND created_by = ?';
+    base += ' AND o.created_by = ?';
     params.push(req.user.userId);
   }
   if (status) {
-    base += ' AND status = ?';
+    base += ' AND o.status = ?';
     params.push(status);
   }
   if (createdSource) {
-    base += ' AND created_source = ?';
+    base += ' AND o.created_source = ?';
     params.push(createdSource);
   }
   if (openOnly === 'true') {
-    base += " AND status IN ('pending','confirmed','shipped')";
+    base += " AND o.status IN ('pending','confirmed','shipped')";
   }
   if (date) {
-    base += ' AND substr(created_at,1,10) = ?';
+    base += ' AND substr(o.created_at,1,10) = ?';
     params.push(date);
   }
   if (q) {
     const like = `%${q.toLowerCase()}%`;
-    base += ' AND (LOWER(code) LIKE ? OR LOWER(buyer_name) LIKE ? OR LOWER(buyer_contact) LIKE ?)';
+    base +=
+      ' AND (LOWER(o.code) LIKE ? OR LOWER(o.buyer_name) LIKE ? OR LOWER(o.buyer_contact) LIKE ?)';
     params.push(like, like, like);
   }
-  base += ' ORDER BY created_at DESC';
+  base += ' ORDER BY o.created_at DESC';
 
   const rows = db.prepare(base).all(params as any);
   res.json(mapRows(rows as any[]));
@@ -299,6 +310,7 @@ function loadOrderWithLines(id: string, tenantId: string) {
   const order = mapRow<OrderRow>(orderRow) as any;
   order.lines = lines;
   order.events = events;
+  order.line_count = lines.length;
   return order;
 }
 
