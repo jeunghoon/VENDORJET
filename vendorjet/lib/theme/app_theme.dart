@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 // - 배경/표면: 흰색 기반
 class AppTheme {
   // 파스텔톤 주황/파랑 팔레트
-  static const Color pastelOrange = Color(0xFFFFA26B); // 부드러운 주황
+  static const Color pastelOrange = Color(0xFFF08A4A); // 부드러운 주황을 조금 낮춘 톤
   static const Color pastelBlue = Color(0xFF5AA9E6); // 파스텔 하늘색
   static const Color lightBackground = Colors.white; // 흰색 배경
 
@@ -26,7 +26,7 @@ class AppTheme {
   // 다크 테마 색 구성표 (선택): 대비를 조금 낮춘 파스텔 톤 유지
   static final ColorScheme darkScheme = ColorScheme(
     brightness: Brightness.dark,
-    primary: const Color(0xFFFF9B7E),
+    primary: const Color(0xFFFF8F63),
     onPrimary: const Color(0xFF281A14),
     secondary: const Color(0xFF7EC3F0),
     onSecondary: const Color(0xFF0D2433),

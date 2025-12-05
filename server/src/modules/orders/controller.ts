@@ -38,6 +38,42 @@ type OrderLineRow = {
 const router = Router();
 router.use(authMiddleware);
 
+function resolveBuyerTenantId(userId?: string | null) {
+  if (!userId) return null;
+  const row = db
+    .prepare(
+      `SELECT m.tenant_id AS tenant_id
+       FROM memberships m
+       WHERE m.user_id = ?
+         AND EXISTS (
+           SELECT 1
+           FROM memberships owners
+           INNER JOIN users ownerUsers ON ownerUsers.id = owners.user_id
+           WHERE owners.tenant_id = m.tenant_id
+             AND owners.role = 'owner'
+             AND COALESCE(ownerUsers.user_type, 'wholesale') = 'retail'
+         )
+       ORDER BY m.rowid DESC
+       LIMIT 1`
+    )
+    .get(userId) as { tenant_id?: string } | undefined;
+  return row?.tenant_id ?? null;
+}
+
+function resolveBuyerUserProfile(userId?: string | null) {
+  if (!userId) return { name: null, email: null };
+  const user = db
+    .prepare('SELECT name, email FROM users WHERE id = ? LIMIT 1')
+    .get(userId) as { name?: string; email?: string } | undefined;
+  if (!user) {
+    return { name: null, email: null };
+  }
+  const name = (user.name ?? '').toString().trim();
+  const email = (user.email ?? '').toString().trim();
+  const displayName = name.length > 0 ? name : email.length > 0 ? email : null;
+  return { name: displayName, email: email || null };
+}
+
 const selectOrderStmt = db.prepare('SELECT * FROM orders WHERE id = ? AND tenant_id = ?');
 const selectLinesStmt = db.prepare('SELECT * FROM order_lines WHERE order_id = ? ORDER BY id ASC');
 const selectEventsStmt = db.prepare(
@@ -67,8 +103,14 @@ router.get('/', (req, res) => {
     WHERE o.tenant_id = ?`;
   const params: any[] = [tenantId];
   if ((req.user as AuthUser | undefined)?.userType === 'retail' && req.user?.userId) {
-    base += ' AND o.created_by = ?';
-    params.push(req.user.userId);
+    const buyerTenantId = resolveBuyerTenantId(req.user.userId);
+    if (buyerTenantId) {
+      base += ' AND (o.buyer_tenant_id = ? OR (o.buyer_tenant_id IS NULL AND o.created_by = ?))';
+      params.push(buyerTenantId, req.user.userId);
+    } else {
+      base += ' AND o.created_by = ?';
+      params.push(req.user.userId);
+    }
   }
   if (status) {
     base += ' AND o.status = ?';
@@ -137,12 +179,16 @@ router.post('/', (req, res) => {
   }
   total = parseFloat(total.toFixed(2));
 
+  const buyerMetaEnabled = (req.user as AuthUser | undefined)?.userType === 'retail';
+  const buyerTenantId = buyerMetaEnabled ? resolveBuyerTenantId(actor) : null;
+  const buyerProfile = buyerMetaEnabled ? resolveBuyerUserProfile(actor) : { name: null, email: null };
+
   const insertOrder = db.prepare(
     `INSERT INTO orders (
       id, tenant_id, code, created_source, buyer_name, buyer_contact, buyer_note, status, total, item_count,
       created_at, created_by, updated_at, updated_by, update_note, status_updated_at, status_updated_by,
-      desired_delivery_date
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+      desired_delivery_date, buyer_tenant_id, buyer_user_id, buyer_user_name, buyer_user_email
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   );
   const insertLine = db.prepare(
     'INSERT INTO order_lines (order_id, product_id, product_name, quantity, unit_price) VALUES (?,?,?,?,?)'
@@ -167,7 +213,11 @@ router.post('/', (req, res) => {
       'Created via API',
       createdAt.toISOString(),
       actor,
-      desiredDeliveryDate ?? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString()
+      desiredDeliveryDate ?? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+      buyerTenantId,
+      buyerMetaEnabled ? actor : null,
+      buyerProfile.name,
+      buyerProfile.email
     );
     normalizedItems.forEach((line) => {
       insertLine.run(id, line.productId, line.productName, line.quantity, line.unitPrice);

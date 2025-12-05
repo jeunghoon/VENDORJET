@@ -93,10 +93,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           final lines = _buildLines(currentOrder);
           final statusLabel = _statusLabel(currentOrder.status, t);
           final localizations = MaterialLocalizations.of(context);
-          final owner = currentOrder.createdBy?.trim().isNotEmpty == true
-              ? currentOrder.createdBy!
+          final fallbackOwner = currentOrder.createdBy?.trim().isNotEmpty == true
+              ? currentOrder.createdBy!.trim()
               : t.orderBuyerUnknown;
           final channel = currentOrder.createdSource ?? 'manual';
+          final buyerStaffName = (currentOrder.buyerUserName ?? '')
+              .trim()
+              .isNotEmpty
+              ? currentOrder.buyerUserName!.trim()
+              : (currentOrder.createdBy ?? '').trim();
+          final buyerStaffEmail = currentOrder.buyerUserEmail?.trim() ?? '';
+          final buyerStaffLabel =
+              buyerStaffEmail.isNotEmpty ? '$buyerStaffName ($buyerStaffEmail)' : buyerStaffName;
+          final owner = buyerStaffLabel.isNotEmpty ? buyerStaffLabel : fallbackOwner;
 
           final sortedEvents = [...currentOrder.events]
             ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
@@ -110,33 +119,66 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '구매자 정보',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 8,
+                      Row(
                         children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.store_mall_directory_outlined, size: 18),
-                              const SizedBox(width: 6),
-                              Text('상호명 ${currentOrder.buyerName.isEmpty ? t.orderBuyerUnknown : currentOrder.buyerName}'),
-                            ],
+                          Expanded(
+                            flex: 7,
+                            child: Text(
+                              currentOrder.buyerName.isEmpty
+                                  ? t.orderBuyerUnknown
+                                  : currentOrder.buyerName,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
                           ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.contact_phone_outlined, size: 18),
-                              const SizedBox(width: 6),
-                              Text('전화번호 ${currentOrder.buyerContact.isEmpty ? t.orderBuyerUnknown : currentOrder.buyerContact}'),
-                            ],
+                          Expanded(
+                            flex: 3,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Chip(
+                                label: Text(
+                                  statusLabel,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      if (buyerStaffLabel.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person_outline, size: 18),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '주문자 $buyerStaffLabel',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (currentOrder.buyerNote != null && currentOrder.buyerNote!.trim().isNotEmpty)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.sticky_note_2_outlined, size: 18),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                currentOrder.buyerNote!.trim(),
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -178,10 +220,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                           _InfoChip(
                             label: t.orderItems,
                             value: '${currentOrder.itemCount}',
-                          ),
-                          _InfoChip(
-                            label: t.ordersStatusLabel,
-                            value: statusLabel,
                           ),
                         ],
                       ),

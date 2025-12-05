@@ -9,6 +9,8 @@ class Tenant {
   final String phone;
   final String address;
   final TenantType type;
+  final String representative;
+  final bool isPrimary;
 
   const Tenant({
     required this.id,
@@ -17,6 +19,8 @@ class Tenant {
     this.phone = '',
     this.address = '',
     this.type = TenantType.unknown,
+    this.representative = '',
+    this.isPrimary = false,
   });
 }
 

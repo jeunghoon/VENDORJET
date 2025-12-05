@@ -88,10 +88,19 @@ Order _orderFromJson(Map<String, dynamic> json) {
       .map((l) => _orderLineFromJson(l as Map<String, dynamic>))
       .toList();
   final itemCount = json['itemCount'] ?? json['item_count'] ?? _calcItemCount(lines);
+  final lineCountValue =
+      json['lineCount'] ?? json['line_count'];
+  final parsedLineCount = lineCountValue == null
+      ? (lines.isNotEmpty ? lines.length : 0)
+      : (lineCountValue is int
+          ? lineCountValue
+          : int.tryParse(lineCountValue.toString()) ??
+              (lines.isNotEmpty ? lines.length : 0));
   return Order(
     id: json['id'] as String? ?? '',
     code: json['code'] as String? ?? '',
     itemCount: itemCount is int ? itemCount : int.tryParse(itemCount.toString()) ?? 0,
+    lineCount: parsedLineCount,
     total: (json['total'] as num?)?.toDouble() ?? 0,
     createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
         DateTime.tryParse(json['created_at'] as String? ?? '') ??
@@ -100,6 +109,10 @@ Order _orderFromJson(Map<String, dynamic> json) {
     buyerName: json['buyerName'] as String? ?? json['buyer_name'] as String? ?? '',
     buyerContact: json['buyerContact'] as String? ?? json['buyer_contact'] as String? ?? '',
     buyerNote: json['buyerNote'] as String? ?? json['buyer_note'] as String?,
+    buyerTenantId: json['buyerTenantId'] as String? ?? json['buyer_tenant_id'] as String?,
+    buyerUserId: json['buyerUserId'] as String? ?? json['buyer_user_id'] as String?,
+    buyerUserName: json['buyerUserName'] as String? ?? json['buyer_user_name'] as String?,
+    buyerUserEmail: json['buyerUserEmail'] as String? ?? json['buyer_user_email'] as String?,
     createdSource: json['createdSource'] as String? ?? json['created_source'] as String?,
     updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? json['updated_at'] as String? ?? ''),
     createdBy: json['createdBy'] as String? ?? json['created_by'] as String?,

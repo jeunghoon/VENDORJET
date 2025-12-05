@@ -149,40 +149,43 @@ class _OrderEditSheetState extends State<OrderEditSheet> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 260),
-                            child: DropdownButtonFormField<OrderStatus>(
-                              initialValue: _status,
-                              isExpanded: true,
-                              items: [
-                                for (final status in statuses)
-                                  DropdownMenuItem(
-                                    value: status,
-                                    child: Text(_statusLabel(status, t)),
-                                  ),
-                              ],
-                              onChanged: (value) {
-                                if (value != null) setState(() => _status = value);
-                              },
-                              decoration: _outlinedInput(context, label: t.orderEditStatusLabel),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 7,
+                              child: TextFormField(
+                                readOnly: true,
+                                controller: TextEditingController(text: _buyerName),
+                                decoration: _outlinedInput(
+                                  context,
+                                  label: _label('storeName'),
+                                  suffix: const Icon(Icons.search),
+                                ),
+                                onTap: _pickCustomer,
+                                validator: (v) => (v ?? '').trim().isEmpty ? _label('storeName') : null,
+                              ),
                             ),
-                          ),
-                        ),
-                        const Divider(height: 20),
-                        Text(_label('buyerInfo'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          readOnly: true,
-                          controller: TextEditingController(text: _buyerName),
-                          decoration: _outlinedInput(
-                            context,
-                            label: _label('storeName'),
-                            suffix: const Icon(Icons.search),
-                          ),
-                          onTap: _pickCustomer,
-                          validator: (v) => (v ?? '').trim().isEmpty ? _label('storeName') : null,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 3,
+                              child: DropdownButtonFormField<OrderStatus>(
+                                initialValue: _status,
+                                isExpanded: true,
+                                items: [
+                                  for (final status in statuses)
+                                    DropdownMenuItem(
+                                      value: status,
+                                      child: Text(_statusLabel(status, t)),
+                                    ),
+                                ],
+                                onChanged: (value) {
+                                  if (value != null) setState(() => _status = value);
+                                },
+                                decoration: _outlinedInput(context, label: t.orderEditStatusLabel),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Align(
@@ -192,6 +195,48 @@ class _OrderEditSheetState extends State<OrderEditSheet> {
                             style: Theme.of(context).textTheme.labelSmall,
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        Card(
+                          elevation: 0,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.person_outline, size: 18),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        widget.buyerContact.trim().isEmpty ? _label('unknown') : widget.buyerContact.trim(),
+                                        style: Theme.of(context).textTheme.bodyMedium,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (widget.buyerNote.trim().isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.sticky_note_2_outlined, size: 18),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          widget.buyerNote.trim(),
+                                          style: Theme.of(context).textTheme.bodyMedium,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         const SizedBox(height: 16),
                         _LineEditor(
                           lines: _lines,

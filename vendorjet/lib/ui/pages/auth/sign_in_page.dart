@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
 import 'package:vendorjet/services/api/api_client.dart';
-import 'package:vendorjet/ui/widgets/app_snackbar.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 
 class SignInPage extends StatefulWidget {
   final Locale? currentLocale;
@@ -139,9 +139,7 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                         TextButton(
                           onPressed: _showRegistrationDialog,
-                          child: Text(
-                            _tr('Sign up', '\uD68C\uC6D0\uAC00\uC785'),
-                          ),
+                          child: Text(_tr('Sign up', '회원가입')),
                         ),
                       ],
                     ),
@@ -168,10 +166,7 @@ class _SignInPageState extends State<SignInPage> {
     if (!mounted) return;
     setState(() => _signingIn = false);
     if (!ok) {
-      AppSnackbar.show(
-        context,
-        AppLocalizations.of(context)!.invalidCredentials,
-      );
+      _showSnack(context, AppLocalizations.of(context)!.invalidCredentials);
     }
   }
 
@@ -179,12 +174,12 @@ class _SignInPageState extends State<SignInPage> {
     final t = AppLocalizations.of(context)!;
     final email = _emailCtrl.text.trim();
     if (email.isEmpty) {
-      AppSnackbar.show(context, t.email);
+      _showSnack(context, t.email);
       return;
     }
     await context.read<AuthController>().requestPasswordReset(email);
     if (!mounted) return;
-    AppSnackbar.show(context, t.passwordResetSent);
+    _showSnack(context, t.passwordResetSent);
   }
 
   Future<void> _showRegistrationDialog() async {
@@ -241,7 +236,7 @@ class _SignInPageState extends State<SignInPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(_tr('Sign up', '\uD68C\uC6D0\uAC00\uC785')),
+              title: Text(_tr('Sign up', '회원가입')),
               content: SizedBox(
                 width: 560,
                 height: dialogHeight,
@@ -252,15 +247,13 @@ class _SignInPageState extends State<SignInPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ChoiceChip(
-                          label: Text(
-                            _tr('Seller', '\uB3C4\uB9E4\uC5C5\uCCB4'),
-                          ),
+                          label: Text(_tr('Seller', '도매')),
                           selected: tabIndex == 0,
                           onSelected: (_) => setState(() => tabIndex = 0),
                         ),
                         const SizedBox(width: 8),
                         ChoiceChip(
-                          label: Text(_tr('Buyer', '\uC18C\uB9E4')),
+                          label: Text(_tr('Buyer', '소매')),
                           selected: tabIndex == 1,
                           onSelected: (_) => setState(() => tabIndex = 1),
                         ),
@@ -288,10 +281,7 @@ class _SignInPageState extends State<SignInPage> {
                               final picked = await _pickCompany(
                                 context,
                                 sellerCompanies,
-                                _tr(
-                                  'Search company',
-                                  '\uD68C\uC0AC\uBA85 \uAC80\uC0C9',
-                                ),
+                                _tr('Search company', '회사명 검색'),
                               );
                               if (!dialogContext.mounted) return;
                               if (picked != null) {
@@ -311,7 +301,7 @@ class _SignInPageState extends State<SignInPage> {
                               if (email.isEmpty) {
                                 _showSnack(
                                   dialogContext,
-                                  _tr('Enter email', '???? ?????'),
+                                  _tr('Enter email', '이메일을 입력하세요.'),
                                 );
                                 return;
                               }
@@ -355,10 +345,7 @@ class _SignInPageState extends State<SignInPage> {
                               final picked = await _pickCompany(
                                 context,
                                 buyerCompanies,
-                                _tr(
-                                  'Search buyer company',
-                                  '\uC18C\uB9E4 \uC5C5\uCCB4 \uAC80\uC0C9',
-                                ),
+                                _tr('Search buyer company', '소매 업체 검색'),
                               );
                               if (!dialogContext.mounted) return;
                               if (picked != null) {
@@ -379,10 +366,7 @@ class _SignInPageState extends State<SignInPage> {
                               final picked = await _pickCompany(
                                 context,
                                 sellerCompanies,
-                                _tr(
-                                  'Search seller company',
-                                  '\uB3C4\uB9E4 \uC5C5\uCCB4 \uAC80\uC0C9',
-                                ),
+                                _tr('Search seller company', '도매 업체 검색'),
                               );
                               if (!dialogContext.mounted) return;
                               if (picked != null) {
@@ -400,7 +384,7 @@ class _SignInPageState extends State<SignInPage> {
                               if (email.isEmpty) {
                                 _showSnack(
                                   dialogContext,
-                                  _tr('Enter email', '???? ?????'),
+                                  _tr('Enter email', '이메일을 입력하세요.'),
                                 );
                                 return;
                               }
@@ -432,25 +416,21 @@ class _SignInPageState extends State<SignInPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(_tr('Cancel', '\uCDE8\uC18C')),
+                  child: Text(_tr('Cancel', '취소')),
                 ),
                 FilledButton(
                   onPressed: () async {
-                    final messenger = ScaffoldMessenger.maybeOf(dialogContext);
                     final navigator = Navigator.of(dialogContext);
                     bool ok = false;
                     try {
                       if (tabIndex == 0) {
                         if (sellerFormKey.currentState?.validate() ?? false) {
                           if (!sellerEmailChecked || !sellerEmailAvailable) {
-                            messenger?.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _tr(
-                                    'Check email to enable submit',
-                                    '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.',
-                                  ),
-                                ),
+                            _showSnack(
+                              dialogContext,
+                              _tr(
+                                'Check email to enable submit',
+                                '중복 확인을 완료하세요.',
                               ),
                             );
                             return;
@@ -471,14 +451,11 @@ class _SignInPageState extends State<SignInPage> {
                             selectedBuyerCompany['sellerName'] ?? '';
                         if (buyerFormKey.currentState?.validate() ?? false) {
                           if (!buyerEmailChecked || !buyerEmailAvailable) {
-                            messenger?.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _tr(
-                                    'Check email to enable submit',
-                                    '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.',
-                                  ),
-                                ),
+                            _showSnack(
+                              dialogContext,
+                              _tr(
+                                'Check email to enable submit',
+                                '중복 확인을 완료하세요.',
                               ),
                             );
                             return;
@@ -486,51 +463,45 @@ class _SignInPageState extends State<SignInPage> {
                           final sellerNameToSend = buyerCompanyIsNew
                               ? sellerSearchCtrl.text.trim()
                               : sellerForExisting;
-                          if (buyerCompanyIsNew ||
-                              sellerNameToSend.isNotEmpty) {
-                            ok = await auth.registerBuyer(
-                              sellerCompanyName: sellerNameToSend,
-                              buyerCompanyName: buyerCompanyCtrl.text.trim(),
-                              buyerAddress: buyerAddressCtrl.text.trim(),
-                              buyerSegment: buyerSegmentCtrl.text.trim(),
-                              name: buyerNameCtrl.text.trim(),
-                              phone: buyerPhoneCtrl.text.trim(),
-                              email: buyerEmailCtrl.text.trim(),
-                              password: buyerPwCtrl.text,
-                              attachmentUrl: buyerAttachmentCtrl.text.trim(),
-                              role: buyerCompanyIsNew ? 'owner' : 'staff',
-                              isNewBuyerCompany: buyerCompanyIsNew,
-                            );
-                          } else {
-                            messenger?.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _tr(
-                                    'No linked wholesaler for this company. Please contact admin.',
-                                    '선택한 회사에 연결된 도매 업체 정보가 없습니다. 관리자에게 문의해 주세요.',
-                                  ),
-                                ),
+                          if (buyerCompanyIsNew &&
+                              sellerNameToSend.isEmpty) {
+                            _showSnack(
+                              dialogContext,
+                              _tr(
+                                'Select a wholesaler for new buyer company.',
+                                '신규 소매 업체를 등록하려면 연결할 도매 업체를 선택하세요.',
                               ),
                             );
+                            return;
                           }
+                          ok = await auth.registerBuyer(
+                            sellerCompanyName: sellerNameToSend,
+                            buyerCompanyName: buyerCompanyCtrl.text.trim(),
+                            buyerAddress: buyerAddressCtrl.text.trim(),
+                            buyerSegment: buyerSegmentCtrl.text.trim(),
+                            name: buyerNameCtrl.text.trim(),
+                            phone: buyerPhoneCtrl.text.trim(),
+                            email: buyerEmailCtrl.text.trim(),
+                            password: buyerPwCtrl.text,
+                            attachmentUrl: buyerAttachmentCtrl.text.trim(),
+                            role: buyerCompanyIsNew ? 'owner' : 'staff',
+                            isNewBuyerCompany: buyerCompanyIsNew,
+                          );
                         }
                       }
                     } catch (_) {
                       ok = false;
                     }
-                    if (!mounted) return;
+                    if (!mounted || !dialogContext.mounted) return;
                     try {
-                      messenger?.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            ok
-                                ? _tr(
-                                    'Submitted (may require approval)',
-                                    '제출 완료 (승인 대기일 수 있음)',
-                                  )
-                                : _tr('Registration failed', '등록에 실패했습니다'),
-                          ),
-                        ),
+                      _showSnack(
+                        dialogContext,
+                        ok
+                            ? _tr(
+                                'Submitted (may require approval)',
+                                '제출 완료 (승인 절차가 필요할 수 있음)',
+                              )
+                            : _tr('Registration failed', '등록에 실패했습니다'),
                       );
                       if (ok) {
                         _emailCtrl.text = tabIndex == 0
@@ -543,7 +514,7 @@ class _SignInPageState extends State<SignInPage> {
                       // ignore messenger errors
                     }
                   },
-                  child: Text(_tr('Submit', '\uC81C\uCD9C')),
+                  child: Text(_tr('Submit', '제출')),
                 ),
               ],
             );
@@ -617,7 +588,11 @@ class _SignInPageState extends State<SignInPage> {
     required VoidCallback onCheckEmail,
     required VoidCallback onEmailChanged,
   }) {
-    final existingLocked = !isNew && selectedCompany.isNotEmpty;
+    final isExistingMode = !isNew;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bodySmall = theme.textTheme.bodySmall;
+    final neutralColor = bodySmall?.color ?? colorScheme.onSurfaceVariant;
     return SingleChildScrollView(
       child: Form(
         key: formKey,
@@ -633,7 +608,7 @@ class _SignInPageState extends State<SignInPage> {
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: Text(_tr('Existing company', '\uAE30\uC874')),
+                  label: Text(_tr('Existing company', '기존')),
                   selected: !isNew,
                   onSelected: (_) => onToggleNew(false),
                 ),
@@ -645,16 +620,24 @@ class _SignInPageState extends State<SignInPage> {
                 Expanded(
                   child: TextFormField(
                     controller: companyCtrl,
-                    decoration: InputDecoration(
-                      labelText: _tr('Company name', '\uD68C\uC0AC\uBA85'),
-                      filled: existingLocked,
+                    decoration: _readOnlyInputDecoration(
+                      label: _tr('Company name', '업체명'),
+                      readOnly: isExistingMode,
+                      showFill: false,
+                      helperText: isExistingMode
+                          ? _tr(
+                              'Use search to select an existing company.',
+                              '기존 업체는 검색 버튼으로 선택하세요.',
+                            )
+                          : null,
                     ),
-                    readOnly: existingLocked,
+                    style: _readOnlyTextStyle(
+                      isExistingMode,
+                      applyStyle: false,
+                    ),
+                    readOnly: isExistingMode,
                     validator: (v) => v == null || v.trim().isEmpty
-                        ? _tr(
-                            'Enter company name',
-                            '\uD68C\uC0AC\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694',
-                          )
+                        ? _tr('Enter company name', '업체명을 입력하세요')
                         : null,
                   ),
                 ),
@@ -662,65 +645,72 @@ class _SignInPageState extends State<SignInPage> {
                   const SizedBox(width: 8),
                   OutlinedButton(
                     onPressed: onSearchCompany,
-                    child: Text(_tr('Search', '\uAC80\uC0C9')),
+                    child: Text(_tr('Search', '검색')),
                   ),
                 ],
               ],
             ),
+            if (!isExistingMode) ...[
+              const SizedBox(height: 6),
+              Text(
+                _tr(
+                  'New company: you will be registered as owner.',
+                  '신규 회사: 신청자가 대표(Owner)로 등록됩니다.',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ] else ...[
+              const SizedBox(height: 4),
+              Text(
+                _tr(
+                  'Existing company: access after owner/manager approval.',
+                  '기존 회사: 대표/관리자 승인 후 이용 가능합니다.',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 12),
             TextFormField(
               controller: phoneCtrl,
-              readOnly: existingLocked,
-              decoration: InputDecoration(
-                labelText: _tr('Company phone', '\uD68C\uC0AC \uC804\uD654'),
-                filled: existingLocked,
+              enabled: !isExistingMode,
+              readOnly: isExistingMode,
+              style: _readOnlyTextStyle(isExistingMode),
+              decoration: _readOnlyInputDecoration(
+                label: _tr('Company phone', '대표번호'),
+                readOnly: isExistingMode,
               ),
               validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr(
-                      'Enter phone',
-                      '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694',
-                    )
+                  ? _tr('Enter phone', '전화번호를 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: addressCtrl,
-              readOnly: existingLocked,
-              decoration: InputDecoration(
-                labelText: _tr('Company address', '\uC8FC\uC18C'),
-                filled: existingLocked,
+              enabled: !isExistingMode,
+              readOnly: isExistingMode,
+              style: _readOnlyTextStyle(isExistingMode),
+              decoration: _readOnlyInputDecoration(
+                label: _tr('Company address', '주소'),
+                readOnly: isExistingMode,
               ),
               validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr(
-                      'Enter address',
-                      '\uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694',
-                    )
+                  ? _tr('Enter address', '주소를 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: nameCtrl,
-              decoration: InputDecoration(
-                labelText: _tr('Your name', '\uC774\uB984'),
-              ),
+              decoration: InputDecoration(labelText: _tr('Your name', '이름')),
               validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr(
-                      'Enter your name',
-                      '\uC774\uB984\uC744 \uC785\uB825\uD558\uC138\uC694',
-                    )
+                  ? _tr('Enter your name', '이름을 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: userPhoneCtrl,
-              decoration: InputDecoration(
-                labelText: _tr('Your phone', '\uC804\uD654\uBC88\uD638'),
-              ),
+              decoration: InputDecoration(labelText: _tr('Your phone', '전화번호')),
               validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr(
-                      'Enter your phone',
-                      '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694',
-                    )
+                  ? _tr('Enter your phone', '전화번호를 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
@@ -729,23 +719,18 @@ class _SignInPageState extends State<SignInPage> {
                 Expanded(
                   child: TextFormField(
                     controller: emailCtrl,
-                    decoration: InputDecoration(
-                      labelText: _tr('Email', '\uC774\uBA54\uC77C'),
-                    ),
+                    decoration: InputDecoration(labelText: _tr('Email', '이메일')),
                     keyboardType: TextInputType.emailAddress,
                     onChanged: (_) => onEmailChanged(),
                     validator: (v) => v == null || v.isEmpty
-                        ? _tr(
-                            'Enter email',
-                            '\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD558\uC138\uC694',
-                          )
+                        ? _tr('Enter email', '이메일을 입력하세요')
                         : null,
                   ),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(
                   onPressed: onCheckEmail,
-                  child: Text(_tr('Check', '\uC911\uBCF5 \uD655\uC778')),
+                  child: Text(_tr('Check', '중복 확인')),
                 ),
               ],
             ),
@@ -753,60 +738,34 @@ class _SignInPageState extends State<SignInPage> {
             Text(
               emailChecked
                   ? (emailAvailable
-                        ? _tr(
-                            'Email is available',
-                            '\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.',
-                          )
-                        : _tr(
-                            'Email already exists',
-                            '\uC774\uBBF8 \uB4F1\uB85D\uB41C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.',
-                          ))
-                  : _tr(
-                      'Check email to enable submit',
-                      '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.',
-                    ),
-              style: Theme.of(context).textTheme.bodySmall,
+                        ? _tr('Email is available', '사용 가능한 이메일입니다.')
+                        : _tr('Email already exists', '이미 등록된 이메일입니다.'))
+                  : _tr('Check email to enable submit', '중복 확인을 완료하세요.'),
+              style: (bodySmall ?? const TextStyle()).copyWith(
+                color: emailChecked
+                    ? (emailAvailable ? colorScheme.primary : colorScheme.error)
+                    : neutralColor,
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: pwCtrl,
-              decoration: InputDecoration(
-                labelText: _tr('Password', '\uBE44\uBC00\uBC88\uD638'),
-              ),
+              decoration: InputDecoration(labelText: _tr('Password', '비밀번호')),
               obscureText: true,
               validator: (v) => v == null || v.length < 6
-                  ? _tr('Min 6 chars', '6\uC790 \uC774\uC0C1 \uC785\uB825')
+                  ? _tr('Min 6 chars', '6자 이상 입력')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: pwConfirmCtrl,
               decoration: InputDecoration(
-                labelText: _tr(
-                  'Confirm password',
-                  '\uBE44\uBC00\uBC88\uD638 \uD655\uC778',
-                ),
+                labelText: _tr('Confirm password', '비밀번호 확인'),
               ),
               obscureText: true,
               validator: (v) => v != pwCtrl.text
-                  ? _tr(
-                      'Passwords do not match',
-                      '\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4',
-                    )
+                  ? _tr('Passwords do not match', '비밀번호가 일치하지 않습니다')
                   : null,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isNew
-                  ? _tr(
-                      'New company: you will be registered as owner.',
-                      '신규 회사: 신청자가 대표(Owner)로 등록됩니다.',
-                    )
-                  : _tr(
-                      'Existing company: access after owner/manager approval.',
-                      '기존 회사: 대표/관리자 승인 후 이용 가능합니다.',
-                    ),
-              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
@@ -838,8 +797,11 @@ class _SignInPageState extends State<SignInPage> {
     required VoidCallback onCheckEmail,
     required VoidCallback onEmailChanged,
   }) {
-    final existingLocked =
-        !isNewBuyerCompany && selectedBuyerCompany.isNotEmpty;
+    final isExistingMode = !isNewBuyerCompany;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bodySmall = theme.textTheme.bodySmall;
+    final neutralColor = bodySmall?.color ?? colorScheme.onSurfaceVariant;
     return SingleChildScrollView(
       child: Form(
         key: formKey,
@@ -855,7 +817,7 @@ class _SignInPageState extends State<SignInPage> {
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: Text(_tr('Existing company', '\uAE30\uC874')),
+                  label: Text(_tr('Existing company', '기존')),
                   selected: !isNewBuyerCompany,
                   onSelected: (_) => onToggleBuyerNew(false),
                 ),
@@ -867,19 +829,24 @@ class _SignInPageState extends State<SignInPage> {
                 Expanded(
                   child: TextFormField(
                     controller: buyerCompanyCtrl,
-                    decoration: InputDecoration(
-                      labelText: _tr(
-                        'Buyer company',
-                        '\uC18C\uB9E4 \uC5C5\uCCB4',
-                      ),
-                      filled: existingLocked,
+                    decoration: _readOnlyInputDecoration(
+                      label: _tr('Buyer company', '업체명'),
+                      readOnly: isExistingMode,
+                      showFill: false,
+                      helperText: isExistingMode
+                          ? _tr(
+                              'Use search to select an existing company.',
+                              '기존 업체는 검색 버튼으로 선택하세요.',
+                            )
+                          : null,
                     ),
-                    readOnly: existingLocked,
+                    style: _readOnlyTextStyle(
+                      isExistingMode,
+                      applyStyle: false,
+                    ),
+                    readOnly: isExistingMode,
                     validator: (v) => v == null || v.trim().isEmpty
-                        ? _tr(
-                            'Enter company',
-                            '\uC5C5\uCCB4\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694',
-                          )
+                        ? _tr('Enter company', '업체명을 입력하세요')
                         : null,
                   ),
                 ),
@@ -887,64 +854,75 @@ class _SignInPageState extends State<SignInPage> {
                   const SizedBox(width: 8),
                   OutlinedButton(
                     onPressed: onSearchBuyerCompany,
-                    child: Text(_tr('Search', '\uAC80\uC0C9')),
+                    child: Text(_tr('Search', '검색')),
                   ),
                 ],
               ],
             ),
+            if (!isExistingMode) ...[
+              const SizedBox(height: 6),
+              Text(
+                _tr(
+                  'New company: you will be registered as owner.',
+                  '신규 회사: 신청자가 대표(Owner)로 등록됩니다.',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ] else ...[
+              const SizedBox(height: 4),
+              Text(
+                _tr(
+                  'Existing company: access after owner/manager approval.',
+                  '기존 회사: 대표/관리자 승인 후 이용 가능합니다.',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerAddressCtrl,
-              enabled: !existingLocked,
-              readOnly: existingLocked,
-              decoration: InputDecoration(
-                labelText: _tr('Buyer address', '\uC8FC\uC18C'),
-                filled: existingLocked,
+              enabled: !isExistingMode,
+              readOnly: isExistingMode,
+              style: _readOnlyTextStyle(isExistingMode),
+              decoration: _readOnlyInputDecoration(
+                label: _tr('Buyer address', '주소'),
+                readOnly: isExistingMode,
               ),
               validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr(
-                      'Enter address',
-                      '\uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694',
-                    )
+                  ? _tr('Enter address', '주소를 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerPhoneCtrl,
-              enabled: !existingLocked,
-              readOnly: existingLocked,
-              decoration: InputDecoration(
-                labelText: _tr('Buyer phone', '\uC5F0\uB77D\uCC98'),
-                filled: existingLocked,
+              enabled: !isExistingMode,
+              readOnly: isExistingMode,
+              style: _readOnlyTextStyle(isExistingMode),
+              decoration: _readOnlyInputDecoration(
+                label: _tr('Buyer phone', '대표번호'),
+                readOnly: isExistingMode,
               ),
               validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr(
-                      'Enter phone',
-                      '\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694',
-                    )
+                  ? _tr('Enter phone', '전화번호를 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerSegmentCtrl,
               enabled: isNewBuyerCompany,
-              readOnly: existingLocked,
-              decoration: InputDecoration(
-                labelText: _tr('Buyer segment', '\uC5C5\uCCB4 \uBD84\uB958'),
-                filled: existingLocked,
+              readOnly: isExistingMode,
+              style: _readOnlyTextStyle(isExistingMode),
+              decoration: _readOnlyInputDecoration(
+                label: _tr('Buyer segment', '업체 분류'),
+                readOnly: isExistingMode,
               ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerNameCtrl,
-              decoration: InputDecoration(
-                labelText: _tr('Your name', '\uC774\uB984'),
-              ),
+              decoration: InputDecoration(labelText: _tr('Your name', '이름')),
               validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr(
-                      'Enter your name',
-                      '\uC774\uB984\uC744 \uC785\uB825\uD558\uC138\uC694',
-                    )
+                  ? _tr('Enter your name', '이름을 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
@@ -953,23 +931,18 @@ class _SignInPageState extends State<SignInPage> {
                 Expanded(
                   child: TextFormField(
                     controller: buyerEmailCtrl,
-                    decoration: InputDecoration(
-                      labelText: _tr('Email', '\uC774\uBA54\uC77C'),
-                    ),
+                    decoration: InputDecoration(labelText: _tr('Email', '이메일')),
                     keyboardType: TextInputType.emailAddress,
                     onChanged: (_) => onEmailChanged(),
                     validator: (v) => v == null || v.isEmpty
-                        ? _tr(
-                            'Enter email',
-                            '\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD558\uC138\uC694',
-                          )
+                        ? _tr('Enter email', '이메일을 입력하세요')
                         : null,
                   ),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(
                   onPressed: onCheckEmail,
-                  child: Text(_tr('Check', '\uC911\uBCF5 \uD655\uC778')),
+                  child: Text(_tr('Check', '중복 확인')),
                 ),
               ],
             ),
@@ -977,52 +950,35 @@ class _SignInPageState extends State<SignInPage> {
             Text(
               emailChecked
                   ? (emailAvailable
-                        ? _tr(
-                            'Email is available',
-                            '\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.',
-                          )
-                        : _tr(
-                            'Email already exists',
-                            '\uC774\uBBF8 \uB4F1\uB85D\uB41C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.',
-                          ))
-                  : _tr(
-                      'Check email to enable submit',
-                      '\uC911\uBCF5 \uD655\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.',
-                    ),
-              style: Theme.of(context).textTheme.bodySmall,
+                        ? _tr('Email is available', '사용 가능한 이메일입니다.')
+                        : _tr('Email already exists', '이미 등록된 이메일입니다.'))
+                  : _tr('Check email to enable submit', '중복 확인을 완료하세요.'),
+              style: (bodySmall ?? const TextStyle()).copyWith(
+                color: emailChecked
+                    ? (emailAvailable ? colorScheme.primary : colorScheme.error)
+                    : neutralColor,
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerPwCtrl,
               decoration: InputDecoration(
-                labelText: _tr(
-                  'Password (login)',
-                  '\uB85C\uADF8\uC778 \uBE44\uBC00\uBC88\uD638',
-                ),
+                labelText: _tr('Password (login)', '로그인 비밀번호'),
               ),
               obscureText: true,
               validator: (v) => v == null || v.isEmpty
-                  ? _tr(
-                      'Enter password',
-                      '\uBE44\uBC00\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694',
-                    )
+                  ? _tr('Enter password', '비밀번호를 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: buyerPwConfirmCtrl,
               decoration: InputDecoration(
-                labelText: _tr(
-                  'Confirm password',
-                  '\uBE44\uBC00\uBC88\uD638 \uD655\uC778',
-                ),
+                labelText: _tr('Confirm password', '비밀번호 확인'),
               ),
               obscureText: true,
               validator: (v) => v != buyerPwCtrl.text
-                  ? _tr(
-                      'Passwords do not match',
-                      '\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4',
-                    )
+                  ? _tr('Passwords do not match', '비밀번호가 일치하지 않습니다')
                   : null,
             ),
             const SizedBox(height: 12),
@@ -1034,23 +990,17 @@ class _SignInPageState extends State<SignInPage> {
                       controller: sellerSearchCtrl,
                       readOnly: true,
                       decoration: InputDecoration(
-                        labelText: _tr(
-                          'Target seller name',
-                          '\uB3C4\uB9E4 \uC5C5\uCCB4\uBA85',
-                        ),
+                        labelText: _tr('Target seller name', '도매 업체명'),
                       ),
                       validator: (v) => v == null || v.trim().isEmpty
-                          ? _tr(
-                              'Select seller company',
-                              '\uB3C4\uB9E4 \uC5C5\uCCB4\uB97C \uC120\uD0DD\uD558\uC138\uC694',
-                            )
+                          ? _tr('Select seller company', '도매 업체를 선택하세요')
                           : null,
                     ),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton(
                     onPressed: onSearchSeller,
-                    child: Text(_tr('Search', '\uAC80\uC0C9')),
+                    child: Text(_tr('Search', '검색')),
                   ),
                 ],
               ),
@@ -1066,10 +1016,7 @@ class _SignInPageState extends State<SignInPage> {
               TextFormField(
                 controller: attachmentCtrl,
                 decoration: InputDecoration(
-                  labelText: _tr(
-                    'Attachment URL (optional)',
-                    '\uCCA8\uBD80\uD30C\uC77C URL (\uC120\uD0DD)',
-                  ),
+                  labelText: _tr('Attachment URL (optional)', '첨부파일 URL (선택)'),
                   helperText: _tr(
                     'Attach your business license if the seller requires it.',
                     '도매업체가 요청한 경우 사업자등록증 등을 첨부하세요.',
@@ -1079,7 +1026,7 @@ class _SignInPageState extends State<SignInPage> {
               const SizedBox(height: 8),
               if (selectedSeller.isNotEmpty)
                 Text(
-                  '${_tr('Seller', '\uB3C4\uB9E4\uC5C5\uCCB4')}: ${selectedSeller['name']} / ${selectedSeller['phone']} / ${selectedSeller['address']}',
+                  '${_tr('Seller', '도매업체')}: ${selectedSeller['name']} / ${selectedSeller['phone']} / ${selectedSeller['address']}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
             ],
@@ -1087,6 +1034,34 @@ class _SignInPageState extends State<SignInPage> {
         ),
       ),
     );
+  }
+
+  InputDecoration _readOnlyInputDecoration({
+    required String label,
+    required bool readOnly,
+    String? helperText,
+    bool showFill = true,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final fillAlpha = theme.brightness == Brightness.dark ? 0.35 : 0.2;
+    final fillColor = colorScheme.surfaceContainerHighest.withValues(
+      alpha: fillAlpha,
+    );
+    return InputDecoration(
+      labelText: label,
+      helperText: helperText,
+      filled: readOnly && showFill,
+      fillColor: readOnly && showFill ? fillColor : null,
+    );
+  }
+
+  TextStyle? _readOnlyTextStyle(bool readOnly, {bool applyStyle = true}) {
+    if (!readOnly || !applyStyle) return null;
+    final theme = Theme.of(context);
+    final base = theme.textTheme.bodyMedium ?? const TextStyle();
+    final color = theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8);
+    return base.copyWith(color: color);
   }
 
   Future<Map<String, String>?> _pickCompany(
@@ -1152,11 +1127,5 @@ class _SignInPageState extends State<SignInPage> {
 }
 
 void _showSnack(BuildContext context, String message) {
-  final scheme = Theme.of(context).colorScheme;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      backgroundColor: scheme.inverseSurface,
-      content: Text(message, style: TextStyle(color: scheme.onInverseSurface)),
-    ),
-  );
+  context.read<NotificationTicker>().push(message);
 }

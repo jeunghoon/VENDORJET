@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 
 import '../../models/tenant.dart';
@@ -26,6 +28,12 @@ class AuthController extends ChangeNotifier {
   TenantMemberRole? get role => service.currentRole;
   List<TenantMembership> get memberships => service.memberships;
   List<Tenant> get tenants => _tenants;
+  String? get primaryTenantId => _api?.primaryTenantId;
+  Locale? get preferredLocale {
+    final code = _api?.languageCode;
+    if (code == null || code.isEmpty) return null;
+    return Locale(code);
+  }
 
   ApiAuthService? get _api =>
       service is ApiAuthService ? service as ApiAuthService : null;
@@ -157,6 +165,29 @@ class AuthController extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> requestBuyerReconnect({
+    required String sellerCompanyName,
+    required String buyerCompanyName,
+    String buyerAddress = '',
+    String buyerSegment = '',
+    String name = '',
+    String phone = '',
+    String attachmentUrl = '',
+  }) async {
+    final ok =
+        await _api?.requestBuyerReconnect(
+          sellerCompanyName: sellerCompanyName,
+          buyerCompanyName: buyerCompanyName,
+          buyerAddress: buyerAddress,
+          buyerSegment: buyerSegment,
+          contactName: name,
+          contactPhone: phone,
+          attachmentUrl: attachmentUrl,
+        ) ??
+        false;
+    return ok;
+  }
+
   Future<void> inviteMember({
     required String email,
     required TenantMemberRole role,
@@ -172,17 +203,19 @@ class AuthController extends ChangeNotifier {
   Future<bool> updateProfile({
     String? email,
     String? phone,
-    String? address,
     String? name,
     String? password,
+    Locale? language,
+    String? primaryTenantId,
   }) async {
     final ok =
         await _api?.updateProfile(
           email: email,
           phone: phone,
-          address: address,
           name: name,
           password: password,
+          language: language?.languageCode,
+          primaryTenantId: primaryTenantId,
         ) ??
         false;
     if (ok) {
@@ -207,6 +240,7 @@ class AuthController extends ChangeNotifier {
     required String name,
     String phone = '',
     String address = '',
+    String representative = '',
   }) async {
     final profile = await fetchProfile();
     final userId = profile?['id'] as String?;
@@ -217,6 +251,7 @@ class AuthController extends ChangeNotifier {
           name: name,
           phone: phone,
           address: address,
+          representative: representative,
         ) ??
         false;
     if (ok) {
@@ -231,6 +266,7 @@ class AuthController extends ChangeNotifier {
     String? name,
     String? phone,
     String? address,
+    String? representative,
   }) async {
     final ok =
         await _api?.updateTenant(
@@ -238,6 +274,7 @@ class AuthController extends ChangeNotifier {
           name: name,
           phone: phone,
           address: address,
+          representative: representative,
         ) ??
         false;
     if (ok) {
@@ -256,6 +293,14 @@ class AuthController extends ChangeNotifier {
     return ok;
   }
 
+  Future<bool> setPrimaryTenant(String tenantId) async {
+    final ok = await updateProfile(primaryTenantId: tenantId);
+    if (ok) {
+      await refreshTenants();
+    }
+    return ok;
+  }
+
   Future<bool> switchTenant(String tenantId) async {
     final ok = await service.switchTenant(tenantId);
     if (ok) notifyListeners();
@@ -263,8 +308,16 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> refreshTenants() async {
-    _tenants = await service.fetchTenants();
-    notifyListeners();
+    if (!await service.isSignedIn()) return;
+    try {
+      final updated = await service.fetchTenants();
+      _tenants = updated;
+      _pendingApproval =
+          service.memberships.isEmpty || service.currentTenant == null;
+      notifyListeners();
+    } catch (_) {
+      // keep existing tenants
+    }
   }
 
   Future<void> signOut() async {

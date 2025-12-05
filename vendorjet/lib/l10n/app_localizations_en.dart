@@ -846,13 +846,229 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get buyerMenuProfile => 'Profile / Store settings';
+  String get buyerMenuProfile => 'Personal settings';
 
   @override
   String get buyerMenuSettings => 'Settings';
 
   @override
   String get buyerMenuLogout => 'Sign out';
+
+  @override
+  String get profileTitle => 'Personal settings';
+
+  @override
+  String get profileSectionPersonal => 'Account details';
+
+  @override
+  String get profileFieldName => 'Name';
+
+  @override
+  String get profileFieldEmail => 'Email';
+
+  @override
+  String get profileFieldPhone => 'Phone number';
+
+  @override
+  String get profileFieldPasswordNew => 'New password (optional)';
+
+  @override
+  String get profileFieldPasswordConfirm => 'Confirm new password';
+
+  @override
+  String get profileSave => 'Save';
+
+  @override
+  String get profileDelete => 'Delete account';
+
+  @override
+  String get profileDeleteTitle => 'Delete account';
+
+  @override
+  String get profileDeleteConfirm =>
+      'This action cannot be undone. Delete the account?';
+
+  @override
+  String get profilePasswordMismatch => 'Passwords do not match.';
+
+  @override
+  String get profileSaveSuccess => 'Personal settings saved.';
+
+  @override
+  String get profileSaveFailure => 'Could not save personal settings.';
+
+  @override
+  String get settingsProfileTitle => 'Profile & personal info';
+
+  @override
+  String get settingsProfileSubtitle => 'Manage login, contact, and password';
+
+  @override
+  String get buyerSettingsSectionTitle => 'Store settings';
+
+  @override
+  String get buyerSettingsCompanyFallback => 'No saved store';
+
+  @override
+  String get buyerSettingsCompanyMissing => 'No saved store details';
+
+  @override
+  String get buyerSettingsConnectionsTitle => 'Connected wholesalers';
+
+  @override
+  String get buyerSettingsNoConnections => 'No active wholesaler connections.';
+
+  @override
+  String get buyerSettingsPendingTitle => 'Pending request';
+
+  @override
+  String get buyerSettingsPendingLoading => 'Loading pending requests...';
+
+  @override
+  String get buyerSettingsPendingNone => 'No pending connection request.';
+
+  @override
+  String buyerSettingsPendingWithSeller(Object seller) {
+    return 'Waiting for approval from $seller';
+  }
+
+  @override
+  String get buyerSettingsRequestButton => 'Request new connection';
+
+  @override
+  String get buyerSettingsSheetTitle => 'Request wholesaler connection';
+
+  @override
+  String get buyerSettingsSellerFieldLabel => 'Target wholesaler';
+
+  @override
+  String get buyerSettingsSearchSeller => 'Search wholesaler';
+
+  @override
+  String get buyerSettingsSearchAction => 'Search';
+
+  @override
+  String get buyerSettingsSearchFieldLabel => 'Search by name';
+
+  @override
+  String buyerSettingsSellerSummary(Object phone, Object address) {
+    return 'Phone: $phone · Address: $address';
+  }
+
+  @override
+  String get buyerSettingsBuyerFieldLabel => 'Store name';
+
+  @override
+  String get buyerSettingsBuyerAddressLabel => 'Store address';
+
+  @override
+  String get buyerSettingsBuyerSegmentLabel => 'Business type';
+
+  @override
+  String get buyerSettingsContactNameLabel => 'Contact name';
+
+  @override
+  String get buyerSettingsContactPhoneLabel => 'Contact phone';
+
+  @override
+  String get buyerSettingsAttachmentLabel => 'Attachment URL (optional)';
+
+  @override
+  String get buyerSettingsRequiredField => 'This field is required.';
+
+  @override
+  String get buyerSettingsSubmit => 'Submit request';
+
+  @override
+  String buyerSettingsRequestSuccess(Object seller) {
+    return 'Request sent to $seller';
+  }
+
+  @override
+  String get settingsCompanyInfoTitle => 'Company information';
+
+  @override
+  String get settingsCompanyRepresentativeLabel => 'Representative';
+
+  @override
+  String get settingsCompanyPhoneLabel => 'Phone';
+
+  @override
+  String get settingsCompanyAddressLabel => 'Address';
+
+  @override
+  String get settingsCompanyRoleLabel => 'My role';
+
+  @override
+  String get settingsCompanyPrimaryBadge => 'Main company';
+
+  @override
+  String get settingsCompanySetPrimary => 'Set as main company';
+
+  @override
+  String get settingsCompanyPrimarySaved => 'Main company updated.';
+
+  @override
+  String get settingsCompanyPrimaryRequired =>
+      'Select a main company to use it as the default store.';
+
+  @override
+  String get settingsCompanyEditAction => 'Edit';
+
+  @override
+  String get settingsCompanyDeleteAction => 'Remove';
+
+  @override
+  String settingsCompanyDeleteConfirm(Object name) {
+    return 'Remove $name? This disconnects related stores.';
+  }
+
+  @override
+  String get settingsCompanyAddButton => 'Add company';
+
+  @override
+  String get settingsCompanyFormTitleAdd => 'Add company';
+
+  @override
+  String get settingsCompanyFormTitleEdit => 'Edit company';
+
+  @override
+  String get settingsCompanyFormSave => 'Save company';
+
+  @override
+  String get settingsCompanyFormNameLabel => 'Company name';
+
+  @override
+  String get settingsCompanyFormRepresentativeLabel => 'Representative';
+
+  @override
+  String get settingsCompanyFormPhoneLabel => 'Phone number';
+
+  @override
+  String get settingsCompanyFormAddressLabel => 'Address';
+
+  @override
+  String get settingsCompanyFormNameRequired => 'Enter a company name.';
+
+  @override
+  String get settingsCompanyFormSaved => 'Company information saved.';
+
+  @override
+  String get settingsCompanyFormSaveError =>
+      'Failed to save company information.';
+
+  @override
+  String get settingsCompanyFormDeleteSuccess => 'Company removed.';
+
+  @override
+  String get settingsCompanyFormDeleteError => 'Failed to remove company.';
+
+  @override
+  String get settingsLanguageSaved => 'Language preference saved.';
+
+  @override
+  String get settingsLanguageApplyHint =>
+      'Changes take effect on your next sign-in.';
 
   @override
   String get buyerPreviewTitle => 'Buyer preview';

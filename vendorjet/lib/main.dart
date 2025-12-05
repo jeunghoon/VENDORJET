@@ -43,13 +43,16 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     final authService = ApiAuthService();
-    _authController = AuthController(authService)..load();
+    _authController = AuthController(authService);
+    _authController.addListener(_handleAuthChanged);
+    _authController.load();
     _router = _createRouter();
   }
 
   @override
   void dispose() {
     _router.dispose();
+    _authController.removeListener(_handleAuthChanged);
     _authController.dispose();
     super.dispose();
   }
@@ -57,6 +60,13 @@ class _MyAppState extends State<MyApp> {
   void _changeLocale(Locale locale) {
     if (_locale == locale) return;
     setState(() => _locale = locale);
+  }
+
+  void _handleAuthChanged() {
+    final preferred = _authController.preferredLocale;
+    if (preferred != null && preferred != _locale) {
+      setState(() => _locale = preferred);
+    }
   }
 
   GoRouter _createRouter() {
@@ -76,10 +86,15 @@ class _MyAppState extends State<MyApp> {
           return '/sign-in';
         }
 
-        if (signedIn &&
-            _authController.isBuyer &&
-            !state.matchedLocation.startsWith('/buyer')) {
-          return '/buyer';
+        if (signedIn && _authController.isBuyer) {
+          const buyerAllowed = ['/buyer', '/settings', '/profile'];
+          final location = state.matchedLocation;
+          final allowed = buyerAllowed.any(
+            (prefix) => location.startsWith(prefix),
+          );
+          if (!allowed) {
+            return '/buyer';
+          }
         }
 
         if (signedIn && loggingIn) {
@@ -149,9 +164,6 @@ class _MyAppState extends State<MyApp> {
               builder: (context, state) => SettingsPage(
                 currentLocale: _locale,
                 onLocaleChanged: _changeLocale,
-                onSignOut: () {
-                  _authController.signOut();
-                },
               ),
             ),
             GoRoute(
@@ -159,7 +171,7 @@ class _MyAppState extends State<MyApp> {
               name: 'admin',
               builder: (context, state) {
                 final auth = context.read<AuthController>();
-                if (auth.email?.toLowerCase() != 'admin@vendorjet.com') {
+                if (auth.email?.toLowerCase() != 'admin') {
                   return const SizedBox.shrink();
                 }
                 return const AdminPage();
@@ -175,7 +187,10 @@ class _MyAppState extends State<MyApp> {
         GoRoute(
           path: '/buyer',
           name: 'buyer-preview',
-          builder: (context, state) => const BuyerPortalPage(),
+          builder: (context, state) => BuyerPortalPage(
+            currentLocale: _locale,
+            onLocaleChanged: _changeLocale,
+          ),
         ),
       ],
     );
@@ -317,8 +332,7 @@ class _HomeShell extends StatelessWidget {
                 const SizedBox(width: 8),
                 Consumer<AuthController>(
                   builder: (context, auth, _) {
-                    final isGlobalAdmin =
-                        auth.email?.toLowerCase() == 'admin@vendorjet.com';
+                    final isGlobalAdmin = auth.email?.toLowerCase() == 'admin';
                     if (!isGlobalAdmin) return const SizedBox.shrink();
                     return IconButton(
                       tooltip: '글로벌 관리자',

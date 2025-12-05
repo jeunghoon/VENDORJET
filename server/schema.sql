@@ -4,7 +4,8 @@ CREATE TABLE tenants (
   locale TEXT,
   created_at TEXT,
   phone TEXT,
-  address TEXT
+  address TEXT,
+  representative TEXT
 );
 
 CREATE TABLE users (
@@ -12,7 +13,9 @@ CREATE TABLE users (
   email TEXT UNIQUE,
   password_hash TEXT,
   name TEXT,
-  phone TEXT
+  phone TEXT,
+  language_preference TEXT,
+  primary_tenant_id TEXT
 );
 
 CREATE TABLE memberships (

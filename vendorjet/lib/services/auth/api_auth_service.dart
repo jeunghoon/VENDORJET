@@ -10,11 +10,15 @@ class ApiAuthService implements AuthService {
   static const _kEmail = 'api_auth_email';
   static const _kTenant = 'api_auth_tenant';
   static const _kUserType = 'api_user_type';
+  static const _kPrimaryTenant = 'api_primary_tenant';
+  static const _kLanguage = 'api_language';
 
   SharedPreferences? _prefs;
   String? _email;
   String? _currentTenantId;
   String? _userType;
+  String? _primaryTenantId;
+  String? _languageCode;
   List<TenantMembership> _memberships = const [];
   List<Tenant> _tenants = const [];
 
@@ -25,6 +29,8 @@ class ApiAuthService implements AuthService {
     _email = _prefs?.getString(_kEmail);
     _currentTenantId = _prefs?.getString(_kTenant);
     _userType = _prefs?.getString(_kUserType);
+    _primaryTenantId = _prefs?.getString(_kPrimaryTenant);
+    _languageCode = _prefs?.getString(_kLanguage);
     ApiClient.tenantId = _currentTenantId;
     if (ApiClient.token != null) {
       try {
@@ -48,8 +54,12 @@ class ApiAuthService implements AuthService {
       if (token == null) return false;
       ApiClient.token = token;
       _email = email.toLowerCase();
-      _userType =
-          (resp['user'] as Map<String, dynamic>?)?['userType'] as String?;
+      final userMap = (resp['user'] as Map<String, dynamic>?) ?? {};
+      _userType = userMap['userType'] as String?;
+      _languageCode = (userMap['language'] as String?)?.isNotEmpty == true
+          ? (userMap['language'] as String)
+          : _languageCode;
+      _primaryTenantId = userMap['primaryTenantId'] as String?;
       _memberships = (resp['memberships'] as List<dynamic>? ?? [])
           .map(
             (m) => TenantMembership(
@@ -82,20 +92,30 @@ class ApiAuthService implements AuthService {
   Future<bool> updateProfile({
     String? email,
     String? phone,
-    String? address,
     String? name,
     String? password,
+    String? language,
+    String? primaryTenantId,
   }) async {
     final body = <String, String>{};
     if (email != null && email.isNotEmpty) body['email'] = email;
     if (phone != null && phone.isNotEmpty) body['phone'] = phone;
-    if (address != null && address.isNotEmpty) body['address'] = address;
     if (name != null && name.isNotEmpty) body['name'] = name;
     if (password != null && password.isNotEmpty) body['password'] = password;
+    if (language != null && language.isNotEmpty) body['language'] = language;
+    if (primaryTenantId != null && primaryTenantId.isNotEmpty) {
+      body['primaryTenantId'] = primaryTenantId;
+    }
     if (body.isEmpty) return true;
     try {
       await ApiClient.patch('/auth/profile', body: body);
       if (email != null && email.isNotEmpty) _email = email.toLowerCase();
+      if (primaryTenantId != null && primaryTenantId.isNotEmpty) {
+        _primaryTenantId = primaryTenantId;
+      }
+      if (language != null && language.isNotEmpty) {
+        _languageCode = language;
+      }
       await _persist();
       return true;
     } catch (_) {
@@ -119,12 +139,16 @@ class ApiAuthService implements AuthService {
     _email = null;
     _currentTenantId = null;
     _userType = null;
+    _primaryTenantId = null;
+    _languageCode = null;
     _memberships = const [];
     _tenants = const [];
     await _prefs?.remove(_kToken);
     await _prefs?.remove(_kEmail);
     await _prefs?.remove(_kTenant);
     await _prefs?.remove(_kUserType);
+    await _prefs?.remove(_kPrimaryTenant);
+    await _prefs?.remove(_kLanguage);
   }
 
   @override
@@ -134,6 +158,8 @@ class ApiAuthService implements AuthService {
   String? get currentEmail => _email;
 
   String? get userType => _userType;
+  String? get primaryTenantId => _primaryTenantId;
+  String? get languageCode => _languageCode;
 
   @override
   Tenant? get currentTenant {
@@ -176,9 +202,19 @@ class ApiAuthService implements AuthService {
               name: e['name'] as String,
               phone: (e['phone'] as String?) ?? '',
               address: (e['address'] as String?) ?? '',
-              type: _typeFromString(e['type'] as String?),
+              type: _typeFromString(
+                (e['type'] as String?) ?? (e['tenantType'] as String?),
+              ),
+              representative: (e['representative'] as String?) ?? '',
+              isPrimary:
+                  (e['isPrimary'] as bool?) ??
+                  ((e['id'] as String?) == _primaryTenantId),
               createdAt:
-                  DateTime.tryParse((e['createdAt'] ?? '') as String? ?? '') ??
+                  DateTime.tryParse(
+                    (e['createdAt'] as String?) ??
+                        (e['created_at'] as String?) ??
+                        '',
+                  ) ??
                   DateTime.now(),
             ),
           )
@@ -186,7 +222,6 @@ class ApiAuthService implements AuthService {
       _tenants = tenants;
       return tenants;
     } catch (_) {
-      _tenants = const [];
       return _tenants;
     }
   }
@@ -324,6 +359,7 @@ class ApiAuthService implements AuthService {
     required String name,
     String phone = '',
     String address = '',
+    String representative = '',
   }) async {
     try {
       await ApiClient.post(
@@ -333,6 +369,35 @@ class ApiAuthService implements AuthService {
           'name': name,
           'phone': phone,
           'address': address,
+          'representative': representative,
+        },
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> requestBuyerReconnect({
+    required String sellerCompanyName,
+    required String buyerCompanyName,
+    String buyerAddress = '',
+    String buyerSegment = '',
+    String contactName = '',
+    String contactPhone = '',
+    String attachmentUrl = '',
+  }) async {
+    try {
+      await ApiClient.post(
+        '/auth/buyer/reapply',
+        body: {
+          'sellerCompanyName': sellerCompanyName,
+          'buyerCompanyName': buyerCompanyName,
+          'buyerAddress': buyerAddress,
+          'buyerSegment': buyerSegment,
+          'name': contactName,
+          'phone': contactPhone,
+          'attachmentUrl': attachmentUrl,
         },
       );
       return true;
@@ -346,11 +411,15 @@ class ApiAuthService implements AuthService {
     String? name,
     String? phone,
     String? address,
+    String? representative,
   }) async {
     final body = <String, String>{};
     if (name != null && name.isNotEmpty) body['name'] = name;
     if (phone != null && phone.isNotEmpty) body['phone'] = phone;
     if (address != null && address.isNotEmpty) body['address'] = address;
+    if (representative != null && representative.isNotEmpty) {
+      body['representative'] = representative;
+    }
     if (body.isEmpty) return true;
     try {
       await ApiClient.patch('/admin/tenants/$tenantId', body: body);
@@ -379,6 +448,16 @@ class ApiAuthService implements AuthService {
     }
     if (_userType != null) {
       await _prefs?.setString(_kUserType, _userType!);
+    }
+    if (_primaryTenantId != null) {
+      await _prefs?.setString(_kPrimaryTenant, _primaryTenantId!);
+    } else {
+      await _prefs?.remove(_kPrimaryTenant);
+    }
+    if (_languageCode != null && _languageCode!.isNotEmpty) {
+      await _prefs?.setString(_kLanguage, _languageCode!);
+    } else {
+      await _prefs?.remove(_kLanguage);
     }
   }
 

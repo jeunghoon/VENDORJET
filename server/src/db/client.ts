@@ -111,6 +111,8 @@ function ensureSchema() {
     ensureColumn('users', 'created_at', 'TEXT');
     ensureColumn('users', 'last_login_at', 'TEXT');
     ensureColumn('users', 'user_type', 'TEXT');
+    ensureColumn('users', 'language_preference', 'TEXT');
+    ensureColumn('users', 'primary_tenant_id', 'TEXT');
     ensureColumn('memberships', 'status', 'TEXT');
     ensureColumn('membership_requests', 'company_phone', 'TEXT');
     ensureColumn('buyer_requests', 'seller_phone', 'TEXT');
@@ -126,6 +128,11 @@ function ensureSchema() {
     ensureColumn('orders', 'status_updated_by', 'TEXT');
     ensureColumn('orders', 'status_updated_at', 'TEXT');
     ensureColumn('orders', 'created_source', 'TEXT');
+    ensureColumn('tenants', 'representative', 'TEXT');
+    ensureColumn('orders', 'buyer_tenant_id', 'TEXT');
+    ensureColumn('orders', 'buyer_user_id', 'TEXT');
+    ensureColumn('orders', 'buyer_user_name', 'TEXT');
+    ensureColumn('orders', 'buyer_user_email', 'TEXT');
     ensureIndex(
       'orders',
       'idx_orders_code_unique',

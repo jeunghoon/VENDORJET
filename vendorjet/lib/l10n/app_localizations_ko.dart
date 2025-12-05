@@ -371,136 +371,136 @@ class AppLocalizationsKo extends AppLocalizations {
       '체험용으로 alex@vendorjet.com / welcome1을 입력해 보세요.';
 
   @override
-  String get signUpButtonLabel => '????';
+  String get signUpButtonLabel => '회원가입';
 
   @override
-  String get signUpTabSeller => '??';
+  String get signUpTabSeller => '판매자';
 
   @override
-  String get signUpTabBuyer => '??';
+  String get signUpTabBuyer => '구매자';
 
   @override
-  String get signUpModeNew => '?? ??';
+  String get signUpModeNew => '신규 회사';
 
   @override
-  String get signUpModeExisting => '?? ??';
+  String get signUpModeExisting => '기존 회사';
 
   @override
-  String get signUpSearchCompany => '?? ??';
+  String get signUpSearchCompany => '회사 검색';
 
   @override
-  String get signUpSearchBuyerCompany => '?? ?? ??';
+  String get signUpSearchBuyerCompany => '구매자 회사 검색';
 
   @override
-  String get signUpSearchSellerCompany => '?? ?? ??';
+  String get signUpSearchSellerCompany => '판매자 회사 검색';
 
   @override
-  String get signUpSearchByName => '???? ??';
+  String get signUpSearchByName => '이름으로 검색';
 
   @override
-  String get signUpCompanyNameLabel => '???';
+  String get signUpCompanyNameLabel => '회사명';
 
   @override
-  String get signUpCompanyNameHint => '???? ?????';
+  String get signUpCompanyNameHint => '회사명을 입력하세요';
 
   @override
-  String get signUpCompanyPhoneLabel => '?? ??';
+  String get signUpCompanyPhoneLabel => '회사 전화번호';
 
   @override
-  String get signUpCompanyPhoneHint => '????? ?????';
+  String get signUpCompanyPhoneHint => '전화번호를 입력하세요';
 
   @override
-  String get signUpCompanyAddressLabel => '?? ??';
+  String get signUpCompanyAddressLabel => '회사 주소';
 
   @override
-  String get signUpCompanyAddressHint => '??? ?????';
+  String get signUpCompanyAddressHint => '주소를 입력하세요';
 
   @override
-  String get signUpUserNameLabel => '??? ??';
+  String get signUpUserNameLabel => '담당자 이름';
 
   @override
-  String get signUpUserNameHint => '??? ??? ?????';
+  String get signUpUserNameHint => '담당자 이름을 입력하세요';
 
   @override
-  String get signUpUserPhoneLabel => '??? ??';
+  String get signUpUserPhoneLabel => '담당자 전화번호';
 
   @override
-  String get signUpUserPhoneHint => '??? ????? ?????';
+  String get signUpUserPhoneHint => '담당자 전화번호를 입력하세요';
 
   @override
-  String get signUpEmailHint => '???? ?????';
+  String get signUpEmailHint => '이메일을 입력하세요';
 
   @override
-  String get signUpPasswordLabel => '????';
+  String get signUpPasswordLabel => '비밀번호';
 
   @override
-  String get signUpPasswordHint => '6? ?? ?????';
+  String get signUpPasswordHint => '최소 6자 이상 입력하세요';
 
   @override
-  String get signUpSellerNewHint => '?? ??? ??(Owner)? ?????.';
+  String get signUpSellerNewHint => '신규 회사: 소유자(Owner) 권한으로 등록됩니다.';
 
   @override
-  String get signUpSellerExistingHint => '?? ??? ??/??? ?? ? ?? ?????.';
+  String get signUpSellerExistingHint => '기존 회사: 소유자/관리자 승인 후 접근할 수 있습니다.';
 
   @override
-  String get signUpBuyerCompanyLabel => '?? ???';
+  String get signUpBuyerCompanyLabel => '구매자 회사';
 
   @override
-  String get signUpBuyerCompanyHint => '???? ?????';
+  String get signUpBuyerCompanyHint => '구매자 회사를 입력하세요';
 
   @override
-  String get signUpBuyerAddressLabel => '?? ?? ??';
+  String get signUpBuyerAddressLabel => '구매자 주소';
 
   @override
-  String get signUpBuyerPhoneLabel => '?? ?? ??';
+  String get signUpBuyerPhoneLabel => '구매자 전화번호';
 
   @override
-  String get signUpBuyerSegmentLabel => '?? ??';
+  String get signUpBuyerSegmentLabel => '업종 분류';
 
   @override
-  String get signUpBuyerSegmentHint => '?? ??? ?????';
+  String get signUpBuyerSegmentHint => '업종을 입력하세요';
 
   @override
-  String get signUpLoginPasswordLabel => '??? ????';
+  String get signUpLoginPasswordLabel => '로그인 비밀번호';
 
   @override
-  String get signUpLoginPasswordHint => '????? ?????';
+  String get signUpLoginPasswordHint => '비밀번호를 입력하세요';
 
   @override
-  String get signUpSellerTargetLabel => '?? ?? ??';
+  String get signUpSellerTargetLabel => '연결할 판매자 회사명';
 
   @override
-  String get signUpAttachmentLabel => '?? ??(??)';
+  String get signUpAttachmentLabel => '첨부 링크(선택)';
 
   @override
-  String get signUpAttachmentHelper => '?? ?? ? ??? ?? ?? ????? (??)';
+  String get signUpAttachmentHelper => '판매자가 요구할 경우 사업자등록증 등을 첨부하세요(선택)';
 
   @override
-  String get signUpSellerSummary => '??';
+  String get signUpSellerSummary => '판매자';
 
   @override
-  String get signUpBuyerApprovalHint => '?? ?? ? ??? ? ? ????.';
+  String get signUpBuyerApprovalHint => '판매자 승인 후 상품을 열람할 수 있습니다.';
 
   @override
-  String get signUpSubmitAction => '??';
+  String get signUpSubmitAction => '제출';
 
   @override
-  String get signUpSubmitSuccess => '??????? (?? ? ?? ??)';
+  String get signUpSubmitSuccess => '제출되었습니다(승인이 필요할 수 있음)';
 
   @override
-  String get signUpSubmitFailure => '????? ??????';
+  String get signUpSubmitFailure => '가입에 실패했습니다';
 
   @override
-  String get signUpSelectSellerPrompt => '??? ?? ??? ?? ?????';
+  String get signUpSelectSellerPrompt => '먼저 판매자 회사를 선택하세요';
 
   @override
-  String get signUpSelectExistingPrompt => '??? ?? ??? ?????';
+  String get signUpSelectExistingPrompt => '기존 회사를 선택하세요';
 
   @override
-  String get commonCancel => '??';
+  String get commonCancel => '취소';
 
   @override
-  String get commonSearch => '??';
+  String get commonSearch => '검색';
 
   @override
   String get tenantSectionTitle => '조직';
@@ -831,13 +831,226 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get buyerMenuProfile => '프로필/사업장 설정';
+  String get buyerMenuProfile => '개인 설정';
 
   @override
   String get buyerMenuSettings => '설정';
 
   @override
   String get buyerMenuLogout => '로그아웃';
+
+  @override
+  String get profileTitle => '개인 설정';
+
+  @override
+  String get profileSectionPersonal => '계정 정보';
+
+  @override
+  String get profileFieldName => '이름';
+
+  @override
+  String get profileFieldEmail => '이메일';
+
+  @override
+  String get profileFieldPhone => '전화번호';
+
+  @override
+  String get profileFieldPasswordNew => '새 비밀번호(선택)';
+
+  @override
+  String get profileFieldPasswordConfirm => '새 비밀번호 확인';
+
+  @override
+  String get profileSave => '저장';
+
+  @override
+  String get profileDelete => '계정 탈퇴';
+
+  @override
+  String get profileDeleteTitle => '계정 탈퇴';
+
+  @override
+  String get profileDeleteConfirm => '삭제 후 되돌리지 않습니다. 계정을 삭제할까요?';
+
+  @override
+  String get profilePasswordMismatch => '비밀번호가 일치하지 않습니다.';
+
+  @override
+  String get profileSaveSuccess => '개인 설정을 저장했습니다.';
+
+  @override
+  String get profileSaveFailure => '개인 설정을 저장하지 못했습니다.';
+
+  @override
+  String get settingsProfileTitle => '프로필 및 개인 정보';
+
+  @override
+  String get settingsProfileSubtitle => '로그인, 연락처, 비밀번호를 관리합니다';
+
+  @override
+  String get buyerSettingsSectionTitle => '매장 설정';
+
+  @override
+  String get buyerSettingsCompanyFallback => '등록된 매장이 없습니다';
+
+  @override
+  String get buyerSettingsCompanyMissing => '저장된 매장 정보가 없습니다';
+
+  @override
+  String get buyerSettingsConnectionsTitle => '연결된 도매업체';
+
+  @override
+  String get buyerSettingsNoConnections => '활성화된 도매 연결이 없습니다.';
+
+  @override
+  String get buyerSettingsPendingTitle => '대기 중 요청';
+
+  @override
+  String get buyerSettingsPendingLoading => '요청 상태를 불러오는 중...';
+
+  @override
+  String get buyerSettingsPendingNone => '대기 중인 연결 요청이 없습니다.';
+
+  @override
+  String buyerSettingsPendingWithSeller(Object seller) {
+    return '$seller 승인 대기 중';
+  }
+
+  @override
+  String get buyerSettingsRequestButton => '새 연결 요청';
+
+  @override
+  String get buyerSettingsSheetTitle => '도매 연결 요청';
+
+  @override
+  String get buyerSettingsSellerFieldLabel => '연결할 도매업체';
+
+  @override
+  String get buyerSettingsSearchSeller => '도매업체 검색';
+
+  @override
+  String get buyerSettingsSearchAction => '검색';
+
+  @override
+  String get buyerSettingsSearchFieldLabel => '업체명으로 검색';
+
+  @override
+  String buyerSettingsSellerSummary(Object phone, Object address) {
+    return '전화: $phone · 주소: $address';
+  }
+
+  @override
+  String get buyerSettingsBuyerFieldLabel => '매장명';
+
+  @override
+  String get buyerSettingsBuyerAddressLabel => '매장 주소';
+
+  @override
+  String get buyerSettingsBuyerSegmentLabel => '업태/분류';
+
+  @override
+  String get buyerSettingsContactNameLabel => '담당자 이름';
+
+  @override
+  String get buyerSettingsContactPhoneLabel => '담당자 연락처';
+
+  @override
+  String get buyerSettingsAttachmentLabel => '첨부 URL(선택)';
+
+  @override
+  String get buyerSettingsRequiredField => '필수 입력 항목입니다.';
+
+  @override
+  String get buyerSettingsSubmit => '요청 보내기';
+
+  @override
+  String buyerSettingsRequestSuccess(Object seller) {
+    return '$seller에 요청을 전송했습니다';
+  }
+
+  @override
+  String get settingsCompanyInfoTitle => '업체 정보';
+
+  @override
+  String get settingsCompanyRepresentativeLabel => '대표자';
+
+  @override
+  String get settingsCompanyPhoneLabel => '대표번호';
+
+  @override
+  String get settingsCompanyAddressLabel => '주소';
+
+  @override
+  String get settingsCompanyRoleLabel => '내 역할';
+
+  @override
+  String get settingsCompanyPrimaryBadge => '기본 업체';
+
+  @override
+  String get settingsCompanySetPrimary => '기본 업체로 지정';
+
+  @override
+  String get settingsCompanyPrimarySaved => '기본 업체를 변경했습니다.';
+
+  @override
+  String get settingsCompanyPrimaryRequired =>
+      '기본 매장을 지정하면 주문서 기본값으로 사용할 수 있습니다.';
+
+  @override
+  String get settingsCompanyEditAction => '편집';
+
+  @override
+  String get settingsCompanyDeleteAction => '삭제';
+
+  @override
+  String settingsCompanyDeleteConfirm(Object name) {
+    return '$name 업체를 삭제할까요? 연결된 매장 정보가 제거됩니다.';
+  }
+
+  @override
+  String get settingsCompanyAddButton => '업체 추가';
+
+  @override
+  String get settingsCompanyFormTitleAdd => '업체 추가';
+
+  @override
+  String get settingsCompanyFormTitleEdit => '업체 수정';
+
+  @override
+  String get settingsCompanyFormSave => '업체 저장';
+
+  @override
+  String get settingsCompanyFormNameLabel => '업체명';
+
+  @override
+  String get settingsCompanyFormRepresentativeLabel => '대표자';
+
+  @override
+  String get settingsCompanyFormPhoneLabel => '대표번호';
+
+  @override
+  String get settingsCompanyFormAddressLabel => '주소';
+
+  @override
+  String get settingsCompanyFormNameRequired => '업체명을 입력하세요.';
+
+  @override
+  String get settingsCompanyFormSaved => '업체 정보를 저장했습니다.';
+
+  @override
+  String get settingsCompanyFormSaveError => '업체 정보를 저장하지 못했습니다.';
+
+  @override
+  String get settingsCompanyFormDeleteSuccess => '업체를 삭제했습니다.';
+
+  @override
+  String get settingsCompanyFormDeleteError => '업체를 삭제하지 못했습니다.';
+
+  @override
+  String get settingsLanguageSaved => '언어 설정을 저장했습니다.';
+
+  @override
+  String get settingsLanguageApplyHint => '다음 로그인 시 자동으로 적용됩니다.';
 
   @override
   String get buyerPreviewTitle => '구매자 미리보기';

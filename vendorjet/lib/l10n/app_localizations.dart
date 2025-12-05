@@ -1685,7 +1685,7 @@ abstract class AppLocalizations {
   /// No description provided for @buyerMenuProfile.
   ///
   /// In en, this message translates to:
-  /// **'Profile / Store settings'**
+  /// **'Personal settings'**
   String get buyerMenuProfile;
 
   /// No description provided for @buyerMenuSettings.
@@ -1699,6 +1699,414 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign out'**
   String get buyerMenuLogout;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal settings'**
+  String get profileTitle;
+
+  /// No description provided for @profileSectionPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Account details'**
+  String get profileSectionPersonal;
+
+  /// No description provided for @profileFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get profileFieldName;
+
+  /// No description provided for @profileFieldEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get profileFieldEmail;
+
+  /// No description provided for @profileFieldPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get profileFieldPhone;
+
+  /// No description provided for @profileFieldPasswordNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New password (optional)'**
+  String get profileFieldPasswordNew;
+
+  /// No description provided for @profileFieldPasswordConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get profileFieldPasswordConfirm;
+
+  /// No description provided for @profileSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get profileSave;
+
+  /// No description provided for @profileDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get profileDelete;
+
+  /// No description provided for @profileDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get profileDeleteTitle;
+
+  /// No description provided for @profileDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone. Delete the account?'**
+  String get profileDeleteConfirm;
+
+  /// No description provided for @profilePasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match.'**
+  String get profilePasswordMismatch;
+
+  /// No description provided for @profileSaveSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal settings saved.'**
+  String get profileSaveSuccess;
+
+  /// No description provided for @profileSaveFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save personal settings.'**
+  String get profileSaveFailure;
+
+  /// No description provided for @settingsProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile & personal info'**
+  String get settingsProfileTitle;
+
+  /// No description provided for @settingsProfileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage login, contact, and password'**
+  String get settingsProfileSubtitle;
+
+  /// No description provided for @buyerSettingsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Store settings'**
+  String get buyerSettingsSectionTitle;
+
+  /// No description provided for @buyerSettingsCompanyFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved store'**
+  String get buyerSettingsCompanyFallback;
+
+  /// No description provided for @buyerSettingsCompanyMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved store details'**
+  String get buyerSettingsCompanyMissing;
+
+  /// No description provided for @buyerSettingsConnectionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected wholesalers'**
+  String get buyerSettingsConnectionsTitle;
+
+  /// No description provided for @buyerSettingsNoConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'No active wholesaler connections.'**
+  String get buyerSettingsNoConnections;
+
+  /// No description provided for @buyerSettingsPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending request'**
+  String get buyerSettingsPendingTitle;
+
+  /// No description provided for @buyerSettingsPendingLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading pending requests...'**
+  String get buyerSettingsPendingLoading;
+
+  /// No description provided for @buyerSettingsPendingNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending connection request.'**
+  String get buyerSettingsPendingNone;
+
+  /// No description provided for @buyerSettingsPendingWithSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval from {seller}'**
+  String buyerSettingsPendingWithSeller(Object seller);
+
+  /// No description provided for @buyerSettingsRequestButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Request new connection'**
+  String get buyerSettingsRequestButton;
+
+  /// No description provided for @buyerSettingsSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Request wholesaler connection'**
+  String get buyerSettingsSheetTitle;
+
+  /// No description provided for @buyerSettingsSellerFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Target wholesaler'**
+  String get buyerSettingsSellerFieldLabel;
+
+  /// No description provided for @buyerSettingsSearchSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Search wholesaler'**
+  String get buyerSettingsSearchSeller;
+
+  /// No description provided for @buyerSettingsSearchAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get buyerSettingsSearchAction;
+
+  /// No description provided for @buyerSettingsSearchFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name'**
+  String get buyerSettingsSearchFieldLabel;
+
+  /// No description provided for @buyerSettingsSellerSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone: {phone} · Address: {address}'**
+  String buyerSettingsSellerSummary(Object phone, Object address);
+
+  /// No description provided for @buyerSettingsBuyerFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Store name'**
+  String get buyerSettingsBuyerFieldLabel;
+
+  /// No description provided for @buyerSettingsBuyerAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Store address'**
+  String get buyerSettingsBuyerAddressLabel;
+
+  /// No description provided for @buyerSettingsBuyerSegmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Business type'**
+  String get buyerSettingsBuyerSegmentLabel;
+
+  /// No description provided for @buyerSettingsContactNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact name'**
+  String get buyerSettingsContactNameLabel;
+
+  /// No description provided for @buyerSettingsContactPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact phone'**
+  String get buyerSettingsContactPhoneLabel;
+
+  /// No description provided for @buyerSettingsAttachmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment URL (optional)'**
+  String get buyerSettingsAttachmentLabel;
+
+  /// No description provided for @buyerSettingsRequiredField.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required.'**
+  String get buyerSettingsRequiredField;
+
+  /// No description provided for @buyerSettingsSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit request'**
+  String get buyerSettingsSubmit;
+
+  /// No description provided for @buyerSettingsRequestSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Request sent to {seller}'**
+  String buyerSettingsRequestSuccess(Object seller);
+
+  /// No description provided for @settingsCompanyInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Company information'**
+  String get settingsCompanyInfoTitle;
+
+  /// No description provided for @settingsCompanyRepresentativeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Representative'**
+  String get settingsCompanyRepresentativeLabel;
+
+  /// No description provided for @settingsCompanyPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get settingsCompanyPhoneLabel;
+
+  /// No description provided for @settingsCompanyAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get settingsCompanyAddressLabel;
+
+  /// No description provided for @settingsCompanyRoleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'My role'**
+  String get settingsCompanyRoleLabel;
+
+  /// No description provided for @settingsCompanyPrimaryBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Main company'**
+  String get settingsCompanyPrimaryBadge;
+
+  /// No description provided for @settingsCompanySetPrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'Set as main company'**
+  String get settingsCompanySetPrimary;
+
+  /// No description provided for @settingsCompanyPrimarySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Main company updated.'**
+  String get settingsCompanyPrimarySaved;
+
+  /// No description provided for @settingsCompanyPrimaryRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a main company to use it as the default store.'**
+  String get settingsCompanyPrimaryRequired;
+
+  /// No description provided for @settingsCompanyEditAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get settingsCompanyEditAction;
+
+  /// No description provided for @settingsCompanyDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get settingsCompanyDeleteAction;
+
+  /// No description provided for @settingsCompanyDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}? This disconnects related stores.'**
+  String settingsCompanyDeleteConfirm(Object name);
+
+  /// No description provided for @settingsCompanyAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add company'**
+  String get settingsCompanyAddButton;
+
+  /// No description provided for @settingsCompanyFormTitleAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add company'**
+  String get settingsCompanyFormTitleAdd;
+
+  /// No description provided for @settingsCompanyFormTitleEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit company'**
+  String get settingsCompanyFormTitleEdit;
+
+  /// No description provided for @settingsCompanyFormSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save company'**
+  String get settingsCompanyFormSave;
+
+  /// No description provided for @settingsCompanyFormNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Company name'**
+  String get settingsCompanyFormNameLabel;
+
+  /// No description provided for @settingsCompanyFormRepresentativeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Representative'**
+  String get settingsCompanyFormRepresentativeLabel;
+
+  /// No description provided for @settingsCompanyFormPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get settingsCompanyFormPhoneLabel;
+
+  /// No description provided for @settingsCompanyFormAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get settingsCompanyFormAddressLabel;
+
+  /// No description provided for @settingsCompanyFormNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a company name.'**
+  String get settingsCompanyFormNameRequired;
+
+  /// No description provided for @settingsCompanyFormSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Company information saved.'**
+  String get settingsCompanyFormSaved;
+
+  /// No description provided for @settingsCompanyFormSaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save company information.'**
+  String get settingsCompanyFormSaveError;
+
+  /// No description provided for @settingsCompanyFormDeleteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Company removed.'**
+  String get settingsCompanyFormDeleteSuccess;
+
+  /// No description provided for @settingsCompanyFormDeleteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove company.'**
+  String get settingsCompanyFormDeleteError;
+
+  /// No description provided for @settingsLanguageSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Language preference saved.'**
+  String get settingsLanguageSaved;
+
+  /// No description provided for @settingsLanguageApplyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes take effect on your next sign-in.'**
+  String get settingsLanguageApplyHint;
 
   /// No description provided for @buyerPreviewTitle.
   ///

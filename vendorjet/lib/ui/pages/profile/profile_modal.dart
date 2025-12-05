@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
+import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 
 class ProfileModal extends StatefulWidget {
   const ProfileModal({super.key});
@@ -13,7 +14,6 @@ class _ProfileModalState extends State<ProfileModal> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _loading = true;
   bool _saving = false;
@@ -31,24 +31,20 @@ class _ProfileModalState extends State<ProfileModal> {
     _nameCtrl.text = profile?['name']?.toString() ?? '';
     _emailCtrl.text = profile?['email']?.toString() ?? '';
     _phoneCtrl.text = profile?['phone']?.toString() ?? '';
-    _addressCtrl.text = profile?['address']?.toString() ?? '';
     setState(() => _loading = false);
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     final ok = await context.read<AuthController>().updateProfile(
-          name: _nameCtrl.text.trim(),
-          email: _emailCtrl.text.trim(),
-          phone: _phoneCtrl.text.trim(),
-          address: _addressCtrl.text.trim(),
-          password: _passwordCtrl.text.trim().isEmpty ? null : _passwordCtrl.text,
-        );
+      name: _nameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim(),
+      password: _passwordCtrl.text.trim().isEmpty ? null : _passwordCtrl.text,
+    );
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? '저장되었습니다' : '저장에 실패했습니다')),
-    );
+    context.read<NotificationTicker>().push(ok ? '???????' : '??? ??????');
     if (ok) Navigator.pop(context);
   }
 
@@ -57,7 +53,6 @@ class _ProfileModalState extends State<ProfileModal> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
-    _addressCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
@@ -75,31 +70,52 @@ class _ProfileModalState extends State<ProfileModal> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('개인정보', style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      '개인정보',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: '이름')),
+                    TextField(
+                      controller: _nameCtrl,
+                      decoration: const InputDecoration(labelText: '이름'),
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: _emailCtrl, decoration: const InputDecoration(labelText: '이메일')),
+                    TextField(
+                      controller: _emailCtrl,
+                      decoration: const InputDecoration(labelText: '이메일'),
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: '전화번호')),
-                    const SizedBox(height: 8),
-                    TextField(controller: _addressCtrl, decoration: const InputDecoration(labelText: '주소')),
+                    TextField(
+                      controller: _phoneCtrl,
+                      decoration: const InputDecoration(labelText: '전화번호'),
+                    ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _passwordCtrl,
-                      decoration: const InputDecoration(labelText: '새 비밀번호 (변경 시만 입력)'),
+                      decoration: const InputDecoration(
+                        labelText: '새 비밀번호 (변경 시만 입력)',
+                      ),
                       obscureText: true,
                     ),
                     const Spacer(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('취소'),
+                        ),
                         const SizedBox(width: 8),
                         FilledButton(
                           onPressed: _saving ? null : _save,
                           child: _saving
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : const Text('저장'),
                         ),
                       ],

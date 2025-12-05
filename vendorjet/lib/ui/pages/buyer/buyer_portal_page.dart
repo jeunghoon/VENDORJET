@@ -6,18 +6,24 @@ import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/order.dart';
 import 'package:vendorjet/models/product.dart';
+import 'package:vendorjet/models/tenant.dart';
 import 'package:vendorjet/repositories/mock_repository.dart';
 import 'package:vendorjet/repositories/order_repository.dart';
 import 'package:vendorjet/services/auth/auth_controller.dart';
 import 'package:vendorjet/services/sync/data_refresh_coordinator.dart';
 import 'package:vendorjet/ui/pages/buyer/buyer_cart_controller.dart';
+import 'package:vendorjet/ui/pages/profile/profile_page.dart';
+import 'package:vendorjet/ui/pages/settings_page.dart';
 import 'package:vendorjet/ui/widgets/notification_ticker.dart';
 import 'package:vendorjet/ui/widgets/product_tag_pill.dart';
 import 'package:vendorjet/ui/widgets/product_thumbnail.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
 class BuyerPortalPage extends StatefulWidget {
-  const BuyerPortalPage({super.key});
+  final Locale? currentLocale;
+  final ValueChanged<Locale>? onLocaleChanged;
+
+  const BuyerPortalPage({super.key, this.currentLocale, this.onLocaleChanged});
 
   @override
   State<BuyerPortalPage> createState() => _BuyerPortalPageState();
@@ -47,6 +53,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   bool _submitting = false;
   bool _contactPrefilled = false;
   bool _catalogGridView = true;
+  bool _sellerAccess = false;
   String? _productsError;
   String? _historyError;
   String? _storesError;
@@ -54,10 +61,18 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   String? _selectedStore;
   String? _pendingSellerName;
   bool _pendingSellerRequested = false;
+  Widget? _overlayContent;
+  String? _overlayTitle;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<AuthController>().refreshTenants();
+      _handleSellerAccessChange(_computeSellerAccess());
+    });
+    _sellerAccess = _computeSellerAccess();
     _loadProducts();
     _loadHistory();
     _loadStores();
@@ -79,6 +94,26 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     return DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
   }
 
+  bool _computeSellerAccess() {
+    final auth = context.read<AuthController?>();
+    if (auth == null) return false;
+    return auth.tenants.any((tenant) => tenant.type == TenantType.seller);
+  }
+
+  void _openOverlay(String title, Widget content) {
+    setState(() {
+      _overlayTitle = title;
+      _overlayContent = content;
+    });
+  }
+
+  void _closeOverlay() {
+    setState(() {
+      _overlayTitle = null;
+      _overlayContent = null;
+    });
+  }
+
   @override
   void dispose() {
     _searchCtrl
@@ -92,6 +127,17 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   Future<void> _loadProducts() async {
     final mountedContext = mounted;
     if (!mounted) return;
+    if (!_sellerAccess) {
+      if (mountedContext) {
+        setState(() {
+          _products = const [];
+          _categories = const [];
+          _productsLoading = false;
+          _productsError = null;
+        });
+      }
+      return;
+    }
     setState(() {
       _productsLoading = true;
       _productsError = null;
@@ -143,24 +189,58 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   Future<void> _loadStores() async {
     final mountedContext = mounted;
     if (!mounted) return;
+    if (!_sellerAccess) {
+      if (mountedContext) {
+        setState(() {
+          _storeOptions = const [];
+          _storesLoading = false;
+          _storesError = null;
+          _selectedStore = null;
+        });
+      }
+      return;
+    }
     setState(() {
       _storesLoading = true;
       _storesError = null;
     });
     try {
       final auth = context.read<AuthController?>();
-      final customers = await _customersRepo.fetch();
-      final email = auth?.email?.toLowerCase();
-      final list = email == null || email.isEmpty
-          ? customers
-          : customers.where((c) => c.email.toLowerCase() == email).toList();
-      final names = list.map((c) => c.name).toSet().toList()..sort();
+      final buyerTenants =
+          auth?.tenants
+              .where((tenant) => tenant.type == TenantType.buyer)
+              .toList() ??
+          const [];
+      List<String> names = const [];
+      String? preferredName;
+      if (buyerTenants.isNotEmpty) {
+        names = buyerTenants.map((c) => c.name).toSet().toList()..sort();
+        preferredName = buyerTenants
+            .firstWhere(
+              (tenant) => tenant.isPrimary,
+              orElse: () => buyerTenants.first,
+            )
+            .name;
+      } else {
+        final customers = await _customersRepo.fetch();
+        final email = auth?.email?.toLowerCase();
+        final list = email == null || email.isEmpty
+            ? customers
+            : customers.where((c) => c.email.toLowerCase() == email).toList();
+        names = list.map((c) => c.name).toSet().toList()..sort();
+      }
       if (!mountedContext || !mounted) return;
       setState(() {
         _storeOptions = names;
         _storesLoading = false;
-        if (_selectedStore != null && !_storeOptions.contains(_selectedStore)) {
+        if (names.isEmpty) {
           _selectedStore = null;
+        } else if ((_selectedStore ?? '').isEmpty) {
+          _selectedStore = preferredName ?? names.first;
+        } else if (!_storeOptions.contains(_selectedStore)) {
+          _selectedStore =
+              preferredName ??
+              (_storeOptions.isEmpty ? null : _storeOptions.first);
         }
       });
     } catch (err) {
@@ -263,29 +343,33 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   Future<void> _handleLoadFromHistory(
-    BuildContext providerContext,
     Order order,
     TabController? tabController,
   ) async {
-    final success = await _prefillCartFromOrder(providerContext, order);
-    if (!mounted || !providerContext.mounted) return;
-    final t = AppLocalizations.of(providerContext)!;
+    Order source = order;
+    if (order.lines.isEmpty && order.id.isNotEmpty) {
+      final detailed = await _ordersRepo.findById(order.id);
+      if (detailed != null) {
+        source = detailed;
+      }
+    }
+    final success = await _prefillCartFromOrder(source);
+    if (!mounted) return;
+    final t = AppLocalizations.of(context)!;
     if (!success) {
-      providerContext.read<NotificationTicker>().push(
-        t.buyerOrderPrefillMissing,
-      );
+      context.read<NotificationTicker>().push(t.buyerOrderPrefillMissing);
       return;
     }
     setState(() {
-      _noteCtrl.text = order.buyerNote ?? '';
-      final storeName = order.buyerName.trim();
+      _noteCtrl.text = source.buyerNote ?? '';
+      final storeName = source.buyerName.trim();
       if (storeName.isNotEmpty && !_storeOptions.contains(storeName)) {
         _storeOptions = [..._storeOptions, storeName]..sort();
       }
       if (storeName.isNotEmpty) {
         _selectedStore = storeName;
       }
-      final candidate = order.desiredDeliveryDate;
+      final candidate = source.desiredDeliveryDate;
       if (candidate != null) {
         final today = DateTime.now();
         final normalizedToday = DateTime(today.year, today.month, today.day);
@@ -297,17 +381,13 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       }
     });
     tabController?.animateTo(_orderTabIndex);
-    final label = order.code.isEmpty ? order.buyerName : order.code;
-    providerContext.read<NotificationTicker>().push(
-      t.buyerDashboardLoaded(label),
-    );
+    final label = source.code.isEmpty ? source.buyerName : source.code;
+    context.read<NotificationTicker>().push(t.buyerDashboardLoaded(label));
   }
 
-  Future<bool> _prefillCartFromOrder(
-    BuildContext providerContext,
-    Order order,
-  ) async {
-    final cart = providerContext.read<BuyerCartController>();
+  Future<bool> _prefillCartFromOrder(Order order) async {
+    if (!mounted) return false;
+    final cart = context.read<BuyerCartController>();
     final items = <BuyerCartItem>[];
     for (final line in order.lines) {
       final product = await _productsRepo.findById(line.productId);
@@ -390,12 +470,70 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   }
 
   void _navigateToTab(BuildContext context, int index) {
+    final hasController =
+        context.findAncestorWidgetOfExactType<DefaultTabController>() != null;
+    if (!hasController) {
+      return;
+    }
     final controller = DefaultTabController.of(context);
     controller.animateTo(index);
   }
 
+  void _handleSellerAccessChange(bool hasAccess) {
+    if (_sellerAccess == hasAccess) return;
+    if (!hasAccess) {
+      setState(() {
+        _sellerAccess = false;
+        _products = const [];
+        _storeOptions = const [];
+        _selectedStore = null;
+        _productsLoading = false;
+        _storesLoading = false;
+      });
+    } else {
+      setState(() => _sellerAccess = true);
+      _loadProducts();
+      _loadStores();
+    }
+  }
+
+  void _openBuyerProfile(BuildContext context, AppLocalizations t) {
+    _openOverlay(t.buyerMenuProfile, const ProfilePage(embedded: true));
+  }
+
+  void _openBuyerSettings(BuildContext context, AppLocalizations t) {
+    _openOverlay(
+      t.buyerMenuSettings,
+      SettingsPage(
+        embedded: true,
+        currentLocale: widget.currentLocale,
+        onLocaleChanged: widget.onLocaleChanged ?? (_) {},
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await context.read<AuthController>().refreshTenants();
+      if (!mounted) return;
+      final hasSeller = _computeSellerAccess();
+      if (hasSeller != _sellerAccess) {
+        _handleSellerAccessChange(hasSeller);
+      } else {
+        _loadStores();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasSellerAccess = context.watch<AuthController>().tenants.any(
+      (tenant) => tenant.type == TenantType.seller,
+    );
+    if (hasSellerAccess != _sellerAccess) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _handleSellerAccessChange(hasSellerAccess);
+      });
+    }
     final pendingSeller = _pendingSellerName;
     if (pendingSeller == null || pendingSeller.isEmpty) {
       _loadPendingSellerName();
@@ -409,112 +547,161 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
           builder: (context) {
             final t = AppLocalizations.of(context)!;
             final tabController = DefaultTabController.of(context);
-            return Scaffold(
-              appBar: AppBar(
-                title: Text(t.buyerPortalTitle),
-                bottom: TabBar(
-                  isScrollable: true,
-                  tabs: [
-                    Tab(text: t.buyerPortalTabDashboard),
-                    Tab(text: t.buyerPortalTabCatalog),
-                    Tab(text: t.buyerPortalTabOrder),
-                  ],
-                ),
-                actions: [
-                  PopupMenuButton<String>(
-                    onSelected: (value) async {
-                      switch (value) {
-                        case 'profile':
-                          if (context.mounted) context.go('/profile');
-                          break;
-                        case 'settings':
-                          if (context.mounted) context.go('/settings');
-                          break;
-                        case 'logout':
-                          await context.read<AuthController>().signOut();
-                          if (context.mounted) context.go('/sign-in');
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'profile',
-                        child: Text(t.buyerMenuProfile),
-                      ),
-                      PopupMenuItem(
-                        value: 'settings',
-                        child: Text(t.buyerMenuSettings),
-                      ),
-                      PopupMenuItem(
-                        value: 'logout',
-                        child: Text(t.buyerMenuLogout),
-                      ),
+            return PopScope(
+              canPop: _overlayContent == null,
+              onPopInvokedWithResult: (didPop, _) {
+                if (didPop) return;
+                if (_overlayContent != null) {
+                  _closeOverlay();
+                }
+              },
+              child: Scaffold(
+                appBar: AppBar(
+                  title: Text(t.buyerPortalTitle),
+                  bottom: TabBar(
+                    isScrollable: true,
+                    tabs: [
+                      Tab(text: t.buyerPortalTabDashboard),
+                      Tab(text: t.buyerPortalTabCatalog),
+                      Tab(text: t.buyerPortalTabOrder),
                     ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: TextButton.icon(
-                      onPressed: _pickDeliveryDate,
-                      icon: const Icon(Icons.event_outlined),
-                      label: Text(
-                        '${t.buyerDeliveryDateLabel}: ${_deliveryDateLabel(t)}',
+                  actions: [
+                    PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        switch (value) {
+                          case 'profile':
+                            _openBuyerProfile(context, t);
+                            break;
+                          case 'settings':
+                            _openBuyerSettings(context, t);
+                            break;
+                          case 'logout':
+                            await context.read<AuthController>().signOut();
+                            if (context.mounted) context.go('/sign-in');
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: Text(t.buyerMenuProfile),
+                        ),
+                        PopupMenuItem(
+                          value: 'settings',
+                          child: Text(t.buyerMenuSettings),
+                        ),
+                        PopupMenuItem(
+                          value: 'logout',
+                          child: Text(t.buyerMenuLogout),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: TextButton.icon(
+                        onPressed: _pickDeliveryDate,
+                        icon: const Icon(Icons.event_outlined),
+                        label: Text(
+                          '${t.buyerDeliveryDateLabel}: ${_deliveryDateLabel(t)}',
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              body: TabBarView(
-                children: [
-                  _BuyerDashboardTab(
-                    loading: _historyLoading,
-                    error: _historyError,
-                    orders: _history,
-                    onRefresh: _loadHistory,
-                    onLoadOrder: (order) =>
-                        _handleLoadFromHistory(context, order, tabController),
-                  ),
-                  _BuyerCatalogTab(
-                    searchController: _searchCtrl,
-                    products: _products,
-                    categories: _categories,
-                    selectedCategory: _selectedCategory,
-                    loading: _productsLoading,
-                    error: _productsError,
-                    pendingSellerName: pendingSeller,
-                    onRefresh: _loadProducts,
-                    onCategorySelected: _handleCategorySelected,
-                    quantityFor: _quantityForProduct,
-                    onQuantityChanged: _setQuantity,
-                    onAddToCart: (product, quantity) {
-                      context.read<BuyerCartController>().addWithQuantity(
-                        product,
-                        quantity,
-                      );
-                      setState(() {
-                        _quantityDrafts[product.id] = 1;
-                      });
-                    },
-                    gridView: _catalogGridView,
-                    onToggleView: () =>
-                        setState(() => _catalogGridView = !_catalogGridView),
-                  ),
-                  _BuyerOrderSheetTab(
-                    formKey: _orderFormKey,
-                    storeOptions: _storeOptions,
-                    selectedStore: _selectedStore,
-                    storeLoading: _storesLoading,
-                    storeError: _storesError,
-                    onStoreChanged: _handleStoreChanged,
-                    contactController: _contactCtrl,
-                    noteController: _noteCtrl,
-                    submitting: _submitting,
-                    onSubmit: _submitOrder,
-                    onBrowseCatalog: () =>
-                        _navigateToTab(context, _catalogTabIndex),
-                    onDeliveryTap: _pickDeliveryDate,
-                    deliveryDate: _deliveryDate,
-                  ),
-                ],
+                  ],
+                ),
+                body: Stack(
+                  children: [
+                    TabBarView(
+                      children: [
+                        _BuyerDashboardTab(
+                          loading: _historyLoading,
+                          error: _historyError,
+                          orders: _history,
+                          onRefresh: _loadHistory,
+                          onLoadOrder: (order) =>
+                              _handleLoadFromHistory(order, tabController),
+                        ),
+                        _BuyerCatalogTab(
+                          searchController: _searchCtrl,
+                          products: _products,
+                          categories: _categories,
+                          selectedCategory: _selectedCategory,
+                          loading: _productsLoading,
+                          error: _productsError,
+                          pendingSellerName: pendingSeller,
+                          onRefresh: _loadProducts,
+                          onCategorySelected: _handleCategorySelected,
+                          quantityFor: _quantityForProduct,
+                          onQuantityChanged: _setQuantity,
+                          onAddToCart: (product, quantity) {
+                            context.read<BuyerCartController>().addWithQuantity(
+                              product,
+                              quantity,
+                            );
+                            setState(() {
+                              _quantityDrafts[product.id] = 1;
+                            });
+                          },
+                          gridView: _catalogGridView,
+                          onToggleView: () => setState(
+                            () => _catalogGridView = !_catalogGridView,
+                          ),
+                          sellerAccess: _sellerAccess,
+                        ),
+                        _BuyerOrderSheetTab(
+                          formKey: _orderFormKey,
+                          storeOptions: _storeOptions,
+                          selectedStore: _selectedStore,
+                          storeLoading: _storesLoading,
+                          storeError: _storesError,
+                          onStoreChanged: _handleStoreChanged,
+                          contactController: _contactCtrl,
+                          noteController: _noteCtrl,
+                          submitting: _submitting,
+                          onSubmit: _submitOrder,
+                          onBrowseCatalog: () =>
+                              _navigateToTab(context, _catalogTabIndex),
+                          onDeliveryTap: _pickDeliveryDate,
+                          deliveryDate: _deliveryDate,
+                          sellerAccess: _sellerAccess,
+                        ),
+                      ],
+                    ),
+                    if (_overlayContent != null)
+                      Positioned.fill(
+                        child: Material(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0.98),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                leading: IconButton(
+                                  icon: const Icon(Icons.arrow_back),
+                                  onPressed: _closeOverlay,
+                                ),
+                                title: Text(_overlayTitle ?? ''),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: _closeOverlay,
+                                ),
+                              ),
+                              const Divider(height: 1),
+                              Expanded(
+                                child: SafeArea(
+                                  top: false,
+                                  child:
+                                      _overlayContent ??
+                                      const SizedBox.shrink(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             );
           },
@@ -539,6 +726,7 @@ class _BuyerCatalogTab extends StatelessWidget {
   final void Function(Product product, int quantity) onAddToCart;
   final bool gridView;
   final VoidCallback onToggleView;
+  final bool sellerAccess;
 
   const _BuyerCatalogTab({
     required this.searchController,
@@ -555,6 +743,7 @@ class _BuyerCatalogTab extends StatelessWidget {
     required this.onAddToCart,
     required this.gridView,
     required this.onToggleView,
+    required this.sellerAccess,
   });
 
   @override
@@ -562,6 +751,24 @@ class _BuyerCatalogTab extends StatelessWidget {
     final t = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final needsApproval = (pendingSellerName ?? '').isNotEmpty;
+
+    if (!sellerAccess) {
+      return ListView(
+        padding: const EdgeInsets.all(32),
+        children: [
+          StateMessageView(
+            icon: Icons.lock_outline,
+            title: t.buyerSettingsNoConnections,
+            message: t.buyerSettingsPendingNone,
+            action: FilledButton.icon(
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh),
+              label: Text(t.stateRetry),
+            ),
+          ),
+        ],
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: onRefresh,
@@ -804,16 +1011,10 @@ class _CatalogCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                _QuantitySelector(
-                  value: quantity,
-                  onChanged: onQuantityChanged,
-                  onSubmit: onAdd,
-                  dense: compact,
-                ),
-                const SizedBox(width: 12),
-                FilledButton.icon(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isStacked = constraints.maxWidth < 260;
+                Widget buildButton() => FilledButton.icon(
                   onPressed: onAdd,
                   icon: const Icon(Icons.shopping_cart_outlined, size: 18),
                   label: const Text('Add'),
@@ -828,8 +1029,38 @@ class _CatalogCard extends StatelessWidget {
                       : FilledButton.styleFrom(
                           minimumSize: const Size(110, 40),
                         ),
-                ),
-              ],
+                );
+                if (isStacked) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _QuantitySelector(
+                          value: quantity,
+                          onChanged: onQuantityChanged,
+                          onSubmit: onAdd,
+                          dense: compact,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(width: double.infinity, child: buildButton()),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    _QuantitySelector(
+                      value: quantity,
+                      onChanged: onQuantityChanged,
+                      onSubmit: onAdd,
+                      dense: compact,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: buildButton()),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -1050,6 +1281,7 @@ class _BuyerOrderSheetTab extends StatelessWidget {
   final VoidCallback onBrowseCatalog;
   final VoidCallback onDeliveryTap;
   final DateTime deliveryDate;
+  final bool sellerAccess;
 
   const _BuyerOrderSheetTab({
     required this.formKey,
@@ -1065,6 +1297,7 @@ class _BuyerOrderSheetTab extends StatelessWidget {
     required this.onBrowseCatalog,
     required this.onDeliveryTap,
     required this.deliveryDate,
+    required this.sellerAccess,
   });
 
   @override
@@ -1072,6 +1305,20 @@ class _BuyerOrderSheetTab extends StatelessWidget {
     final t = AppLocalizations.of(context)!;
     return Consumer<BuyerCartController>(
       builder: (context, cart, _) {
+        if (!sellerAccess) {
+          return Center(
+            child: StateMessageView(
+              icon: Icons.store_mall_directory_outlined,
+              title: t.buyerSettingsNoConnections,
+              message: t.buyerSettingsPendingNone,
+              action: FilledButton.icon(
+                onPressed: onBrowseCatalog,
+                icon: const Icon(Icons.refresh),
+                label: Text(t.stateRetry),
+              ),
+            ),
+          );
+        }
         if (cart.isEmpty) {
           return Center(
             child: StateMessageView(
@@ -1406,6 +1653,10 @@ class _DashboardOrderCard extends StatelessWidget {
     final material = MaterialLocalizations.of(context);
     final dateLabel =
         '${material.formatMediumDate(order.createdAt)} · ${material.formatTimeOfDay(TimeOfDay.fromDateTime(order.createdAt))}';
+    final summaryLabel = t.buyerOrderSummary(
+      order.displayLineCount,
+      order.itemCount,
+    );
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1438,7 +1689,7 @@ class _DashboardOrderCard extends StatelessWidget {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
-            Text(t.buyerCheckoutItems(order.itemCount)),
+            Text(summaryLabel),
             if (order.buyerNote != null && order.buyerNote!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(

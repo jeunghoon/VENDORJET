@@ -3,6 +3,13 @@ import { db, mapRows } from '../../db/client';
 
 const router = Router();
 
+const sanitizeSellerRole = (role?: string | null) => {
+  const normalized = (role ?? 'staff').toString().toLowerCase();
+  if (normalized === 'owner') return 'manager';
+  if (normalized === 'manager') return 'manager';
+  return 'staff';
+};
+
 // 전체 사용자 목록
 router.get('/users', (_req, res) => {
   const rows = mapRows<any>(
@@ -48,27 +55,27 @@ router.get('/tenants', (_req, res) => {
 
 // 테넌트 생성(지정 사용자 owner 연결)
 router.post('/tenants', (req, res) => {
-  const { name, phone = '', address = '', userId } = req.body || {};
+  const { name, phone = '', address = '', userId, representative = '' } = req.body || {};
   if (!name || !userId) {
     return res.status(400).json({ error: 'name and userId required' });
   }
   const tenantId = `t_${Date.now()}`;
   const now = new Date().toISOString();
   const tx = db.transaction(() => {
-    db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address) VALUES (?,?,?,?,?,?)')
-      .run(tenantId, name, 'en', now, phone, address);
+    db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address, representative) VALUES (?,?,?,?,?,?,?)')
+      .run(tenantId, name, 'en', now, phone, address, representative);
     db.prepare('INSERT OR IGNORE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)')
       .run(userId, tenantId, 'owner', 'approved');
   });
   tx();
-  return res.status(201).json({ id: tenantId, name, phone, address });
+  return res.status(201).json({ id: tenantId, name, phone, address, representative });
 });
 
 // 테넌트 수정
 router.patch('/tenants/:id', (req, res) => {
   const { id } = req.params;
-  const { name, phone, address } = req.body || {};
-  if (!name && !phone && !address) return res.json({ ok: true });
+  const { name, phone, address, representative } = req.body || {};
+  if (!name && !phone && !address && !representative) return res.json({ ok: true });
   const parts: string[] = [];
   const params: any[] = [];
   if (name) {
@@ -82,6 +89,10 @@ router.patch('/tenants/:id', (req, res) => {
   if (address) {
     parts.push('address = ?');
     params.push(address);
+  }
+  if (representative) {
+    parts.push('representative = ?');
+    params.push(representative);
   }
   params.push(id);
   db.prepare(`UPDATE tenants SET ${parts.join(', ')} WHERE id = ?`).run(...params);
@@ -198,9 +209,29 @@ router.patch('/requests/:id', (req, res) => {
         .prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1')
         .get(reqRow.seller_company) as { id: string } | undefined;
       if (tenant) {
+        const requesterRole = sanitizeSellerRole(reqRow.role);
         db.prepare(
           'INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
-        ).run(reqRow.user_id, tenant.id, reqRow.role ?? 'staff', 'approved');
+        ).run(reqRow.user_id, tenant.id, requesterRole, 'approved');
+        if (reqRow.buyer_tenant_id) {
+          const buyerMembers = db
+            .prepare('SELECT user_id, role FROM memberships WHERE tenant_id = ?')
+            .all(reqRow.buyer_tenant_id) as Array<{ user_id: string; role?: string }>;
+          for (const member of buyerMembers) {
+            db.prepare(
+              'INSERT OR IGNORE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
+            ).run(member.user_id, tenant.id, sanitizeSellerRole(member.role), 'approved');
+          }
+        }
+        db.prepare(
+          `UPDATE memberships
+             SET role = 'manager'
+             WHERE tenant_id = ?
+               AND role = 'owner'
+               AND user_id IN (
+                 SELECT id FROM users WHERE COALESCE(user_type, 'wholesale') = 'retail'
+               )`
+        ).run(tenant.id);
         const nowIso = new Date().toISOString();
         const resolvedSegment =
           (segment ?? '').toString().trim() ||
