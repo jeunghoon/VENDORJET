@@ -3,13 +3,6 @@ import { db, mapRows } from '../../db/client';
 
 const router = Router();
 
-const sanitizeSellerRole = (role?: string | null) => {
-  const normalized = (role ?? 'staff').toString().toLowerCase();
-  if (normalized === 'owner') return 'manager';
-  if (normalized === 'manager') return 'manager';
-  return 'staff';
-};
-
 // 전체 사용자 목록
 router.get('/users', (_req, res) => {
   const rows = mapRows<any>(
@@ -204,34 +197,11 @@ router.patch('/requests/:id', (req, res) => {
     db.prepare(
       'UPDATE buyer_requests SET status = ?, selected_segment = COALESCE(?, selected_segment), selected_tier = COALESCE(?, selected_tier) WHERE id = ?'
     ).run(status, segment, tier, id);
-    if (status === 'approved' && reqRow.seller_company && reqRow.user_id) {
+    if (status === 'approved' && reqRow.seller_company) {
       const tenant = db
         .prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1')
         .get(reqRow.seller_company) as { id: string } | undefined;
       if (tenant) {
-        const requesterRole = sanitizeSellerRole(reqRow.role);
-        db.prepare(
-          'INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
-        ).run(reqRow.user_id, tenant.id, requesterRole, 'approved');
-        if (reqRow.buyer_tenant_id) {
-          const buyerMembers = db
-            .prepare('SELECT user_id, role FROM memberships WHERE tenant_id = ?')
-            .all(reqRow.buyer_tenant_id) as Array<{ user_id: string; role?: string }>;
-          for (const member of buyerMembers) {
-            db.prepare(
-              'INSERT OR IGNORE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
-            ).run(member.user_id, tenant.id, sanitizeSellerRole(member.role), 'approved');
-          }
-        }
-        db.prepare(
-          `UPDATE memberships
-             SET role = 'manager'
-             WHERE tenant_id = ?
-               AND role = 'owner'
-               AND user_id IN (
-                 SELECT id FROM users WHERE COALESCE(user_type, 'wholesale') = 'retail'
-               )`
-        ).run(tenant.id);
         const nowIso = new Date().toISOString();
         const resolvedSegment =
           (segment ?? '').toString().trim() ||

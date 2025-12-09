@@ -143,6 +143,16 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       _productsError = null;
     });
     try {
+      final ensured = await _ensureActiveSellerTenant();
+      if (!ensured) {
+        if (!mountedContext || !mounted) return;
+        final t = AppLocalizations.of(context)!;
+        setState(() {
+          _productsLoading = false;
+          _productsError = t.tenantSwitchFailed;
+        });
+        return;
+      }
       final items = await _productsRepo.fetch(
         query: _searchCtrl.text,
         topCategory: _selectedCategory,
@@ -171,6 +181,16 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       _historyError = null;
     });
     try {
+      final ensured = await _ensureActiveSellerTenant();
+      if (!ensured) {
+        if (!mountedContext || !mounted) return;
+        final t = AppLocalizations.of(context)!;
+        setState(() {
+          _historyLoading = false;
+          _historyError = t.tenantSwitchFailed;
+        });
+        return;
+      }
       final items = await _ordersRepo.fetch(createdSource: 'buyer_portal');
       if (!mountedContext || !mounted) return;
       setState(() {
@@ -345,6 +365,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   Future<void> _handleLoadFromHistory(
     Order order,
     TabController? tabController,
+    BuyerCartController cart,
   ) async {
     Order source = order;
     if (order.lines.isEmpty && order.id.isNotEmpty) {
@@ -353,7 +374,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
         source = detailed;
       }
     }
-    final success = await _prefillCartFromOrder(source);
+    final success = await _prefillCartFromOrder(source, cart);
     if (!mounted) return;
     final t = AppLocalizations.of(context)!;
     if (!success) {
@@ -385,9 +406,11 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     context.read<NotificationTicker>().push(t.buyerDashboardLoaded(label));
   }
 
-  Future<bool> _prefillCartFromOrder(Order order) async {
+  Future<bool> _prefillCartFromOrder(
+    Order order,
+    BuyerCartController cart,
+  ) async {
     if (!mounted) return false;
-    final cart = context.read<BuyerCartController>();
     final items = <BuyerCartItem>[];
     for (final line in order.lines) {
       final product = await _productsRepo.findById(line.productId);
@@ -492,9 +515,53 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       });
     } else {
       setState(() => _sellerAccess = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _ensureActiveSellerTenant();
+      });
       _loadProducts();
       _loadStores();
     }
+  }
+
+  Future<bool> _ensureActiveSellerTenant({String? targetTenantId}) async {
+    final auth = context.read<AuthController?>();
+    if (auth == null) return false;
+    final sellers =
+        auth.tenants.where((tenant) => tenant.type == TenantType.seller).toList();
+    if (sellers.isEmpty) {
+      return false;
+    }
+    final current = auth.tenant;
+    Tenant? desired;
+    if (targetTenantId != null) {
+      desired = sellers.firstWhere(
+        (tenant) => tenant.id == targetTenantId,
+        orElse: () => sellers.first,
+      );
+    } else if (current != null && current.type == TenantType.seller) {
+      desired = current;
+    } else {
+      desired = sellers.first;
+    }
+    if (current != null && current.id == desired.id && current.type == TenantType.seller) {
+      return true;
+    }
+    final ok = await auth.switchTenant(desired.id);
+    return ok;
+  }
+
+  Future<void> _switchSellerTenant(String tenantId) async {
+    final success = await _ensureActiveSellerTenant(targetTenantId: tenantId);
+    if (!mounted) return;
+    final t = AppLocalizations.of(context)!;
+    if (!success) {
+      context.read<NotificationTicker>().push(t.tenantSwitchFailed);
+      return;
+    }
+    _loadProducts();
+    _loadHistory();
+    _loadStores();
   }
 
   void _openBuyerProfile(BuildContext context, AppLocalizations t) {
@@ -547,6 +614,13 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
           builder: (context) {
             final t = AppLocalizations.of(context)!;
             final tabController = DefaultTabController.of(context);
+            final auth = context.watch<AuthController>();
+            final sellerTenants = auth.tenants
+                .where((tenant) => tenant.type == TenantType.seller)
+                .toList();
+            final activeSellerId = auth.tenant != null && auth.tenant!.type == TenantType.seller
+                ? auth.tenant!.id
+                : null;
             return PopScope(
               canPop: _overlayContent == null,
               onPopInvokedWithResult: (didPop, _) {
@@ -567,6 +641,33 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                     ],
                   ),
                   actions: [
+                    if (_sellerAccess && sellerTenants.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: activeSellerId,
+                            icon: const Icon(Icons.storefront_outlined),
+                            hint: Text(t.buyerSettingsConnectionsTitle),
+                            onChanged: (value) {
+                              if (value != null) {
+                                _switchSellerTenant(value);
+                              }
+                            },
+                            items: sellerTenants
+                                .map(
+                                  (tenant) => DropdownMenuItem(
+                                    value: tenant.id,
+                                    child: Text(
+                                      tenant.name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ),
                     PopupMenuButton<String>(
                       onSelected: (value) async {
                         switch (value) {
@@ -618,8 +719,8 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                           error: _historyError,
                           orders: _history,
                           onRefresh: _loadHistory,
-                          onLoadOrder: (order) =>
-                              _handleLoadFromHistory(order, tabController),
+                          onLoadOrder: (order, cart) =>
+                              _handleLoadFromHistory(order, tabController, cart),
                         ),
                         _BuyerCatalogTab(
                           searchController: _searchCtrl,
@@ -1138,7 +1239,7 @@ class _BuyerDashboardTab extends StatelessWidget {
   final String? error;
   final List<Order> orders;
   final Future<void> Function() onRefresh;
-  final ValueChanged<Order> onLoadOrder;
+  final void Function(Order order, BuyerCartController cart) onLoadOrder;
 
   const _BuyerDashboardTab({
     required this.loading,
@@ -1151,6 +1252,7 @@ class _BuyerDashboardTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
+    final cart = context.read<BuyerCartController>();
     if (loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -1256,7 +1358,7 @@ class _BuyerDashboardTab extends StatelessWidget {
             for (final order in recentOrders) ...[
               _DashboardOrderCard(
                 order: order,
-                onLoad: () => onLoadOrder(order),
+                onLoad: () => onLoadOrder(order, cart),
               ),
               const SizedBox(height: 12),
             ],

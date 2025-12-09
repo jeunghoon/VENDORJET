@@ -197,26 +197,35 @@ class ApiAuthService implements AuthService {
       final resp = await ApiClient.get('/auth/tenants') as List<dynamic>;
       final tenants = resp
           .map(
-            (e) => Tenant(
-              id: e['id'] as String,
-              name: e['name'] as String,
-              phone: (e['phone'] as String?) ?? '',
-              address: (e['address'] as String?) ?? '',
-              type: _typeFromString(
-                (e['type'] as String?) ?? (e['tenantType'] as String?),
-              ),
-              representative: (e['representative'] as String?) ?? '',
-              isPrimary:
-                  (e['isPrimary'] as bool?) ??
-                  ((e['id'] as String?) == _primaryTenantId),
-              createdAt:
-                  DateTime.tryParse(
-                    (e['createdAt'] as String?) ??
-                        (e['created_at'] as String?) ??
-                        '',
-                  ) ??
-                  DateTime.now(),
-            ),
+            (e) {
+              final rawType =
+                  (e['type'] as String?) ??
+                  (e['tenantType'] as String?) ??
+                  (e['tenant_type'] as String?);
+              final rawPrimary = e['isPrimary'] ?? e['is_primary'];
+              final isPrimary = switch (rawPrimary) {
+                bool b => b,
+                num n => n != 0,
+                String s => s == '1' || s.toLowerCase() == 'true',
+                _ => false,
+              };
+              return Tenant(
+                id: e['id'] as String,
+                name: e['name'] as String,
+                phone: (e['phone'] as String?) ?? '',
+                address: (e['address'] as String?) ?? '',
+                type: _typeFromString(rawType),
+                representative: (e['representative'] as String?) ?? '',
+                isPrimary: isPrimary || ((e['id'] as String?) == _primaryTenantId),
+                createdAt:
+                    DateTime.tryParse(
+                      (e['createdAt'] as String?) ??
+                          (e['created_at'] as String?) ??
+                          '',
+                    ) ??
+                    DateTime.now(),
+              );
+            },
           )
           .toList();
       _tenants = tenants;
@@ -438,6 +447,49 @@ class ApiAuthService implements AuthService {
     }
   }
 
+  Future<List<TenantMemberDetail>> fetchTenantMembers(String tenantId) async {
+    try {
+      final resp =
+          await ApiClient.get(
+            '/auth/members',
+            query: {'tenantId': tenantId},
+          ) as List<dynamic>;
+      return resp
+          .map(
+            (raw) => TenantMemberDetail(
+              id: (raw['userId'] as String?) ?? '',
+              name: (raw['name'] as String?) ?? '',
+              email: (raw['email'] as String?) ?? '',
+              phone: (raw['phone'] as String?) ?? '',
+              role: _roleFromString(raw['role'] as String?),
+              status: (raw['status'] as String?) ?? 'approved',
+            ),
+          )
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<bool> updateTenantMemberRole({
+    required String tenantId,
+    required String memberId,
+    required TenantMemberRole role,
+  }) async {
+    try {
+      await ApiClient.patch(
+        '/auth/members/$memberId',
+        body: {
+          'tenantId': tenantId,
+          'role': _roleToString(role),
+        },
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _persist() async {
     await _prefs?.setString(_kEmail, _email ?? '');
     if (_currentTenantId != null) {
@@ -473,13 +525,24 @@ class ApiAuthService implements AuthService {
   }
 
   TenantType _typeFromString(String? value) {
-    switch (value) {
+    switch (value?.toLowerCase()) {
       case 'seller':
         return TenantType.seller;
       case 'buyer':
         return TenantType.buyer;
       default:
         return TenantType.unknown;
+    }
+  }
+
+  String _roleToString(TenantMemberRole role) {
+    switch (role) {
+      case TenantMemberRole.owner:
+        return 'owner';
+      case TenantMemberRole.manager:
+        return 'manager';
+      case TenantMemberRole.staff:
+        return 'staff';
     }
   }
 }

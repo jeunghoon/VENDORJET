@@ -30,3 +30,23 @@ class TenantMembership {
 
   const TenantMembership({required this.tenantId, required this.role});
 }
+
+class TenantMemberDetail {
+  final String id;
+  final String name;
+  final String email;
+  final String phone;
+  final TenantMemberRole role;
+  final String status;
+
+  const TenantMemberDetail({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.role,
+    required this.status,
+  });
+
+  bool get isApproved => status.toLowerCase() == 'approved';
+}

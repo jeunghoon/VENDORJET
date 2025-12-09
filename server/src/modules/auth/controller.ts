@@ -266,7 +266,7 @@ router.get('/tenants-public', (_req, res) => {
   }>(
     db
       .prepare(
-        `SELECT
+        `SELECT DISTINCT
             t.id,
             t.name,
             CASE
@@ -496,14 +496,6 @@ router.post('/register-buyer', (req, res) => {
   }
 
   if (!sellerTenant) {
-    if (buyerTenantId) {
-      db.prepare('INSERT OR IGNORE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)').run(
-        userId,
-        buyerTenantId,
-        role ?? 'staff',
-        'approved'
-      );
-    }
     return res.status(201).json({
       status: 'registered',
       message: 'buyer registered without seller connection',
@@ -633,6 +625,108 @@ router.post('/buyer/reapply', authMiddleware, (req, res) => {
     requestId: reqId,
     message: 'pending approval',
   });
+});
+
+router.get('/members', authMiddleware, (req, res) => {
+  const user = req.user;
+  if (!user) return res.status(401).json({ error: 'unauthorized' });
+  const tenantId = ((req.query.tenantId as string | undefined)?.trim() || user.tenantId)?.trim();
+  if (!tenantId) return res.status(400).json({ error: 'tenantId required' });
+  const membership = db
+    .prepare(
+      `SELECT role
+       FROM memberships
+       WHERE user_id = ?
+         AND tenant_id = ?
+         AND COALESCE(status, 'approved') = 'approved'
+       LIMIT 1`
+    )
+    .get(user.userId, tenantId) as { role?: string } | undefined;
+  if (!membership) return res.status(403).json({ error: 'forbidden' });
+  const tenantInfo = db
+    .prepare(
+      `SELECT
+         CASE
+           WHEN EXISTS (
+             SELECT 1
+             FROM memberships mo
+             INNER JOIN users uo ON uo.id = mo.user_id
+             WHERE mo.tenant_id = t.id
+               AND mo.role = 'owner'
+               AND COALESCE(uo.user_type, 'wholesale') = 'retail'
+           )
+           THEN 'buyer'
+           ELSE 'seller'
+         END AS tenant_type
+       FROM tenants t
+       WHERE t.id = ?
+       LIMIT 1`
+    )
+    .get(tenantId) as { tenant_type?: string } | undefined;
+  const tenantType = (tenantInfo?.tenant_type ?? 'seller').toLowerCase();
+  const allowedUserType = tenantType === 'buyer' ? 'retail' : 'wholesale';
+
+  const userTypeFilter =
+    allowedUserType === 'retail'
+      ? "COALESCE(u.user_type, 'wholesale') = 'retail'"
+      : "COALESCE(u.user_type, 'wholesale') != 'retail'";
+  const rows = mapRows<{
+    userId: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: string;
+    status: string;
+  }>(
+    db
+      .prepare(
+        `SELECT u.id   AS user_id,
+                COALESCE(u.name, '') AS name,
+                COALESCE(u.email, '') AS email,
+                COALESCE(u.phone, '') AS phone,
+                COALESCE(m.role, 'staff') AS role,
+                COALESCE(m.status, 'approved') AS status
+         FROM memberships m
+         INNER JOIN users u ON u.id = m.user_id
+         WHERE m.tenant_id = ?
+           AND ${userTypeFilter}
+         ORDER BY LOWER(u.email)`
+      )
+      .all(tenantId)
+  );
+  return res.json(rows);
+});
+
+router.patch('/members/:memberId', authMiddleware, (req, res) => {
+  const user = req.user;
+  if (!user) return res.status(401).json({ error: 'unauthorized' });
+  const { tenantId, role } = req.body || {};
+  const targetTenantId = (tenantId as string | undefined)?.trim();
+  if (!targetTenantId) return res.status(400).json({ error: 'tenantId required' });
+  const desiredRole = (role as string | undefined)?.toLowerCase();
+  if (!desiredRole || !['manager', 'staff'].includes(desiredRole)) {
+    return res.status(400).json({ error: 'role must be manager or staff' });
+  }
+  const actor = db
+    .prepare(
+      `SELECT role
+       FROM memberships
+       WHERE user_id = ?
+         AND tenant_id = ?
+         AND COALESCE(status, 'approved') = 'approved'
+       LIMIT 1`
+    )
+    .get(user.userId, targetTenantId) as { role?: string } | undefined;
+  if (!actor || actor.role !== 'owner') {
+    return res.status(403).json({ error: 'only owners can update roles' });
+  }
+  const info = db
+    .prepare('UPDATE memberships SET role = ? WHERE user_id = ? AND tenant_id = ?')
+    .run(desiredRole, req.params.memberId, targetTenantId);
+  if (info.changes === 0) {
+    return res.status(404).json({ error: 'membership not found' });
+  }
+  return res.json({ userId: req.params.memberId, role: desiredRole });
 });
 
 export default router;

@@ -363,3 +363,4 @@ class _Splash extends StatelessWidget {
     return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
+

@@ -333,4 +333,25 @@ class AuthController extends ChangeNotifier {
   Future<void> requestPasswordReset(String email) async {
     await service.requestPasswordReset(email);
   }
+
+  Future<List<TenantMemberDetail>> fetchTenantMembers(String tenantId) async {
+    return await _api?.fetchTenantMembers(tenantId) ?? const [];
+  }
+
+  Future<bool> updateTenantMemberRole({
+    required String tenantId,
+    required String memberId,
+    required TenantMemberRole role,
+  }) async {
+    final ok =
+        await _api?.updateTenantMemberRole(
+          tenantId: tenantId,
+          memberId: memberId,
+          role: role,
+        ) ?? false;
+    if (ok) {
+      await refreshTenants();
+    }
+    return ok;
+  }
 }

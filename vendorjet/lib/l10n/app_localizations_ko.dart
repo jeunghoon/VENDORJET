@@ -897,6 +897,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get buyerSettingsCompanyMissing => '저장된 매장 정보가 없습니다';
 
   @override
+  String get settingsMembersSectionTitle => '구성원';
+
+  @override
+  String get settingsMembersSelfBadge => '나';
+
+  @override
+  String get settingsMembersRoleLabel => '직책';
+
+  @override
+  String get settingsMembersOwnerHint => '대표만 직책을 변경할 수 있습니다.';
+
+  @override
+  String get settingsMembersUpdateSuccess => '구성원 직책을 변경했습니다.';
+
+  @override
+  String get settingsMembersUpdateError => '구성원 직책을 변경하지 못했습니다.';
+
+  @override
   String get buyerSettingsConnectionsTitle => '연결된 도매업체';
 
   @override
@@ -988,6 +1006,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsCompanySetPrimary => '기본 업체로 지정';
+
+  @override
+  String get settingsStoreCurrentLabel => '현재 선택된 매장';
+
+  @override
+  String get settingsStoreSwitchAction => '이 매장으로 전환';
 
   @override
   String get settingsCompanyPrimarySaved => '기본 업체를 변경했습니다.';

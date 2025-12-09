@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
@@ -30,6 +31,10 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _pendingSellerName;
   bool _pendingSellerLoading = false;
   bool _tenantsRefreshing = false;
+  String? _membersTenantId;
+  bool _membersLoading = false;
+  List<TenantMemberDetail> _members = const [];
+  final Set<String> _memberUpdating = <String>{};
 
   @override
   void initState() {
@@ -60,7 +65,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (isBuyer) {
       children.addAll(_buildBuyerSettings(t, auth));
     } else if (tenant != null) {
-      children.addAll(_buildSellerSettings(context, t, tenant, role, tenants));
+      children.addAll(_buildSellerSettings(context, t, auth, tenant, role, tenants));
     }
 
     if (children.isNotEmpty) {
@@ -92,9 +97,9 @@ class _SettingsPageState extends State<SettingsPage> {
         onChanged: (loc) async {
           if (loc == null) return;
           widget.onLocaleChanged(loc);
+          final ticker = context.read<NotificationTicker>();
           final ok = await auth.updateProfile(language: loc);
           if (!mounted) return;
-          final ticker = context.read<NotificationTicker>();
           ticker.push(ok ? t.settingsLanguageSaved : t.stateErrorMessage);
         },
       ),
@@ -105,6 +110,21 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       const SizedBox(height: 24),
     ]);
+
+    children.add(
+      FilledButton.icon(
+        onPressed: () async {
+          final authController = context.read<AuthController>();
+          final router = GoRouter.of(context);
+          await authController.signOut();
+          if (!mounted) return;
+          router.go('/sign-in');
+        },
+        icon: const Icon(Icons.logout),
+        label: Text(t.buyerMenuLogout),
+      ),
+    );
+    children.add(const SizedBox(height: 24));
 
     final body = ListView(
       padding: const EdgeInsets.all(16),
@@ -124,62 +144,76 @@ class _SettingsPageState extends State<SettingsPage> {
   List<Widget> _buildSellerSettings(
     BuildContext context,
     AppLocalizations t,
+    AuthController auth,
     Tenant tenant,
     TenantMemberRole? role,
     List<Tenant> tenants,
   ) {
+    final sellerTenants = tenants
+        .where((item) => item.type != TenantType.buyer)
+        .toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final membershipRoles = <String, TenantMemberRole>{
+      for (final membership in auth.memberships) membership.tenantId: membership.role,
+    };
     final widgets = <Widget>[
       Text(
         t.tenantSectionTitle,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
       ),
       const SizedBox(height: 8),
       Card(
         child: ListTile(
-          leading: const Icon(Icons.apartment),
+          leading: const Icon(Icons.storefront_outlined),
           title: Text(tenant.name),
-          subtitle: Text('${t.tenantRoleLabel}: ${_roleLabel(role, t)}'),
-          trailing: Text(
-            DateFormat.yMMMd(t.localeName).format(tenant.createdAt),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${t.tenantRoleLabel}: ${_roleLabel(role, t)}'),
+              Text(DateFormat.yMMMd(t.localeName).format(tenant.createdAt)),
+            ],
+          ),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              Chip(
+                label: Text(t.settingsStoreCurrentLabel),
+                visualDensity: VisualDensity.compact,
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _openCompanyForm(t, auth, tenant: tenant),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: Text(t.settingsCompanyEditAction),
+              ),
+              if (role == TenantMemberRole.owner)
+                OutlinedButton.icon(
+                  onPressed: () => _confirmDeleteCompany(t, auth, tenant),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: Text(t.settingsCompanyDeleteAction),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+            ],
           ),
         ),
       ),
-      const SizedBox(height: 16),
-    ];
-
-    if (tenants.length > 1) {
-      widgets.addAll([
-        Text(
-          t.tenantSwitchTitle,
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final item in tenants)
-              ChoiceChip(
-                label: Text(item.name),
-                selected: tenant.id == item.id,
-                onSelected: (_) => _switchTenant(item.id),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-      ]);
-    }
-
-    widgets.addAll([
+      const SizedBox(height: 12),
+      _buildStoreSelector(
+        context,
+        t,
+        stores: sellerTenants,
+        activeTenantId: tenant.id,
+        membershipRoles: membershipRoles,
+      ),
+      const SizedBox(height: 24),
       Text(
         t.tenantInviteTitle,
-        style: Theme.of(
-          context,
-        ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
       ),
       const SizedBox(height: 8),
       Row(
@@ -227,7 +261,16 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
       const Divider(height: 32),
-    ]);
+    ];
+    _ensureMembersLoaded(tenant.id);
+    widgets.add(
+      _buildMemberSection(
+        t,
+        auth,
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+      ),
+    );
     return widgets;
   }
 
@@ -440,6 +483,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ? t.buyerSettingsPendingWithSeller(_pendingSellerName!)
               : t.buyerSettingsPendingNone);
 
+    final activeSellerId = auth.tenant != null && auth.tenant!.type == TenantType.seller
+        ? auth.tenant!.id
+        : null;
     final widgets = <Widget>[
       Text(
         t.buyerSettingsSectionTitle,
@@ -488,6 +534,20 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     widgets.add(const SizedBox(height: 24));
 
+    final primaryBuyer = _resolveBuyerTenant(buyerTenants);
+    if (primaryBuyer != null) {
+      _ensureMembersLoaded(primaryBuyer.id);
+      widgets.add(
+        _buildMemberSection(
+          t,
+          auth,
+          tenantId: primaryBuyer.id,
+          tenantName: primaryBuyer.name,
+        ),
+      );
+      widgets.add(const SizedBox(height: 24));
+    }
+
     widgets.add(
       Card(
         child: Padding(
@@ -513,12 +573,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   runSpacing: 8,
                   children: [
                     for (final tenant in sellerTenants)
-                      Chip(
+                      ChoiceChip(
+                        label: Text(tenant.name),
+                        selected: tenant.id == activeSellerId,
+                        onSelected: (selected) {
+                          if (!selected) return;
+                          _switchTenant(tenant.id);
+                        },
                         avatar: const Icon(
-                          Icons.check_circle_outline,
+                          Icons.store_mall_directory_outlined,
                           size: 16,
                         ),
-                        label: Text(tenant.name),
                       ),
                   ],
                 ),
@@ -709,10 +774,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
     await showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (sheetContext) {
         return StatefulBuilder(
-          builder: (context, setSheetState) {
+          builder: (sheetInnerContext, setSheetState) {
             return Padding(
               padding: EdgeInsets.only(
                 left: 16,
@@ -753,7 +819,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ? null
                                 : () async {
                                     final picked = await _pickSellerCompany(
-                                      context,
+                                      sheetInnerContext,
                                       sellerDirectory,
                                       t.buyerSettingsSearchSeller,
                                       t,
@@ -803,6 +869,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         decoration: InputDecoration(
                           labelText: t.buyerSettingsBuyerSegmentLabel,
                         ),
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                                ? t.buyerSettingsRequiredField
+                                : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -831,19 +901,19 @@ class _SettingsPageState extends State<SettingsPage> {
                           TextButton(
                             onPressed: submitting
                                 ? null
-                                : () => Navigator.of(context).pop(),
+                                : () => Navigator.of(sheetInnerContext).pop(),
                             child: Text(t.orderEditCancel),
                           ),
                           const Spacer(),
                           FilledButton(
-                            onPressed: submitting
-                                ? null
-                                : () async {
-                                    if (!(formKey.currentState?.validate() ??
-                                        false)) {
-                                      return;
-                                    }
-                                    setSheetState(() => submitting = true);
+                          onPressed: submitting
+                              ? null
+                              : () async {
+                                  if (!(formKey.currentState?.validate() ??
+                                      false)) {
+                                    return;
+                                  }
+                                  setSheetState(() => submitting = true);
                                     final ok = await auth.requestBuyerReconnect(
                                       sellerCompanyName: sellerCtrl.text.trim(),
                                       buyerCompanyName: buyerCompanyCtrl.text
@@ -864,13 +934,15 @@ class _SettingsPageState extends State<SettingsPage> {
                                         _pendingSellerName = sellerCtrl.text
                                             .trim();
                                       });
-                                      if (!context.mounted) return;
-                                      context.read<NotificationTicker>().push(
-                                        t.buyerSettingsRequestSuccess(
-                                          sellerCtrl.text.trim(),
-                                        ),
-                                      );
-                                      Navigator.of(context).pop();
+                                      if (!sheetInnerContext.mounted) return;
+                                      sheetInnerContext
+                                          .read<NotificationTicker>()
+                                          .push(
+                                            t.buyerSettingsRequestSuccess(
+                                              sellerCtrl.text.trim(),
+                                            ),
+                                          );
+                                      Navigator.of(sheetInnerContext).pop();
                                       if (mounted) {
                                         WidgetsBinding.instance
                                             .addPostFrameCallback(
@@ -923,7 +995,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 query: {'type': 'wholesale'},
               )
               as List<dynamic>;
-      return resp
+      final mapped = resp
           .map(
             (item) => {
               'name': (item['name'] ?? '').toString(),
@@ -933,6 +1005,16 @@ class _SettingsPageState extends State<SettingsPage> {
           )
           .where((entry) => entry['name']!.isNotEmpty)
           .toList();
+      final seen = <String>{};
+      final deduped = <Map<String, String>>[];
+      for (final entry in mapped) {
+        final key =
+            '${entry['name'] ?? ''}|${entry['phone'] ?? ''}|${entry['address'] ?? ''}';
+        if (seen.add(key)) {
+          deduped.add(entry);
+        }
+      }
+      return deduped;
     } catch (err) {
       if (mounted) {
         context.read<NotificationTicker>().push(err.toString());
@@ -1004,6 +1086,233 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       },
     );
+  }
+
+  void _ensureMembersLoaded(String tenantId) {
+    if (tenantId.isEmpty) return;
+    if (_membersTenantId == tenantId && (_membersLoading || _members.isNotEmpty)) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadMembers(tenantId);
+    });
+  }
+
+  Future<void> _loadMembers(String tenantId) async {
+    setState(() {
+      _membersLoading = true;
+      _membersTenantId = tenantId;
+    });
+    final members = await context.read<AuthController>().fetchTenantMembers(tenantId);
+    if (!mounted || _membersTenantId != tenantId) return;
+    setState(() {
+      _members = members;
+      _membersLoading = false;
+    });
+  }
+
+  bool _canManageMembers(AuthController auth, String tenantId) {
+    return auth.memberships.any(
+      (m) => m.tenantId == tenantId && m.role == TenantMemberRole.owner,
+    );
+  }
+
+  Widget _buildMemberSection(
+    AppLocalizations t,
+    AuthController auth, {
+    required String tenantId,
+    required String tenantName,
+  }) {
+    final isActiveTenant = _membersTenantId == tenantId;
+    final loading = _membersLoading && isActiveTenant;
+    final members = isActiveTenant ? _members : const <TenantMemberDetail>[];
+    final canManage = _canManageMembers(auth, tenantId);
+    final currentEmail = (auth.email ?? '').toLowerCase();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '$tenantName · ${t.settingsMembersSectionTitle}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: t.stateRetry,
+                  onPressed: () => _loadMembers(tenantId),
+                ),
+              ],
+            ),
+            if (canManage)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  t.settingsMembersOwnerHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            if (loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (members.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(t.buyerSettingsCompanyFallback),
+              )
+            else
+              Column(
+                children: [
+                  for (final member in members) ...[
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              member.name.isNotEmpty ? member.name : member.email,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
+                          if (member.email.toLowerCase() == currentEmail)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: Chip(
+                                label: Text(t.settingsMembersSelfBadge),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                        ],
+                      ),
+                      subtitle: Text(
+                        [
+                          if (member.email.isNotEmpty) member.email,
+                          if (member.phone.isNotEmpty) member.phone,
+                        ].join(' · '),
+                      ),
+                      trailing: _buildMemberRoleControl(
+                        t,
+                        tenantId,
+                        member,
+                        canManage: canManage,
+                      ),
+                    ),
+                    const Divider(height: 16),
+                  ],
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStoreSelector(
+    BuildContext context,
+    AppLocalizations t, {
+    required List<Tenant> stores,
+    required String activeTenantId,
+    required Map<String, TenantMemberRole> membershipRoles,
+  }) {
+    if (stores.isEmpty) {
+      return Card(
+        child: ListTile(
+          leading: const Icon(Icons.store_mall_directory_outlined),
+          title: Text(t.buyerSettingsCompanyFallback),
+          subtitle: Text(t.buyerSettingsCompanyMissing),
+        ),
+      );
+    }
+    return Card(
+      child: Column(
+        children: [
+          for (var i = 0; i < stores.length; i++) ...[
+            _StoreTile(
+              tenant: stores[i],
+              isActive: stores[i].id == activeTenantId,
+              onSwitch: () => _switchTenant(stores[i].id),
+              switchLabel: t.settingsStoreSwitchAction,
+              activeLabel: t.settingsStoreCurrentLabel,
+              roleLabel: t.settingsCompanyRoleLabel,
+              roleValue: _roleLabel(membershipRoles[stores[i].id], t),
+            ),
+            if (i != stores.length - 1) const Divider(height: 1),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMemberRoleControl(
+    AppLocalizations t,
+    String tenantId,
+    TenantMemberDetail member, {
+    required bool canManage,
+  }) {
+    final isOwner = member.role == TenantMemberRole.owner;
+    if (!canManage || isOwner) {
+      return Text(_roleLabel(member.role, t));
+    }
+    final isUpdating = _memberUpdating.contains(member.id);
+    return isUpdating
+        ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : DropdownButton<TenantMemberRole>(
+            value: member.role == TenantMemberRole.owner ? TenantMemberRole.manager : member.role,
+            onChanged: (value) {
+              if (value == null || value == member.role) return;
+              _updateMemberRole(t, tenantId, member, value);
+            },
+            items: [
+              TenantMemberRole.manager,
+              TenantMemberRole.staff,
+            ].map(
+              (role) {
+                return DropdownMenuItem(
+                  value: role,
+                  child: Text(_roleLabel(role, t)),
+                );
+              },
+            ).toList(),
+          );
+  }
+
+  Future<void> _updateMemberRole(
+    AppLocalizations t,
+    String tenantId,
+    TenantMemberDetail member,
+    TenantMemberRole role,
+  ) async {
+    setState(() {
+      _memberUpdating.add(member.id);
+    });
+    final ok = await context.read<AuthController>().updateTenantMemberRole(
+          tenantId: tenantId,
+          memberId: member.id,
+          role: role,
+        );
+    if (!mounted) return;
+    setState(() {
+      _memberUpdating.remove(member.id);
+    });
+    final ticker = context.read<NotificationTicker>();
+    ticker.push(ok ? t.settingsMembersUpdateSuccess : t.settingsMembersUpdateError);
+    if (ok && _membersTenantId == tenantId) {
+      _loadMembers(tenantId);
+    }
   }
 
   Future<void> _loadPendingSeller() async {
@@ -1086,5 +1395,62 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() => _inviting = false);
     _inviteCtrl.clear();
     context.read<NotificationTicker>().push(t.inviteSuccess);
+  }
+}
+
+class _StoreTile extends StatelessWidget {
+  final Tenant tenant;
+  final bool isActive;
+  final VoidCallback onSwitch;
+  final String switchLabel;
+  final String activeLabel;
+  final String roleLabel;
+  final String roleValue;
+
+  const _StoreTile({
+    required this.tenant,
+    required this.isActive,
+    required this.onSwitch,
+    required this.switchLabel,
+    required this.activeLabel,
+    required this.roleLabel,
+    required this.roleValue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final subtitle = <String>[
+      '$roleLabel: $roleValue',
+      if (tenant.address.isNotEmpty) tenant.address,
+      if (tenant.phone.isNotEmpty) tenant.phone,
+    ];
+    return ListTile(
+      leading: Icon(
+        Icons.storefront_outlined,
+        color: isActive ? theme.colorScheme.primary : null,
+      ),
+      title: Text(
+        tenant.name,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final line in subtitle) if (line.isNotEmpty) Text(line),
+        ],
+      ),
+      trailing: isActive
+          ? Chip(
+              label: Text(activeLabel),
+              visualDensity: VisualDensity.compact,
+            )
+          : OutlinedButton(
+              onPressed: onSwitch,
+              child: Text(switchLabel),
+            ),
+    );
   }
 }

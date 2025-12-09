@@ -510,7 +510,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonSearch => 'Search';
 
   @override
-  String get tenantSectionTitle => 'Organization';
+  String get tenantSectionTitle => 'Store management';
 
   @override
   String get tenantRoleLabel => 'Role';
@@ -913,6 +913,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buyerSettingsCompanyMissing => 'No saved store details';
 
   @override
+  String get settingsMembersSectionTitle => 'Team members';
+
+  @override
+  String get settingsMembersSelfBadge => 'You';
+
+  @override
+  String get settingsMembersRoleLabel => 'Role';
+
+  @override
+  String get settingsMembersOwnerHint => 'Only owners can change roles.';
+
+  @override
+  String get settingsMembersUpdateSuccess => 'Member role updated.';
+
+  @override
+  String get settingsMembersUpdateError => 'Could not update member role.';
+
+  @override
   String get buyerSettingsConnectionsTitle => 'Connected wholesalers';
 
   @override
@@ -1004,6 +1022,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCompanySetPrimary => 'Set as main company';
+
+  @override
+  String get settingsStoreCurrentLabel => 'Current store';
+
+  @override
+  String get settingsStoreSwitchAction => 'Switch to this store';
 
   @override
   String get settingsCompanyPrimarySaved => 'Main company updated.';

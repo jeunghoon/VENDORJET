@@ -1067,7 +1067,7 @@ abstract class AppLocalizations {
   /// No description provided for @tenantSectionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Organization'**
+  /// **'Store management'**
   String get tenantSectionTitle;
 
   /// No description provided for @tenantRoleLabel.
@@ -1814,6 +1814,42 @@ abstract class AppLocalizations {
   /// **'No saved store details'**
   String get buyerSettingsCompanyMissing;
 
+  /// No description provided for @settingsMembersSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Team members'**
+  String get settingsMembersSectionTitle;
+
+  /// No description provided for @settingsMembersSelfBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get settingsMembersSelfBadge;
+
+  /// No description provided for @settingsMembersRoleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get settingsMembersRoleLabel;
+
+  /// No description provided for @settingsMembersOwnerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only owners can change roles.'**
+  String get settingsMembersOwnerHint;
+
+  /// No description provided for @settingsMembersUpdateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Member role updated.'**
+  String get settingsMembersUpdateSuccess;
+
+  /// No description provided for @settingsMembersUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update member role.'**
+  String get settingsMembersUpdateError;
+
   /// No description provided for @buyerSettingsConnectionsTitle.
   ///
   /// In en, this message translates to:
@@ -1987,6 +2023,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set as main company'**
   String get settingsCompanySetPrimary;
+
+  /// No description provided for @settingsStoreCurrentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current store'**
+  String get settingsStoreCurrentLabel;
+
+  /// No description provided for @settingsStoreSwitchAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to this store'**
+  String get settingsStoreSwitchAction;
 
   /// No description provided for @settingsCompanyPrimarySaved.
   ///
