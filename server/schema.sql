@@ -96,3 +96,18 @@ CREATE TABLE buyer_requests (
   status TEXT,
   created_at TEXT
 );
+
+CREATE TABLE tenant_positions (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  created_at TEXT
+);
+
+CREATE TABLE member_positions (
+  tenant_id TEXT NOT NULL,
+  member_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  position_id TEXT,
+  PRIMARY KEY (tenant_id, member_id)
+);

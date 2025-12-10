@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { db, mapRows } from '../../db/client';
 import { env } from '../../config/env';
 import { authMiddleware } from '../../middleware/auth';
+import { assignOwnerDefaultPosition, assignPendingPosition, ensureTenantPositionDefaults } from './position_utils';
 
 const router = Router();
 
@@ -353,24 +354,10 @@ router.post('/register', (req, res) => {
       db.prepare('INSERT INTO users (id, email, password_hash, name, phone, address, created_at, user_type) VALUES (?,?,?,?,?,?,?,?)')
         .run(userId, normalizedEmail, password, name, phone, companyAddress, nowIso, 'wholesale');
       db.prepare('INSERT INTO memberships (user_id, tenant_id, role) VALUES (?,?,?)').run(userId, tenantId, 'owner');
-      db.prepare(
-        'INSERT INTO membership_requests (id, tenant_id, email, name, phone, role, status, company_name, company_address, company_phone, requester_type, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
-      ).run(
-        `mr_${Date.now()}`,
-        tenantId,
-        normalizedEmail,
-        name,
-        phone,
-        'owner',
-        'approved',
-        companyName,
-        companyAddress,
-        companyPhone,
-        'seller_owner',
-        nowIso
-      );
     });
     tx();
+    ensureTenantPositionDefaults(tenantId);
+    assignOwnerDefaultPosition(tenantId, userId);
     const token = jwt.sign({ userId, email, tenantId, role: 'owner' }, env.jwtSecret, { expiresIn: '12h' });
     return res.status(201).json({
       token,
@@ -383,24 +370,31 @@ router.post('/register', (req, res) => {
     return res.status(400).json({ error: 'company already exists, choose existing mode' });
   }
 
-  const reqId = `mr_${Date.now()}`;
-  db.prepare(
-    'INSERT INTO membership_requests (id, tenant_id, email, name, phone, role, status, company_name, company_address, company_phone, requester_type, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
-  ).run(
-    reqId,
-    (existingTenant as any).id,
-    normalizedEmail,
-    name,
-    phone,
-    role ?? 'staff',
-    'pending',
-    companyName,
-    companyAddress,
-    companyPhone,
-    'seller_staff',
-    nowIso
-  );
-  return res.status(202).json({ status: 'pending', requestId: reqId, message: 'pending approval by owner' });
+  const tenantId = (existingTenant as any).id as string;
+  const userId = `u_${Date.now()}`;
+  const normalizedRole = (role as string | undefined)?.toLowerCase();
+  const assignedRole = normalizedRole === 'manager' ? 'manager' : 'staff';
+  const txExisting = db.transaction(() => {
+    db.prepare('INSERT INTO users (id, email, password_hash, name, phone, address, created_at, user_type) VALUES (?,?,?,?,?,?,?,?)').run(
+      userId,
+      normalizedEmail,
+      password,
+      name,
+      phone,
+      companyAddress,
+      nowIso,
+      'wholesale',
+    );
+    db.prepare('INSERT INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)').run(userId, tenantId, assignedRole, 'approved');
+  });
+  txExisting();
+  assignPendingPosition(tenantId, userId);
+  const token = jwt.sign({ userId, email, tenantId, role: assignedRole }, env.jwtSecret, { expiresIn: '12h' });
+  return res.status(201).json({
+    token,
+    user: { id: userId, email },
+    memberships: [{ tenantId, role: assignedRole }],
+  });
 });
 
 // buyer registration: seller company must exist, buyer company can be new(owner) or existing(pending)
@@ -434,6 +428,13 @@ router.post('/register-buyer', (req, res) => {
   }
   const reqId = `br_${Date.now()}`;
   const nowIso = new Date().toISOString();
+  const requestedRoleRaw = (role ?? 'staff').toString().toLowerCase();
+  const membershipRole =
+    requestedRoleRaw === 'owner'
+      ? 'owner'
+      : requestedRoleRaw === 'manager'
+          ? 'manager'
+          : 'staff';
 
   const normalizedEmail = email.toLowerCase();
   const existingUser = db.prepare('SELECT id FROM users WHERE email = ? LIMIT 1').get(normalizedEmail) as
@@ -469,7 +470,8 @@ router.post('/register-buyer', (req, res) => {
   if (!existingBuyerTenant && mode === 'existing') {
     return res.status(404).json({ error: 'buyer company not found' });
   }
-  if (!existingBuyerTenant && mode === 'new') {
+  const createdNewBuyerTenant = !existingBuyerTenant && mode === 'new';
+  if (createdNewBuyerTenant) {
     buyerTenantId = `t_${Date.now()}`;
     db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address, representative) VALUES (?,?,?,?,?,?,?)').run(
       buyerTenantId,
@@ -486,13 +488,16 @@ router.post('/register-buyer', (req, res) => {
       'owner',
       'approved'
     );
-  } else if (buyerTenantId != null) {
+    ensureTenantPositionDefaults(buyerTenantId);
+    assignOwnerDefaultPosition(buyerTenantId, userId);
+  } else if (buyerTenantId != null && existingBuyerTenant) {
     db.prepare('INSERT OR IGNORE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)').run(
       userId,
       buyerTenantId,
-      role ?? 'staff',
+      membershipRole,
       'approved'
     );
+    assignPendingPosition(buyerTenantId, userId);
   }
 
   if (!sellerTenant) {
@@ -542,10 +547,13 @@ router.post('/buyer/reapply', authMiddleware, (req, res) => {
     attachmentUrl = '',
     name = '',
     phone = '',
-    role = 'staff',
   } = req.body || {};
   if (!sellerCompanyName || !buyerCompanyName) {
     return res.status(400).json({ error: 'sellerCompanyName and buyerCompanyName are required' });
+  }
+  const normalizedSegment = buyerSegment.toString().trim();
+  if (!normalizedSegment) {
+    return res.status(400).json({ error: 'buyerSegment required' });
   }
 
   const normalizedSeller = sellerCompanyName.toString().trim();
@@ -562,17 +570,30 @@ router.post('/buyer/reapply', authMiddleware, (req, res) => {
   }
 
   const sellerTenant = db
-    .prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1')
-    .get(normalizedSeller) as { id: string } | undefined;
+    .prepare('SELECT id, phone, address FROM tenants WHERE name = ? LIMIT 1')
+    .get(normalizedSeller) as { id: string; phone?: string; address?: string } | undefined;
   if (!sellerTenant) {
     return res.status(404).json({ error: 'seller company not found' });
   }
 
   const buyerTenant = db
-    .prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1')
-    .get(normalizedBuyer) as { id: string } | undefined;
+    .prepare('SELECT id, phone, address FROM tenants WHERE name = ? LIMIT 1')
+    .get(normalizedBuyer) as { id: string; phone?: string; address?: string } | undefined;
   if (!buyerTenant) {
     return res.status(404).json({ error: 'buyer company not found' });
+  }
+  const buyerMembership = db
+    .prepare(
+      `SELECT role
+       FROM memberships
+       WHERE user_id = ?
+         AND tenant_id = ?
+         AND COALESCE(status, 'approved') = 'approved'
+       LIMIT 1`,
+    )
+    .get(user.userId, buyerTenant.id) as { role?: string } | undefined;
+  if (!buyerMembership || buyerMembership.role !== 'owner') {
+    return res.status(403).json({ error: 'only buyer owners can request connections' });
   }
 
   const existingMembership = db
@@ -587,6 +608,26 @@ router.post('/buyer/reapply', authMiddleware, (req, res) => {
     return res.status(409).json({ error: 'already connected' });
   }
 
+  const existingCompanyConnection = db
+    .prepare(
+      `SELECT 1
+       FROM memberships seller_m
+       WHERE seller_m.tenant_id = ?
+         AND COALESCE(seller_m.status, 'approved') = 'approved'
+         AND EXISTS (
+           SELECT 1
+           FROM memberships buyer_m
+           WHERE buyer_m.user_id = seller_m.user_id
+             AND buyer_m.tenant_id = ?
+             AND COALESCE(buyer_m.status, 'approved') = 'approved'
+         )
+       LIMIT 1`
+    )
+    .get(sellerTenant.id, buyerTenant.id);
+  if (existingCompanyConnection) {
+    return res.status(409).json({ error: 'company already connected' });
+  }
+
   const pendingRequest = db
     .prepare(
       `SELECT 1
@@ -599,25 +640,63 @@ router.post('/buyer/reapply', authMiddleware, (req, res) => {
     return res.status(409).json({ error: 'pending request already exists' });
   }
 
+  const pendingCompanyRequest = db
+    .prepare(
+      `SELECT 1
+       FROM buyer_requests
+       WHERE buyer_company = ?
+         AND seller_company = ?
+         AND status = 'pending'
+       LIMIT 1`
+    )
+    .get(normalizedBuyer, normalizedSeller);
+  if (pendingCompanyRequest) {
+    return res.status(409).json({ error: 'company request already pending' });
+  }
+
   const reqId = `br_${Date.now()}`;
   const nowIso = new Date().toISOString();
+  const trimmedName = name?.toString().trim() ?? '';
+  const trimmedPhone = phone?.toString().trim() ?? '';
+  const resolvedName = trimmedName.length === 0 ? userRow.name ?? '' : trimmedName;
+  const resolvedPhone = trimmedPhone.length === 0 ? userRow.phone ?? '' : trimmedPhone;
+  const normalizedAttachment = attachmentUrl?.toString().trim() ?? '';
   db.prepare(
-    'INSERT INTO buyer_requests (id, seller_company, buyer_company, buyer_address, email, name, phone, role, attachment_url, status, created_at, user_id, buyer_tenant_id, requested_segment) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+    `INSERT INTO buyer_requests (
+        id,
+        seller_company,
+        seller_phone,
+      seller_address,
+      buyer_company,
+      buyer_address,
+      email,
+      name,
+        phone,
+        role,
+        attachment_url,
+      status,
+      created_at,
+      user_id,
+      buyer_tenant_id,
+      requested_segment
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run(
     reqId,
     normalizedSeller,
+    sellerTenant.phone ?? '',
+    sellerTenant.address ?? '',
     normalizedBuyer,
     buyerAddress,
     userRow.email,
-    name.toString().trim().isEmpty ? userRow.name ?? '' : name,
-    phone.toString().trim().isEmpty ? userRow.phone ?? '' : phone,
-    role,
-    attachmentUrl,
+    resolvedName,
+    resolvedPhone,
+    'staff',
+    normalizedAttachment,
     'pending',
     nowIso,
     user.userId,
     buyerTenant.id,
-    buyerSegment
+    normalizedSegment
   );
 
   return res.status(202).json({
@@ -643,6 +722,7 @@ router.get('/members', authMiddleware, (req, res) => {
     )
     .get(user.userId, tenantId) as { role?: string } | undefined;
   if (!membership) return res.status(403).json({ error: 'forbidden' });
+  ensureTenantPositionDefaults(tenantId);
   const tenantInfo = db
     .prepare(
       `SELECT
@@ -694,7 +774,31 @@ router.get('/members', authMiddleware, (req, res) => {
       )
       .all(tenantId)
   );
-  return res.json(rows);
+  const positionRows = db
+    .prepare(
+      'SELECT member_id AS memberId, title, position_id AS positionId FROM member_positions WHERE tenant_id = ?',
+    )
+    .all(tenantId) as { memberId: string; title: string; positionId?: string }[];
+  const positionMap = new Map(positionRows.map((row) => [row.memberId, row]));
+  rows
+    .filter((row) => row.role === 'owner' && !positionMap.has(row.userId))
+    .forEach((ownerRow) => {
+      assignOwnerDefaultPosition(tenantId, ownerRow.userId);
+      const assigned = db
+        .prepare('SELECT member_id AS memberId, title, position_id AS positionId FROM member_positions WHERE tenant_id = ? AND member_id = ? LIMIT 1')
+        .get(tenantId, ownerRow.userId) as { memberId: string; title: string; positionId?: string } | undefined;
+      if (assigned) {
+        positionMap.set(ownerRow.userId, assigned);
+      }
+    });
+  return res.json(
+    rows.map((row) => ({
+      ...row,
+      positionId: positionMap.get(row.userId)?.positionId ?? null,
+      positionTitle: positionMap.get(row.userId)?.title ?? (row.role === 'owner' ? '대표' : null),
+      customTitle: positionMap.get(row.userId)?.title ?? null,
+    })),
+  );
 });
 
 router.patch('/members/:memberId', authMiddleware, (req, res) => {
@@ -727,6 +831,240 @@ router.patch('/members/:memberId', authMiddleware, (req, res) => {
     return res.status(404).json({ error: 'membership not found' });
   }
   return res.json({ userId: req.params.memberId, role: desiredRole });
+});
+
+router.patch('/member-positions/:memberId', authMiddleware, (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+  const memberId = req.params.memberId;
+  const tenantId = (req.body?.tenantId as string | undefined)?.trim();
+  const positionId = (req.body?.positionId as string | undefined)?.trim();
+  if (!tenantId) return res.status(400).json({ error: 'tenantId required' });
+  const actor = db
+    .prepare(
+      `SELECT role
+       FROM memberships
+       WHERE user_id = ?
+         AND tenant_id = ?
+         AND COALESCE(status, 'approved') = 'approved'
+       LIMIT 1`,
+    )
+    .get(req.user.userId, tenantId) as { role?: string } | undefined;
+  if (!actor || actor.role !== 'owner') {
+    return res.status(403).json({ error: 'only owners can update positions' });
+  }
+  const targetMember = db
+    .prepare('SELECT role FROM memberships WHERE user_id = ? AND tenant_id = ? LIMIT 1')
+    .get(memberId, tenantId) as { role?: string } | undefined;
+  if (!targetMember) {
+    return res.status(404).json({ error: 'member not found' });
+  }
+  if ((targetMember.role ?? '').toLowerCase() === 'owner') {
+    return res.status(403).json({ error: 'owner position cannot be changed' });
+  }
+  if (!positionId || positionId.length === 0) {
+    db.prepare('DELETE FROM member_positions WHERE tenant_id = ? AND member_id = ?').run(tenantId, memberId);
+    return res.json({ tenantId, memberId, positionId: null, title: '' });
+  }
+  const positionRow = db
+    .prepare('SELECT title, tier FROM tenant_positions WHERE id = ? AND tenant_id = ? LIMIT 1')
+    .get(positionId, tenantId) as { title?: string; tier?: string } | undefined;
+  if (!positionRow) {
+    return res.status(404).json({ error: 'position not found' });
+  }
+  if ((positionRow.tier ?? '').toLowerCase() === 'owner') {
+    return res.status(403).json({ error: 'owner position cannot be assigned' });
+  }
+  db.prepare('INSERT OR REPLACE INTO member_positions (tenant_id, member_id, position_id, title) VALUES (?,?,?,?)').run(
+    tenantId,
+    memberId,
+    positionId,
+    positionRow.title ?? '',
+  );
+  return res.json({ tenantId, memberId, positionId, title: positionRow.title ?? '' });
+});
+
+router.get('/positions', authMiddleware, (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+  const tenantId = (req.query.tenantId as string | undefined)?.trim();
+  if (!tenantId) return res.status(400).json({ error: 'tenantId required' });
+  const membership = db
+    .prepare(
+      `SELECT role
+       FROM memberships
+       WHERE user_id = ?
+         AND tenant_id = ?
+         AND COALESCE(status, 'approved') = 'approved'
+       LIMIT 1`,
+    )
+    .get(req.user.userId, tenantId) as { role?: string } | undefined;
+  if (!membership) return res.status(403).json({ error: 'forbidden' });
+  ensureTenantPositionDefaults(tenantId);
+  const rows = db
+    .prepare(
+      `SELECT id,
+              title,
+              COALESCE(created_at, '') AS created_at,
+              COALESCE(tier, 'staff') AS tier,
+              COALESCE(sort_order, 99) AS sort_order,
+              COALESCE(is_locked, 0) AS is_locked
+       FROM tenant_positions
+       WHERE tenant_id = ?
+       ORDER BY sort_order ASC, LOWER(title)`
+    )
+    .all(tenantId) as {
+      id: string;
+      title: string;
+      created_at?: string;
+      tier?: string;
+      sort_order?: number;
+      is_locked?: number;
+    }[];
+  return res.json(
+    rows.map((row) => ({
+      id: row.id,
+      tenantId,
+      title: row.title,
+      createdAt: row.created_at ?? '',
+      tier: (row.tier ?? 'staff').toLowerCase(),
+      sortOrder: row.sort_order ?? 99,
+      isLocked: (row.is_locked ?? 0) === 1,
+    })),
+  );
+});
+
+router.post('/positions', authMiddleware, (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+  const { tenantId, title } = req.body || {};
+  const normalizedTitle = (title as string | undefined)?.trim();
+  if (!tenantId || !normalizedTitle) {
+    return res.status(400).json({ error: 'tenantId and title required' });
+  }
+  const hierarchy = ((req.body?.hierarchy ?? req.body?.tier) as string | undefined)?.toLowerCase() ?? 'staff';
+  if (!['manager', 'staff'].includes(hierarchy)) {
+    return res.status(400).json({ error: 'hierarchy must be manager or staff' });
+  }
+  const membership = db
+    .prepare(
+      `SELECT role
+       FROM memberships
+       WHERE user_id = ?
+         AND tenant_id = ?
+         AND COALESCE(status, 'approved') = 'approved'
+       LIMIT 1`,
+    )
+    .get(req.user.userId, tenantId) as { role?: string } | undefined;
+  if (!membership || membership.role !== 'owner') {
+    return res.status(403).json({ error: 'only owners can manage positions' });
+  }
+  const id = `pos_${Date.now()}`;
+  const sortOrder = hierarchy === 'manager' ? 2 : 3;
+  db.prepare(
+    'INSERT INTO tenant_positions (id, tenant_id, title, created_at, tier, sort_order, is_locked) VALUES (?,?,?,?,?,?,0)',
+  ).run(
+    id,
+    tenantId,
+    normalizedTitle,
+    new Date().toISOString(),
+    hierarchy,
+    sortOrder,
+  );
+  return res.status(201).json({
+    id,
+    tenantId,
+    title: normalizedTitle,
+    tier: hierarchy,
+    sortOrder,
+    isLocked: false,
+  });
+});
+
+router.patch('/positions/:id', authMiddleware, (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+  const { id } = req.params;
+  const { tenantId, title } = req.body || {};
+  const normalizedTitle = (title as string | undefined)?.trim();
+  if (!tenantId || !normalizedTitle) {
+    return res.status(400).json({ error: 'tenantId and title required' });
+  }
+  const hierarchy = ((req.body?.hierarchy ?? req.body?.tier) as string | undefined)?.toLowerCase();
+  if (hierarchy && !['manager', 'staff'].includes(hierarchy)) {
+    return res.status(400).json({ error: 'hierarchy must be manager or staff' });
+  }
+  const membership = db
+    .prepare(
+      `SELECT role
+       FROM memberships
+       WHERE user_id = ?
+         AND tenant_id = ?
+         AND COALESCE(status, 'approved') = 'approved'
+       LIMIT 1`,
+    )
+    .get(req.user.userId, tenantId) as { role?: string } | undefined;
+  if (!membership || membership.role !== 'owner') {
+    return res.status(403).json({ error: 'only owners can manage positions' });
+  }
+  const existing = db
+    .prepare(
+      'SELECT COALESCE(is_locked, 0) AS is_locked, COALESCE(tier, \'staff\') AS tier FROM tenant_positions WHERE id = ? AND tenant_id = ? LIMIT 1',
+    )
+    .get(id, tenantId) as { is_locked?: number; tier?: string } | undefined;
+  if (!existing) {
+    return res.status(404).json({ error: 'position not found' });
+  }
+  if ((existing.is_locked ?? 0) === 1) {
+    return res.status(403).json({ error: 'position is locked' });
+  }
+  const targetTier = hierarchy ?? (existing.tier ?? 'staff');
+  const sortOrder = targetTier === 'manager' ? 2 : 3;
+  db.prepare('UPDATE tenant_positions SET title = ?, tier = ?, sort_order = ? WHERE id = ? AND tenant_id = ?').run(
+    normalizedTitle,
+    targetTier,
+    sortOrder,
+    id,
+    tenantId,
+  );
+  db.prepare('UPDATE member_positions SET title = ? WHERE tenant_id = ? AND position_id = ?').run(
+    normalizedTitle,
+    tenantId,
+    id,
+  );
+  return res.json({ id, tenantId, title: normalizedTitle, tier: targetTier, sortOrder, isLocked: false });
+});
+
+router.delete('/positions/:id', authMiddleware, (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+  const { id } = req.params;
+  const tenantId = (req.body?.tenantId as string | undefined)?.trim() ??
+    (req.query.tenantId as string | undefined)?.trim();
+  if (!tenantId) return res.status(400).json({ error: 'tenantId required' });
+  const membership = db
+    .prepare(
+      `SELECT role
+       FROM memberships
+       WHERE user_id = ?
+         AND tenant_id = ?
+         AND COALESCE(status, 'approved') = 'approved'
+       LIMIT 1`,
+    )
+    .get(req.user.userId, tenantId) as { role?: string } | undefined;
+  if (!membership || membership.role !== 'owner') {
+    return res.status(403).json({ error: 'only owners can manage positions' });
+  }
+  const existing = db
+    .prepare('SELECT COALESCE(is_locked, 0) AS is_locked FROM tenant_positions WHERE id = ? AND tenant_id = ? LIMIT 1')
+    .get(id, tenantId) as { is_locked?: number } | undefined;
+  if (!existing) {
+    return res.status(404).json({ error: 'position not found' });
+  }
+  if ((existing.is_locked ?? 0) === 1) {
+    return res.status(403).json({ error: 'position is locked' });
+  }
+  db.prepare('DELETE FROM member_positions WHERE tenant_id = ? AND position_id = ?').run(tenantId, id);
+  const info = db.prepare('DELETE FROM tenant_positions WHERE id = ? AND tenant_id = ?').run(id, tenantId);
+  if (info.changes === 0) {
+    return res.status(404).json({ error: 'position not found' });
+  }
+  return res.status(204).end();
 });
 
 export default router;

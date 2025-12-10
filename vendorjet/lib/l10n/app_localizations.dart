@@ -140,6 +140,18 @@ abstract class AppLocalizations {
   /// **'Wholesale order management'**
   String get subtitle;
 
+  /// No description provided for @appTooNarrowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase window width'**
+  String get appTooNarrowTitle;
+
+  /// No description provided for @appTooNarrowMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'VendorJet works best when the window is at least {pixels}px wide. Please expand or maximize the window to continue.'**
+  String appTooNarrowMessage(int pixels);
+
   /// No description provided for @language.
   ///
   /// In en, this message translates to:
@@ -1850,6 +1862,90 @@ abstract class AppLocalizations {
   /// **'Could not update member role.'**
   String get settingsMembersUpdateError;
 
+  /// No description provided for @settingsMembersPositionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Position'**
+  String get settingsMembersPositionLabel;
+
+  /// No description provided for @settingsMembersPositionNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Unassigned'**
+  String get settingsMembersPositionNone;
+
+  /// No description provided for @settingsMembersPositionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Position updated.'**
+  String get settingsMembersPositionSaved;
+
+  /// No description provided for @settingsPositionsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{tenant} · Positions'**
+  String settingsPositionsSectionTitle(Object tenant);
+
+  /// No description provided for @settingsPositionsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No positions have been registered.'**
+  String get settingsPositionsEmpty;
+
+  /// No description provided for @settingsPositionsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add position'**
+  String get settingsPositionsAdd;
+
+  /// No description provided for @settingsPositionsEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit position'**
+  String get settingsPositionsEdit;
+
+  /// No description provided for @settingsPositionsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete position'**
+  String get settingsPositionsDelete;
+
+  /// No description provided for @settingsPositionsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{title}\"? Assigned members will be set to Unassigned.'**
+  String settingsPositionsDeleteConfirm(Object title);
+
+  /// No description provided for @settingsPositionsFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Position name'**
+  String get settingsPositionsFieldLabel;
+
+  /// No description provided for @settingsPositionsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a position name.'**
+  String get settingsPositionsRequired;
+
+  /// No description provided for @settingsPositionsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get settingsPositionsSave;
+
+  /// No description provided for @settingsPositionsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Position saved.'**
+  String get settingsPositionsSaved;
+
+  /// No description provided for @settingsPositionsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Position deleted.'**
+  String get settingsPositionsDeleted;
+
   /// No description provided for @buyerSettingsConnectionsTitle.
   ///
   /// In en, this message translates to:
@@ -1891,6 +1987,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Request new connection'**
   String get buyerSettingsRequestButton;
+
+  /// No description provided for @buyerSettingsRequestOwnerOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only store owners can request new wholesaler connections.'**
+  String get buyerSettingsRequestOwnerOnly;
 
   /// No description provided for @buyerSettingsSheetTitle.
   ///
@@ -1981,6 +2083,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Request sent to {seller}'**
   String buyerSettingsRequestSuccess(Object seller);
+
+  /// No description provided for @buyerSettingsRequestAlreadyPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval from {seller}'**
+  String buyerSettingsRequestAlreadyPending(Object seller);
+
+  /// No description provided for @buyerSettingsRequestAlreadyConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'{seller} is already connected.'**
+  String buyerSettingsRequestAlreadyConnected(Object seller);
+
+  /// Heading for the active wholesaler selector
+  ///
+  /// In en, this message translates to:
+  /// **'Active wholesaler'**
+  String get buyerSettingsActiveSellerTitle;
+
+  /// Helper text for selecting the active wholesaler
+  ///
+  /// In en, this message translates to:
+  /// **'Select which wholesaler to use for catalog and orders.'**
+  String get buyerSettingsActiveSellerHint;
+
+  /// No description provided for @buyerSettingsActiveSellerSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to {seller}.'**
+  String buyerSettingsActiveSellerSaved(Object seller);
+
+  /// No description provided for @buyerSettingsConnectionsSwitchAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this wholesaler'**
+  String get buyerSettingsConnectionsSwitchAction;
+
+  /// No description provided for @buyerSettingsConnectionsActiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently in use'**
+  String get buyerSettingsConnectionsActiveLabel;
+
+  /// No description provided for @buyerCatalogConnectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with a wholesaler from Settings to browse their catalog.'**
+  String get buyerCatalogConnectHint;
+
+  /// No description provided for @buyerCatalogPendingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{seller} is reviewing your request. Access will unlock once it is approved.'**
+  String buyerCatalogPendingMessage(Object seller);
+
+  /// No description provided for @buyerOrderConnectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with a wholesaler to create and submit orders.'**
+  String get buyerOrderConnectHint;
+
+  /// No description provided for @buyerOrderPendingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{seller} is reviewing your request. Ordering will unlock once it is approved.'**
+  String buyerOrderPendingMessage(Object seller);
 
   /// No description provided for @settingsCompanyInfoTitle.
   ///
@@ -2246,6 +2414,12 @@ abstract class AppLocalizations {
   /// **'Clear cart'**
   String get buyerCartClear;
 
+  /// No description provided for @buyerCartProceed.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to order sheet'**
+  String get buyerCartProceed;
+
   /// No description provided for @buyerDeliveryDateLabel.
   ///
   /// In en, this message translates to:
@@ -2413,6 +2587,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Store list failed to load: {error}'**
   String buyerOrderStoreLoadError(String error);
+
+  /// No description provided for @settingsPositionsTierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Position group'**
+  String get settingsPositionsTierLabel;
+
+  /// No description provided for @settingsPositionsTierOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get settingsPositionsTierOwner;
+
+  /// No description provided for @settingsPositionsTierManager.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager'**
+  String get settingsPositionsTierManager;
+
+  /// No description provided for @settingsPositionsTierStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff'**
+  String get settingsPositionsTierStaff;
+
+  /// No description provided for @settingsPositionsLockedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get settingsPositionsLockedBadge;
+
+  /// No description provided for @settingsPositionsHierarchyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions flow from Owner ? Manager ? Staff ? Pending.'**
+  String get settingsPositionsHierarchyHint;
+
+  /// No description provided for @settingsPositionsTierPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get settingsPositionsTierPending;
 }
 
 class _AppLocalizationsDelegate

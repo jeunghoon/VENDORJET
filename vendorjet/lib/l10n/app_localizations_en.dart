@@ -30,6 +30,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subtitle => 'Wholesale order management';
 
   @override
+  String get appTooNarrowTitle => 'Increase window width';
+
+  @override
+  String appTooNarrowMessage(int pixels) {
+    return 'VendorJet works best when the window is at least ${pixels}px wide. Please expand or maximize the window to continue.';
+  }
+
+  @override
   String get language => 'Language';
 
   @override
@@ -931,6 +939,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMembersUpdateError => 'Could not update member role.';
 
   @override
+  String get settingsMembersPositionLabel => 'Position';
+
+  @override
+  String get settingsMembersPositionNone => 'Unassigned';
+
+  @override
+  String get settingsMembersPositionSaved => 'Position updated.';
+
+  @override
+  String settingsPositionsSectionTitle(Object tenant) {
+    return '$tenant · Positions';
+  }
+
+  @override
+  String get settingsPositionsEmpty => 'No positions have been registered.';
+
+  @override
+  String get settingsPositionsAdd => 'Add position';
+
+  @override
+  String get settingsPositionsEdit => 'Edit position';
+
+  @override
+  String get settingsPositionsDelete => 'Delete position';
+
+  @override
+  String settingsPositionsDeleteConfirm(Object title) {
+    return 'Delete \"$title\"? Assigned members will be set to Unassigned.';
+  }
+
+  @override
+  String get settingsPositionsFieldLabel => 'Position name';
+
+  @override
+  String get settingsPositionsRequired => 'Enter a position name.';
+
+  @override
+  String get settingsPositionsSave => 'Save';
+
+  @override
+  String get settingsPositionsSaved => 'Position saved.';
+
+  @override
+  String get settingsPositionsDeleted => 'Position deleted.';
+
+  @override
   String get buyerSettingsConnectionsTitle => 'Connected wholesalers';
 
   @override
@@ -952,6 +1006,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get buyerSettingsRequestButton => 'Request new connection';
+
+  @override
+  String get buyerSettingsRequestOwnerOnly =>
+      'Only store owners can request new wholesaler connections.';
 
   @override
   String get buyerSettingsSheetTitle => 'Request wholesaler connection';
@@ -1000,6 +1058,52 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String buyerSettingsRequestSuccess(Object seller) {
     return 'Request sent to $seller';
+  }
+
+  @override
+  String buyerSettingsRequestAlreadyPending(Object seller) {
+    return 'Waiting for approval from $seller';
+  }
+
+  @override
+  String buyerSettingsRequestAlreadyConnected(Object seller) {
+    return '$seller is already connected.';
+  }
+
+  @override
+  String get buyerSettingsActiveSellerTitle => 'Active wholesaler';
+
+  @override
+  String get buyerSettingsActiveSellerHint =>
+      'Select which wholesaler to use for catalog and orders.';
+
+  @override
+  String buyerSettingsActiveSellerSaved(Object seller) {
+    return 'Switched to $seller.';
+  }
+
+  @override
+  String get buyerSettingsConnectionsSwitchAction => 'Use this wholesaler';
+
+  @override
+  String get buyerSettingsConnectionsActiveLabel => 'Currently in use';
+
+  @override
+  String get buyerCatalogConnectHint =>
+      'Connect with a wholesaler from Settings to browse their catalog.';
+
+  @override
+  String buyerCatalogPendingMessage(Object seller) {
+    return '$seller is reviewing your request. Access will unlock once it is approved.';
+  }
+
+  @override
+  String get buyerOrderConnectHint =>
+      'Connect with a wholesaler to create and submit orders.';
+
+  @override
+  String buyerOrderPendingMessage(Object seller) {
+    return '$seller is reviewing your request. Ordering will unlock once it is approved.';
   }
 
   @override
@@ -1153,6 +1257,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buyerCartClear => 'Clear cart';
 
   @override
+  String get buyerCartProceed => 'Go to order sheet';
+
+  @override
   String get buyerDeliveryDateLabel => 'Delivery date';
 
   @override
@@ -1249,4 +1356,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String buyerOrderStoreLoadError(String error) {
     return 'Store list failed to load: $error';
   }
+
+  @override
+  String get settingsPositionsTierLabel => 'Position group';
+
+  @override
+  String get settingsPositionsTierOwner => 'Owner';
+
+  @override
+  String get settingsPositionsTierManager => 'Manager';
+
+  @override
+  String get settingsPositionsTierStaff => 'Staff';
+
+  @override
+  String get settingsPositionsLockedBadge => 'Default';
+
+  @override
+  String get settingsPositionsHierarchyHint =>
+      'Permissions flow from Owner ? Manager ? Staff ? Pending.';
+
+  @override
+  String get settingsPositionsTierPending => 'Pending';
 }

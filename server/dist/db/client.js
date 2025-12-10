@@ -98,6 +98,8 @@ function ensureSchema() {
         ensureColumn('users', 'created_at', 'TEXT');
         ensureColumn('users', 'last_login_at', 'TEXT');
         ensureColumn('users', 'user_type', 'TEXT');
+        ensureColumn('users', 'language_preference', 'TEXT');
+        ensureColumn('users', 'primary_tenant_id', 'TEXT');
         ensureColumn('memberships', 'status', 'TEXT');
         ensureColumn('membership_requests', 'company_phone', 'TEXT');
         ensureColumn('buyer_requests', 'seller_phone', 'TEXT');
@@ -108,11 +110,36 @@ function ensureSchema() {
         ensureColumn('buyer_requests', 'requested_segment', 'TEXT');
         ensureColumn('buyer_requests', 'selected_segment', 'TEXT');
         ensureColumn('buyer_requests', 'selected_tier', 'TEXT');
+        ensureTable('member_positions', `CREATE TABLE IF NOT EXISTS member_positions (
+        tenant_id TEXT NOT NULL,
+        member_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        position_id TEXT,
+        PRIMARY KEY (tenant_id, member_id)
+      );`);
+        ensureTable('tenant_positions', `CREATE TABLE IF NOT EXISTS tenant_positions (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        created_at TEXT,
+        tier TEXT,
+        sort_order INTEGER,
+        is_locked INTEGER DEFAULT 0
+      );`);
         ensureColumn('orders', 'created_by', 'TEXT');
         ensureColumn('orders', 'updated_by', 'TEXT');
         ensureColumn('orders', 'status_updated_by', 'TEXT');
         ensureColumn('orders', 'status_updated_at', 'TEXT');
         ensureColumn('orders', 'created_source', 'TEXT');
+        ensureColumn('tenants', 'representative', 'TEXT');
+        ensureColumn('orders', 'buyer_tenant_id', 'TEXT');
+        ensureColumn('orders', 'buyer_user_id', 'TEXT');
+        ensureColumn('orders', 'buyer_user_name', 'TEXT');
+        ensureColumn('orders', 'buyer_user_email', 'TEXT');
+        ensureColumn('member_positions', 'position_id', 'TEXT');
+        ensureColumn('tenant_positions', 'tier', 'TEXT');
+        ensureColumn('tenant_positions', 'sort_order', 'INTEGER');
+        ensureColumn('tenant_positions', 'is_locked', 'INTEGER DEFAULT 0');
         ensureIndex('orders', 'idx_orders_code_unique', 'CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_code_unique ON orders(code);');
     }
     catch (err) {

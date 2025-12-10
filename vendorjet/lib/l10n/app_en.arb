@@ -6,6 +6,8 @@
   "settingsTitle": "Settings",
   "welcome": "Welcome",
   "subtitle": "Wholesale order management",
+  "appTooNarrowTitle": "Increase window width",
+  "appTooNarrowMessage": "VendorJet works best when the window is at least {pixels}px wide. Please expand or maximize the window to continue.",
   "language": "Language",
   "selectLanguage": "Select language",
   "english": "English",
@@ -97,6 +99,13 @@
     }
   },
   "orderLinePlaceholder": "Sample item {position}",
+  "@appTooNarrowMessage": {
+    "placeholders": {
+      "pixels": {
+        "type": "int"
+      }
+    }
+  },
   "@orderLinePlaceholder": {
     "placeholders": {
       "position": {
@@ -391,6 +400,20 @@
   "settingsMembersOwnerHint": "Only owners can change roles.",
   "settingsMembersUpdateSuccess": "Member role updated.",
   "settingsMembersUpdateError": "Could not update member role.",
+  "settingsMembersPositionLabel": "Position",
+  "settingsMembersPositionNone": "Unassigned",
+  "settingsMembersPositionSaved": "Position updated.",
+  "settingsPositionsSectionTitle": "{tenant} · Positions",
+  "settingsPositionsEmpty": "No positions have been registered.",
+  "settingsPositionsAdd": "Add position",
+  "settingsPositionsEdit": "Edit position",
+  "settingsPositionsDelete": "Delete position",
+  "settingsPositionsDeleteConfirm": "Delete \"{title}\"? Assigned members will be set to Unassigned.",
+  "settingsPositionsFieldLabel": "Position name",
+  "settingsPositionsRequired": "Enter a position name.",
+  "settingsPositionsSave": "Save",
+  "settingsPositionsSaved": "Position saved.",
+  "settingsPositionsDeleted": "Position deleted.",
   "buyerSettingsConnectionsTitle": "Connected wholesalers",
   "buyerSettingsNoConnections": "No active wholesaler connections.",
   "buyerSettingsPendingTitle": "Pending request",
@@ -398,6 +421,7 @@
   "buyerSettingsPendingNone": "No pending connection request.",
   "buyerSettingsPendingWithSeller": "Waiting for approval from {seller}",
   "buyerSettingsRequestButton": "Request new connection",
+  "buyerSettingsRequestOwnerOnly": "Only store owners can request new wholesaler connections.",
   "buyerSettingsSheetTitle": "Request wholesaler connection",
   "buyerSettingsSellerFieldLabel": "Target wholesaler",
   "buyerSettingsSearchSeller": "Search wholesaler",
@@ -413,6 +437,17 @@
   "buyerSettingsRequiredField": "This field is required.",
   "buyerSettingsSubmit": "Submit request",
   "buyerSettingsRequestSuccess": "Request sent to {seller}",
+  "buyerSettingsRequestAlreadyPending": "Waiting for approval from {seller}",
+  "buyerSettingsRequestAlreadyConnected": "{seller} is already connected.",
+  "buyerSettingsActiveSellerTitle": "Active wholesaler",
+  "buyerSettingsActiveSellerHint": "Select which wholesaler to use for catalog and orders.",
+  "buyerSettingsActiveSellerSaved": "Switched to {seller}.",
+  "buyerSettingsConnectionsSwitchAction": "Use this wholesaler",
+  "buyerSettingsConnectionsActiveLabel": "Currently in use",
+  "buyerCatalogConnectHint": "Connect with a wholesaler from Settings to browse their catalog.",
+  "buyerCatalogPendingMessage": "{seller} is reviewing your request. Access will unlock once it is approved.",
+  "buyerOrderConnectHint": "Connect with a wholesaler to create and submit orders.",
+  "buyerOrderPendingMessage": "{seller} is reviewing your request. Ordering will unlock once it is approved.",
   "settingsCompanyInfoTitle": "Company information",
   "settingsCompanyRepresentativeLabel": "Representative",
   "settingsCompanyPhoneLabel": "Phone",
@@ -458,6 +493,49 @@
       "seller": {}
     }
   },
+  "@buyerSettingsRequestAlreadyPending": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@buyerSettingsRequestAlreadyConnected": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@buyerCatalogPendingMessage": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@buyerOrderPendingMessage": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@settingsPositionsSectionTitle": {
+    "placeholders": {
+      "tenant": {}
+    }
+  },
+  "@settingsPositionsDeleteConfirm": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "@buyerSettingsActiveSellerTitle": {
+    "description": "Heading for the active wholesaler selector"
+  },
+  "@buyerSettingsActiveSellerHint": {
+    "description": "Helper text for selecting the active wholesaler"
+  },
+  "@buyerSettingsActiveSellerSaved": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@buyerSettingsConnectionsSwitchAction": {},
+  "@buyerSettingsConnectionsActiveLabel": {},
   "@settingsCompanyDeleteConfirm": {
     "placeholders": {
       "name": {}
@@ -520,6 +598,7 @@
     }
   },
   "buyerCartClear": "Clear cart",
+  "buyerCartProceed": "Go to order sheet",
   "buyerDeliveryDateLabel": "Delivery date",
   "buyerDeliveryDatePick": "Select delivery date",
   "buyerDeliveryDateEdit": "Change",
@@ -595,5 +674,12 @@
         "type": "int"
       }
     }
-  }
+  },
+  "settingsPositionsTierLabel": "Position group",
+  "settingsPositionsTierOwner": "Owner",
+  "settingsPositionsTierManager": "Manager",
+  "settingsPositionsTierStaff": "Staff",
+  "settingsPositionsLockedBadge": "Default",
+  "settingsPositionsHierarchyHint": "Permissions flow from Owner ? Manager ? Staff ? Pending.",
+  "settingsPositionsTierPending": "Pending"
 }

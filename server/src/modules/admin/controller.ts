@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db, mapRows } from '../../db/client';
+import { assignOwnerDefaultPosition, ensureTenantPositionDefaults } from '../auth/position_utils';
 
 const router = Router();
 
@@ -61,6 +62,8 @@ router.post('/tenants', (req, res) => {
       .run(userId, tenantId, 'owner', 'approved');
   });
   tx();
+  ensureTenantPositionDefaults(tenantId);
+  assignOwnerDefaultPosition(tenantId, userId);
   return res.status(201).json({ id: tenantId, name, phone, address, representative });
 });
 
@@ -248,7 +251,15 @@ router.patch('/requests/:id', (req, res) => {
             );
           }
         }
+        if (reqRow.user_id) {
+          db.prepare(
+            'INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
+          ).run(reqRow.user_id, tenant.id, reqRow.role ?? 'staff', 'approved');
+        }
       }
+    }
+    if (status !== 'pending') {
+      db.prepare('DELETE FROM buyer_requests WHERE id = ?').run(id);
     }
   }
   return res.json({ id, status });

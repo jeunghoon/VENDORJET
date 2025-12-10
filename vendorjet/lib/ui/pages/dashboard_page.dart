@@ -198,9 +198,20 @@ class _Overview extends StatelessWidget {
     final t = AppLocalizations.of(context)!;
     return LayoutBuilder(
       builder: (context, c) {
-        final isWide = c.maxWidth > 900;
-        final isMedium = c.maxWidth > 600;
+        final maxWidth = c.maxWidth;
+        final isWide = maxWidth > 900;
+        final isMedium = maxWidth > 600;
+        final isCompact = maxWidth < 360;
         final crossAxisCount = isWide ? 3 : (isMedium ? 3 : 1);
+        final spacing = 12.0;
+        final totalSpacing = spacing * (crossAxisCount - 1);
+        final tileWidth = (maxWidth - totalSpacing) / crossAxisCount;
+        final targetHeight = isWide
+            ? 120.0
+            : isMedium
+                ? 140.0
+                : (isCompact ? 200.0 : 170.0);
+        final aspectRatio = tileWidth / targetHeight;
 
         return GridView.count(
           shrinkWrap: true,
@@ -208,7 +219,7 @@ class _Overview extends StatelessWidget {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: isWide ? 3.2 : 2.6,
+          childAspectRatio: aspectRatio,
           children: [
             _StatCard(
               title: t.dashboardTodayOrders,

@@ -7,6 +7,40 @@ const auth_1 = require("../../middleware/auth");
 const code_generator_1 = require("../../utils/code_generator");
 const router = (0, express_1.Router)();
 router.use(auth_1.authMiddleware);
+function resolveBuyerTenantId(userId) {
+    if (!userId)
+        return null;
+    const row = client_1.db
+        .prepare(`SELECT m.tenant_id AS tenant_id
+       FROM memberships m
+       WHERE m.user_id = ?
+         AND EXISTS (
+           SELECT 1
+           FROM memberships owners
+           INNER JOIN users ownerUsers ON ownerUsers.id = owners.user_id
+           WHERE owners.tenant_id = m.tenant_id
+             AND owners.role = 'owner'
+             AND COALESCE(ownerUsers.user_type, 'wholesale') = 'retail'
+         )
+       ORDER BY m.rowid DESC
+       LIMIT 1`)
+        .get(userId);
+    return row?.tenant_id ?? null;
+}
+function resolveBuyerUserProfile(userId) {
+    if (!userId)
+        return { name: null, email: null };
+    const user = client_1.db
+        .prepare('SELECT name, email FROM users WHERE id = ? LIMIT 1')
+        .get(userId);
+    if (!user) {
+        return { name: null, email: null };
+    }
+    const name = (user.name ?? '').toString().trim();
+    const email = (user.email ?? '').toString().trim();
+    const displayName = name.length > 0 ? name : email.length > 0 ? email : null;
+    return { name: displayName, email: email || null };
+}
 const selectOrderStmt = client_1.db.prepare('SELECT * FROM orders WHERE id = ? AND tenant_id = ?');
 const selectLinesStmt = client_1.db.prepare('SELECT * FROM order_lines WHERE order_id = ? ORDER BY id ASC');
 const selectEventsStmt = client_1.db.prepare('SELECT id, action, actor, note, created_at FROM order_events WHERE order_id = ? AND tenant_id = ? ORDER BY id DESC');
@@ -18,33 +52,50 @@ router.get('/', (req, res) => {
     const tenantId = req.user?.tenantId;
     if (!tenantId)
         return res.status(400).json({ error: 'tenantId missing' });
-    let base = 'SELECT * FROM orders WHERE tenant_id = ?';
+    let base = `
+    SELECT
+      o.*,
+      (
+        SELECT COUNT(*)
+        FROM order_lines l
+        WHERE l.order_id = o.id
+      ) AS line_count
+    FROM orders o
+    WHERE o.tenant_id = ?`;
     const params = [tenantId];
     if (req.user?.userType === 'retail' && req.user?.userId) {
-        base += ' AND created_by = ?';
-        params.push(req.user.userId);
+        const buyerTenantId = resolveBuyerTenantId(req.user.userId);
+        if (buyerTenantId) {
+            base += ' AND (o.buyer_tenant_id = ? OR (o.buyer_tenant_id IS NULL AND o.created_by = ?))';
+            params.push(buyerTenantId, req.user.userId);
+        }
+        else {
+            base += ' AND o.created_by = ?';
+            params.push(req.user.userId);
+        }
     }
     if (status) {
-        base += ' AND status = ?';
+        base += ' AND o.status = ?';
         params.push(status);
     }
     if (createdSource) {
-        base += ' AND created_source = ?';
+        base += ' AND o.created_source = ?';
         params.push(createdSource);
     }
     if (openOnly === 'true') {
-        base += " AND status IN ('pending','confirmed','shipped')";
+        base += " AND o.status IN ('pending','confirmed','shipped')";
     }
     if (date) {
-        base += ' AND substr(created_at,1,10) = ?';
+        base += ' AND substr(o.created_at,1,10) = ?';
         params.push(date);
     }
     if (q) {
         const like = `%${q.toLowerCase()}%`;
-        base += ' AND (LOWER(code) LIKE ? OR LOWER(buyer_name) LIKE ? OR LOWER(buyer_contact) LIKE ?)';
+        base +=
+            ' AND (LOWER(o.code) LIKE ? OR LOWER(o.buyer_name) LIKE ? OR LOWER(o.buyer_contact) LIKE ?)';
         params.push(like, like, like);
     }
-    base += ' ORDER BY created_at DESC';
+    base += ' ORDER BY o.created_at DESC';
     const rows = client_1.db.prepare(base).all(params);
     res.json((0, client_1.mapRows)(rows));
 });
@@ -86,14 +137,17 @@ router.post('/', (req, res) => {
         });
     }
     total = parseFloat(total.toFixed(2));
+    const buyerMetaEnabled = req.user?.userType === 'retail';
+    const buyerTenantId = buyerMetaEnabled ? resolveBuyerTenantId(actor) : null;
+    const buyerProfile = buyerMetaEnabled ? resolveBuyerUserProfile(actor) : { name: null, email: null };
     const insertOrder = client_1.db.prepare(`INSERT INTO orders (
       id, tenant_id, code, created_source, buyer_name, buyer_contact, buyer_note, status, total, item_count,
       created_at, created_by, updated_at, updated_by, update_note, status_updated_at, status_updated_by,
-      desired_delivery_date
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+      desired_delivery_date, buyer_tenant_id, buyer_user_id, buyer_user_name, buyer_user_email
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     const insertLine = client_1.db.prepare('INSERT INTO order_lines (order_id, product_id, product_name, quantity, unit_price) VALUES (?,?,?,?,?)');
     const trx = client_1.db.transaction(() => {
-        insertOrder.run(id, tenantId, code, createdSource ?? 'seller_portal', buyerName, buyerContact, buyerNote, 'pending', total, itemCount, createdAt.toISOString(), actor, createdAt.toISOString(), actor, 'Created via API', createdAt.toISOString(), actor, desiredDeliveryDate ?? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString());
+        insertOrder.run(id, tenantId, code, createdSource ?? 'seller_portal', buyerName, buyerContact, buyerNote, 'pending', total, itemCount, createdAt.toISOString(), actor, createdAt.toISOString(), actor, 'Created via API', createdAt.toISOString(), actor, desiredDeliveryDate ?? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(), buyerTenantId, buyerMetaEnabled ? actor : null, buyerProfile.name, buyerProfile.email);
         normalizedItems.forEach((line) => {
             insertLine.run(id, line.productId, line.productName, line.quantity, line.unitPrice);
         });
@@ -209,6 +263,7 @@ function loadOrderWithLines(id, tenantId) {
     const order = (0, client_1.mapRow)(orderRow);
     order.lines = lines;
     order.events = events;
+    order.line_count = lines.length;
     return order;
 }
 function _diffLines(prev, next) {

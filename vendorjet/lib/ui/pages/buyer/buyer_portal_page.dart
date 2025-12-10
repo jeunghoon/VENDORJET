@@ -19,6 +19,8 @@ import 'package:vendorjet/ui/widgets/product_tag_pill.dart';
 import 'package:vendorjet/ui/widgets/product_thumbnail.dart';
 import 'package:vendorjet/ui/widgets/state_views.dart';
 
+enum _BuyerOverlaySection { settings, personal }
+
 class BuyerPortalPage extends StatefulWidget {
   final Locale? currentLocale;
   final ValueChanged<Locale>? onLocaleChanged;
@@ -62,7 +64,8 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
   String? _pendingSellerName;
   bool _pendingSellerRequested = false;
   Widget? _overlayContent;
-  String? _overlayTitle;
+  String? _appliedSellerTenantId;
+  _BuyerOverlaySection? _activeOverlaySection;
 
   @override
   void initState() {
@@ -73,6 +76,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       _handleSellerAccessChange(_computeSellerAccess());
     });
     _sellerAccess = _computeSellerAccess();
+    _appliedSellerTenantId = context.read<AuthController?>()?.activeSellerTenantId;
     _loadProducts();
     _loadHistory();
     _loadStores();
@@ -100,17 +104,17 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     return auth.tenants.any((tenant) => tenant.type == TenantType.seller);
   }
 
-  void _openOverlay(String title, Widget content) {
+  void _openOverlay(String title, Widget content, [_BuyerOverlaySection? section]) {
     setState(() {
-      _overlayTitle = title;
       _overlayContent = content;
+      _activeOverlaySection = section;
     });
   }
 
   void _closeOverlay() {
     setState(() {
-      _overlayTitle = null;
       _overlayContent = null;
+      _activeOverlaySection = null;
     });
   }
 
@@ -534,9 +538,10 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
     }
     final current = auth.tenant;
     Tenant? desired;
-    if (targetTenantId != null) {
+    final preferredId = targetTenantId ?? auth.activeSellerTenantId;
+    if (preferredId != null) {
       desired = sellers.firstWhere(
-        (tenant) => tenant.id == targetTenantId,
+        (tenant) => tenant.id == preferredId,
         orElse: () => sellers.first,
       );
     } else if (current != null && current.type == TenantType.seller) {
@@ -559,13 +564,19 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
       context.read<NotificationTicker>().push(t.tenantSwitchFailed);
       return;
     }
+    _appliedSellerTenantId = tenantId;
+    context.read<AuthController>().setActiveSellerTenant(tenantId);
     _loadProducts();
     _loadHistory();
     _loadStores();
   }
 
   void _openBuyerProfile(BuildContext context, AppLocalizations t) {
-    _openOverlay(t.buyerMenuProfile, const ProfilePage(embedded: true));
+    _openOverlay(
+      t.buyerMenuProfile,
+      const ProfilePage(embedded: true),
+      _BuyerOverlaySection.personal,
+    );
   }
 
   void _openBuyerSettings(BuildContext context, AppLocalizations t) {
@@ -576,6 +587,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
         currentLocale: widget.currentLocale,
         onLocaleChanged: widget.onLocaleChanged ?? (_) {},
       ),
+      _BuyerOverlaySection.settings,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -621,6 +633,16 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
             final activeSellerId = auth.tenant != null && auth.tenant!.type == TenantType.seller
                 ? auth.tenant!.id
                 : null;
+            final preferredSellerId = auth.activeSellerTenantId;
+            if (_sellerAccess &&
+                sellerTenants.isNotEmpty &&
+                preferredSellerId != null &&
+                preferredSellerId != _appliedSellerTenantId) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                _switchSellerTenant(preferredSellerId);
+              });
+            }
             return PopScope(
               canPop: _overlayContent == null,
               onPopInvokedWithResult: (didPop, _) {
@@ -631,15 +653,35 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
               },
               child: Scaffold(
                 appBar: AppBar(
+                  leading: _overlayContent == null
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: _closeOverlay,
+                        ),
                   title: Text(t.buyerPortalTitle),
-                  bottom: TabBar(
-                    isScrollable: true,
-                    tabs: [
-                      Tab(text: t.buyerPortalTabDashboard),
-                      Tab(text: t.buyerPortalTabCatalog),
-                      Tab(text: t.buyerPortalTabOrder),
-                    ],
-                  ),
+                  bottom: _overlayContent == null
+                      ? TabBar(
+                          isScrollable: true,
+                          tabs: [
+                            Tab(text: t.buyerPortalTabDashboard),
+                            Tab(text: t.buyerPortalTabCatalog),
+                            Tab(text: t.buyerPortalTabOrder),
+                          ],
+                        )
+                      : PreferredSize(
+                          preferredSize: const Size.fromHeight(48),
+                          child: _SettingsMenuBar(
+                            activeSection: _activeOverlaySection,
+                            onSettings: () => _openBuyerSettings(context, t),
+                            onProfile: () => _openBuyerProfile(context, t),
+                            onLogout: () async {
+                              await context.read<AuthController>().signOut();
+                              if (context.mounted) context.go('/sign-in');
+                            },
+                            t: t,
+                          ),
+                        ),
                   actions: [
                     if (_sellerAccess && sellerTenants.isNotEmpty)
                       Padding(
@@ -668,35 +710,18 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                           ),
                         ),
                       ),
-                    PopupMenuButton<String>(
-                      onSelected: (value) async {
-                        switch (value) {
-                          case 'profile':
-                            _openBuyerProfile(context, t);
-                            break;
-                          case 'settings':
-                            _openBuyerSettings(context, t);
-                            break;
-                          case 'logout':
-                            await context.read<AuthController>().signOut();
-                            if (context.mounted) context.go('/sign-in');
-                            break;
+                    IconButton(
+                      tooltip: t.buyerMenuSettings,
+                      icon: _overlayContent == null
+                          ? const Icon(Icons.settings_outlined)
+                          : const Icon(Icons.close),
+                      onPressed: () {
+                        if (_overlayContent == null) {
+                          _openBuyerSettings(context, t);
+                        } else {
+                          _closeOverlay();
                         }
                       },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'profile',
-                          child: Text(t.buyerMenuProfile),
-                        ),
-                        PopupMenuItem(
-                          value: 'settings',
-                          child: Text(t.buyerMenuSettings),
-                        ),
-                        PopupMenuItem(
-                          value: 'logout',
-                          child: Text(t.buyerMenuLogout),
-                        ),
-                      ],
                     ),
                     Padding(
                       padding: const EdgeInsets.only(right: 12),
@@ -765,6 +790,7 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                           onDeliveryTap: _pickDeliveryDate,
                           deliveryDate: _deliveryDate,
                           sellerAccess: _sellerAccess,
+                          pendingSellerName: pendingSeller,
                         ),
                       ],
                     ),
@@ -774,30 +800,9 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
                           color: Theme.of(
                             context,
                           ).colorScheme.surface.withValues(alpha: 0.98),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                leading: IconButton(
-                                  icon: const Icon(Icons.arrow_back),
-                                  onPressed: _closeOverlay,
-                                ),
-                                title: Text(_overlayTitle ?? ''),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.close),
-                                  onPressed: _closeOverlay,
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Expanded(
-                                child: SafeArea(
-                                  top: false,
-                                  child:
-                                      _overlayContent ??
-                                      const SizedBox.shrink(),
-                                ),
-                              ),
-                            ],
+                          child: SafeArea(
+                            top: false,
+                            child: _overlayContent ?? const SizedBox.shrink(),
                           ),
                         ),
                       ),
@@ -806,6 +811,59 @@ class _BuyerPortalPageState extends State<BuyerPortalPage> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsMenuBar extends StatelessWidget {
+  final _BuyerOverlaySection? activeSection;
+  final VoidCallback onSettings;
+  final VoidCallback onProfile;
+  final Future<void> Function() onLogout;
+  final AppLocalizations t;
+
+  const _SettingsMenuBar({
+    required this.activeSection,
+    required this.onSettings,
+    required this.onProfile,
+    required this.onLogout,
+    required this.t,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            ChoiceChip(
+              label: Text(t.buyerMenuSettings),
+              selected: activeSection == _BuyerOverlaySection.settings,
+              onSelected: (selected) {
+                if (!selected) return;
+                onSettings();
+              },
+            ),
+            const SizedBox(width: 8),
+            ChoiceChip(
+              label: Text(t.buyerMenuProfile),
+              selected: activeSection == _BuyerOverlaySection.personal,
+              onSelected: (selected) {
+                if (!selected) return;
+                onProfile();
+              },
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: () => onLogout(),
+              icon: const Icon(Icons.logout),
+              label: Text(t.buyerMenuLogout),
+            ),
+          ],
         ),
       ),
     );
@@ -854,13 +912,14 @@ class _BuyerCatalogTab extends StatelessWidget {
     final needsApproval = (pendingSellerName ?? '').isNotEmpty;
 
     if (!sellerAccess) {
+      final waiting = (pendingSellerName ?? '').isNotEmpty;
       return ListView(
         padding: const EdgeInsets.all(32),
         children: [
           StateMessageView(
             icon: Icons.lock_outline,
-            title: t.buyerSettingsNoConnections,
-            message: t.buyerSettingsPendingNone,
+            title: waiting ? t.buyerSettingsPendingWithSeller(pendingSellerName!) : t.buyerSettingsNoConnections,
+            message: waiting ? t.buyerCatalogPendingMessage(pendingSellerName!) : t.buyerCatalogConnectHint,
             action: FilledButton.icon(
               onPressed: onRefresh,
               icon: const Icon(Icons.refresh),
@@ -1384,6 +1443,7 @@ class _BuyerOrderSheetTab extends StatelessWidget {
   final VoidCallback onDeliveryTap;
   final DateTime deliveryDate;
   final bool sellerAccess;
+  final String? pendingSellerName;
 
   const _BuyerOrderSheetTab({
     required this.formKey,
@@ -1400,6 +1460,7 @@ class _BuyerOrderSheetTab extends StatelessWidget {
     required this.onDeliveryTap,
     required this.deliveryDate,
     required this.sellerAccess,
+    this.pendingSellerName,
   });
 
   @override
@@ -1408,11 +1469,12 @@ class _BuyerOrderSheetTab extends StatelessWidget {
     return Consumer<BuyerCartController>(
       builder: (context, cart, _) {
         if (!sellerAccess) {
+          final waiting = (pendingSellerName ?? '').isNotEmpty;
           return Center(
             child: StateMessageView(
               icon: Icons.store_mall_directory_outlined,
-              title: t.buyerSettingsNoConnections,
-              message: t.buyerSettingsPendingNone,
+              title: waiting ? t.buyerSettingsPendingWithSeller(pendingSellerName!) : t.buyerSettingsNoConnections,
+              message: waiting ? t.buyerOrderPendingMessage(pendingSellerName!) : t.buyerOrderConnectHint,
               action: FilledButton.icon(
                 onPressed: onBrowseCatalog,
                 icon: const Icon(Icons.refresh),

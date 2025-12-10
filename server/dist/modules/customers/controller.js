@@ -123,8 +123,30 @@ router.put('/:id', (req, res) => {
 });
 router.delete('/:id', (req, res) => {
     const tenantId = req.user?.tenantId;
+    if (!tenantId)
+        return res.status(400).json({ error: 'tenantId missing' });
     const id = req.params.id;
+    const existing = client_1.db
+        .prepare('SELECT name FROM customers WHERE id = ? AND tenant_id = ?')
+        .get(id, tenantId);
     client_1.db.prepare('DELETE FROM customers WHERE id = ? AND tenant_id = ?').run(id, tenantId);
+    if (existing?.name) {
+        const tenantRow = client_1.db
+            .prepare('SELECT name FROM tenants WHERE id = ? LIMIT 1')
+            .get(tenantId);
+        const sellerName = tenantRow?.name;
+        if (sellerName) {
+            const relatedRequests = client_1.db
+                .prepare('SELECT id, user_id FROM buyer_requests WHERE seller_company = ? AND buyer_company = ?')
+                .all(sellerName, existing.name);
+            for (const reqRow of relatedRequests) {
+                if (reqRow.user_id) {
+                    client_1.db.prepare('DELETE FROM memberships WHERE user_id = ? AND tenant_id = ?').run(reqRow.user_id, tenantId);
+                }
+                client_1.db.prepare('DELETE FROM buyer_requests WHERE id = ?').run(reqRow.id);
+            }
+        }
+    }
     res.status(204).end();
 });
 exports.customersController = router;

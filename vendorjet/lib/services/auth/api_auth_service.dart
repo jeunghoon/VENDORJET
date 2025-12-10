@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/tenant.dart';
 import '../api/api_client.dart';
 import 'auth_service.dart';
+import 'buyer_reconnect_result.dart';
 
 /// 로컬 API 서버 연동 버전
 class ApiAuthService implements AuthService {
@@ -387,7 +388,7 @@ class ApiAuthService implements AuthService {
     }
   }
 
-  Future<bool> requestBuyerReconnect({
+  Future<BuyerReconnectResult> requestBuyerReconnect({
     required String sellerCompanyName,
     required String buyerCompanyName,
     String buyerAddress = '',
@@ -397,7 +398,7 @@ class ApiAuthService implements AuthService {
     String attachmentUrl = '',
   }) async {
     try {
-      await ApiClient.post(
+      final resp = await ApiClient.post(
         '/auth/buyer/reapply',
         body: {
           'sellerCompanyName': sellerCompanyName,
@@ -408,10 +409,26 @@ class ApiAuthService implements AuthService {
           'phone': contactPhone,
           'attachmentUrl': attachmentUrl,
         },
+      ) as Map<String, dynamic>;
+      final message = (resp['message'] as String?) ?? 'pending approval';
+      return BuyerReconnectResult.success(message: message);
+    } on ApiClientException catch (err) {
+      final message = _extractErrorMessage(err.body);
+      final normalized = message.toLowerCase();
+      final pendingExists =
+          normalized.contains('pending request') ||
+          normalized.contains('request already pending');
+      final alreadyConnected =
+          normalized.contains('already connected') ||
+          normalized.contains('company already connected') ||
+          normalized.contains('connection already exists');
+      return BuyerReconnectResult.failure(
+        message: message,
+        pendingExists: pendingExists,
+        alreadyConnected: alreadyConnected,
       );
-      return true;
     } catch (_) {
-      return false;
+      return const BuyerReconnectResult.failure();
     }
   }
 
@@ -463,6 +480,9 @@ class ApiAuthService implements AuthService {
               phone: (raw['phone'] as String?) ?? '',
               role: _roleFromString(raw['role'] as String?),
               status: (raw['status'] as String?) ?? 'approved',
+              positionId: ((raw['positionId'] ?? raw['position_id']) as String?)?.toString(),
+              positionTitle:
+                  ((raw['positionTitle'] ?? raw['customTitle']) as String?)?.toString(),
             ),
           )
           .toList();
@@ -487,6 +507,126 @@ class ApiAuthService implements AuthService {
       return true;
     } catch (_) {
       return false;
+    }
+  }
+
+  Future<List<TenantPosition>> fetchTenantPositions(String tenantId) async {
+    try {
+      final resp =
+          await ApiClient.get(
+            '/auth/positions',
+            query: {'tenantId': tenantId},
+          ) as List<dynamic>;
+      return resp
+          .map(
+            (raw) => TenantPosition(
+              id: (raw['id'] as String?) ?? '',
+              tenantId: (raw['tenantId'] as String?) ?? tenantId,
+              title: (raw['title'] as String?) ?? '',
+              tier: tenantPositionTierFromString(raw['tier'] as String?),
+              sortOrder: (raw['sortOrder'] as int?) ?? (raw['sort_order'] as int?) ?? 0,
+              isLocked: (raw['isLocked'] as bool?) ??
+                  (((raw['is_locked'] as num?) ?? 0) == 1),
+            ),
+          )
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<TenantPosition?> createTenantPosition({
+    required String tenantId,
+    required String title,
+    required TenantPositionTier tier,
+  }) async {
+    try {
+      final resp = await ApiClient.post(
+        '/auth/positions',
+        body: {
+          'tenantId': tenantId,
+          'title': title,
+          'hierarchy': _tierToString(tier),
+        },
+      ) as Map<String, dynamic>;
+      return TenantPosition(
+        id: (resp['id'] as String?) ?? '',
+        tenantId: (resp['tenantId'] as String?) ?? tenantId,
+        title: (resp['title'] as String?) ?? title,
+        tier: tenantPositionTierFromString(resp['tier'] as String? ?? _tierToString(tier)),
+        sortOrder: (resp['sortOrder'] as int?) ?? 0,
+        isLocked: (resp['isLocked'] as bool?) ?? false,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> updateTenantPosition({
+    required String tenantId,
+    required String positionId,
+    required String title,
+    required TenantPositionTier tier,
+  }) async {
+    try {
+      await ApiClient.patch(
+        '/auth/positions/$positionId',
+        body: {
+          'tenantId': tenantId,
+          'title': title,
+          'hierarchy': _tierToString(tier),
+        },
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteTenantPosition({
+    required String tenantId,
+    required String positionId,
+  }) async {
+    try {
+      await ApiClient.delete(
+        '/auth/positions/$positionId',
+        query: {'tenantId': tenantId},
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> assignMemberPosition({
+    required String tenantId,
+    required String memberId,
+    String? positionId,
+  }) async {
+    try {
+      await ApiClient.patch(
+        '/auth/member-positions/$memberId',
+        body: {
+          'tenantId': tenantId,
+          'positionId': positionId ?? '',
+        },
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String _tierToString(TenantPositionTier tier) {
+    switch (tier) {
+      case TenantPositionTier.owner:
+        return 'owner';
+      case TenantPositionTier.manager:
+        return 'manager';
+      case TenantPositionTier.pending:
+        return 'pending';
+      case TenantPositionTier.staff:
+        return 'staff';
     }
   }
 
@@ -544,5 +684,17 @@ class ApiAuthService implements AuthService {
       case TenantMemberRole.staff:
         return 'staff';
     }
+  }
+
+  String _extractErrorMessage(dynamic body) {
+    if (body is Map<String, dynamic>) {
+      final value = body['error'] ?? body['message'];
+      if (value is String && value.isNotEmpty) {
+        return value;
+      }
+    } else if (body is String && body.isNotEmpty) {
+      return body;
+    }
+    return 'unknown error';
   }
 }

@@ -6,6 +6,8 @@
   "settingsTitle": "설정",
   "welcome": "환영합니다",
   "subtitle": "도매 주문 관리",
+  "appTooNarrowTitle": "창 너비를 늘려 주세요",
+  "appTooNarrowMessage": "VendorJet은 최소 {pixels}px 이상에서 최적화됩니다. 창을 확장하거나 최대화해 주세요.",
   "language": "언어",
   "selectLanguage": "언어를 선택하세요",
   "english": "영어",
@@ -30,6 +32,11 @@
   "orderMetaLastUpdated": "최종 업데이트",
   "orderMetaOwner": "담당자",
   "orderMetaNote": "내부 메모",
+  "orderBuyerSectionTitle": "구매자 정보",
+  "orderBuyerName": "매장명",
+  "orderBuyerContact": "담당자",
+  "orderBuyerNote": "구매자 메모",
+  "orderBuyerUnknown": "제공되지 않음",
   "orderUpdateNote": "업데이트 메모",
   "dashboardTodayOrders": "오늘 주문",
   "dashboardOpenOrders": "진행 중 주문",
@@ -52,6 +59,13 @@
     "placeholders": {
       "category": {
         "type": "String"
+      }
+    }
+  },
+  "@appTooNarrowMessage": {
+    "placeholders": {
+      "pixels": {
+        "type": "int"
       }
     }
   },
@@ -220,6 +234,10 @@
   "ordersFormItems": "품목 수",
   "ordersFormTotal": "주문 금액",
   "ordersFormDate": "주문 날짜",
+  "ordersFormBuyerName": "매장명",
+  "ordersFormBuyerContact": "구매 담당자",
+  "ordersFormBuyerNote": "구매자 메모",
+  "ordersFormBuyerNoteHint": "판매자에게 공유될 선택 메모입니다.",
   "ordersFormBuyerLockedHint": "구매자가 작성한 정보로 판매자가 수정할 수 없습니다.",
   "ordersFormQuantityLockedHint": "상품에서 자동 계산됩니다.",
   "productsCreate": "상품 추가",
@@ -396,10 +414,24 @@
   "buyerSettingsCompanyMissing": "저장된 매장 정보가 없습니다",
   "settingsMembersSectionTitle": "구성원",
   "settingsMembersSelfBadge": "나",
-  "settingsMembersRoleLabel": "직책",
-  "settingsMembersOwnerHint": "대표만 직책을 변경할 수 있습니다.",
-  "settingsMembersUpdateSuccess": "구성원 직책을 변경했습니다.",
-  "settingsMembersUpdateError": "구성원 직책을 변경하지 못했습니다.",
+  "settingsMembersRoleLabel": "역할",
+  "settingsMembersOwnerHint": "대표만 역할을 변경할 수 있습니다.",
+  "settingsMembersUpdateSuccess": "구성원 역할을 변경했습니다.",
+  "settingsMembersUpdateError": "구성원 역할을 변경하지 못했습니다.",
+  "settingsMembersPositionLabel": "직책",
+  "settingsMembersPositionNone": "미지정",
+  "settingsMembersPositionSaved": "직책을 저장했습니다.",
+  "settingsPositionsSectionTitle": "{tenant} · 직책",
+  "settingsPositionsEmpty": "등록된 직책이 없습니다.",
+  "settingsPositionsAdd": "직책 추가",
+  "settingsPositionsEdit": "직책 수정",
+  "settingsPositionsDelete": "직책 삭제",
+  "settingsPositionsDeleteConfirm": "\"{title}\" 직책을 삭제할까요? 해당 구성원은 미지정으로 변경됩니다.",
+  "settingsPositionsFieldLabel": "직책 이름",
+  "settingsPositionsRequired": "직책 이름을 입력하세요.",
+  "settingsPositionsSave": "저장",
+  "settingsPositionsSaved": "직책을 저장했습니다.",
+  "settingsPositionsDeleted": "직책을 삭제했습니다.",
   "buyerSettingsConnectionsTitle": "연결된 도매업체",
   "buyerSettingsNoConnections": "활성화된 도매 연결이 없습니다.",
   "buyerSettingsPendingTitle": "대기 중 요청",
@@ -407,6 +439,7 @@
   "buyerSettingsPendingNone": "대기 중인 연결 요청이 없습니다.",
   "buyerSettingsPendingWithSeller": "{seller} 승인 대기 중",
   "buyerSettingsRequestButton": "새 연결 요청",
+  "buyerSettingsRequestOwnerOnly": "소유자만 새 도매 연결을 요청할 수 있습니다.",
   "buyerSettingsSheetTitle": "도매 연결 요청",
   "buyerSettingsSellerFieldLabel": "연결할 도매업체",
   "buyerSettingsSearchSeller": "도매업체 검색",
@@ -422,6 +455,17 @@
   "buyerSettingsRequiredField": "필수 입력 항목입니다.",
   "buyerSettingsSubmit": "요청 보내기",
   "buyerSettingsRequestSuccess": "{seller}에 요청을 전송했습니다",
+  "buyerSettingsRequestAlreadyPending": "{seller} 승인 대기 중입니다.",
+  "buyerSettingsRequestAlreadyConnected": "{seller}와 이미 연결되어 있습니다.",
+  "buyerSettingsActiveSellerTitle": "활성 도매업체",
+  "buyerSettingsActiveSellerHint": "카탈로그와 주문에 사용할 도매업체를 선택하세요.",
+  "buyerSettingsActiveSellerSaved": "{seller}로 전환했습니다.",
+  "buyerSettingsConnectionsSwitchAction": "이 도매업체 사용",
+  "buyerSettingsConnectionsActiveLabel": "현재 사용 중",
+  "buyerCatalogConnectHint": "설정에서 도매업체와 연결하면 카탈로그를 볼 수 있습니다.",
+  "buyerCatalogPendingMessage": "{seller}이(가) 요청을 검토 중입니다. 승인되면 접근이 열립니다.",
+  "buyerOrderConnectHint": "도매업체와 연결하면 주문을 작성할 수 있습니다.",
+  "buyerOrderPendingMessage": "{seller}이(가) 주문 요청을 검토 중입니다. 승인 후 주문이 가능합니다.",
   "settingsCompanyInfoTitle": "업체 정보",
   "settingsCompanyRepresentativeLabel": "대표자",
   "settingsCompanyPhoneLabel": "대표번호",
@@ -467,6 +511,49 @@
       "seller": {}
     }
   },
+  "@buyerSettingsRequestAlreadyPending": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@buyerSettingsRequestAlreadyConnected": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@buyerCatalogPendingMessage": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@buyerOrderPendingMessage": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@settingsPositionsSectionTitle": {
+    "placeholders": {
+      "tenant": {}
+    }
+  },
+  "@settingsPositionsDeleteConfirm": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "@buyerSettingsActiveSellerTitle": {
+    "description": "활성 도매업체 선택 제목"
+  },
+  "@buyerSettingsActiveSellerHint": {
+    "description": "활성 도매업체 선택 도움말"
+  },
+  "@buyerSettingsActiveSellerSaved": {
+    "placeholders": {
+      "seller": {}
+    }
+  },
+  "@buyerSettingsConnectionsSwitchAction": {},
+  "@buyerSettingsConnectionsActiveLabel": {},
   "@settingsCompanyDeleteConfirm": {
     "placeholders": {
       "name": {}
@@ -477,14 +564,49 @@
   "buyerCatalogSearchHint": "상품 검색",
   "buyerCatalogEmptyHint": "조건에 맞는 상품이 없습니다.",
   "buyerCatalogPrice": "₩ {price} / 단위",
+  "@buyerCatalogPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "buyerCatalogAdd": "장바구니 담기",
   "buyerCatalogAdded": "{name}을(를) 장바구니에 담았습니다.",
+  "@buyerCatalogAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "buyerCartSummary": "{count}개",
+  "@buyerCartSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "buyerCartEmpty": "장바구니가 비었습니다",
   "buyerCartEmptyHint": "카탈로그에서 상품을 추가하세요.",
   "buyerCartLineTotal": "₩ {amount}",
+  "@buyerCartLineTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "buyerCartRemove": "제거",
   "buyerCartTotal": "소계: ₩ {amount}",
+  "@buyerCartTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "buyerCartProceed": "주문서로 이동",
   "buyerCartClear": "장바구니 비우기",
   "buyerDeliveryDateLabel": "희망 배송일",
@@ -512,7 +634,21 @@
   "buyerDashboardHistoryEmptyHint": "첫 주문을 제출하면 이곳에서 바로 불러올 수 있습니다.",
   "buyerDashboardHistoryLoad": "주문서로 불러오기",
   "buyerDashboardLoaded": "{label} 주문을 주문서로 불러왔습니다.",
+  "@buyerDashboardLoaded": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "buyerCheckoutItems": "{count}개 품목",
+  "@buyerCheckoutItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "buyerCheckoutStore": "매장명",
   "buyerCheckoutContact": "구매 담당자",
   "buyerCheckoutNote": "구매자 메모",
@@ -520,9 +656,30 @@
   "buyerCheckoutSubmit": "주문 제출",
   "buyerCheckoutCartEmpty": "먼저 장바구니에 상품을 추가하세요.",
   "buyerCheckoutSuccess": "주문이 접수되었습니다. 코드 {code}",
+  "@buyerCheckoutSuccess": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "buyerOrderEmptyHint": "폼을 작성하기 전에 카탈로그에서 품목을 담아주세요.",
   "buyerOrderBrowseCatalog": "카탈로그 보기",
   "buyerOrderPrefillMissing": "이 주문에는 품목 정보가 없어 복사할 수 없습니다.",
   "buyerOrderStoreEmptyHint": "등록한 매장을 선택해 주세요.",
-  "buyerOrderStoreLoadError": "매장 목록을 불러오지 못했습니다: {error}"
+  "buyerOrderStoreLoadError": "매장 목록을 불러오지 못했습니다: {error}",
+  "@buyerOrderStoreLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsPositionsTierLabel": "직책 그룹",
+  "settingsPositionsTierOwner": "대표",
+  "settingsPositionsTierManager": "관리자",
+  "settingsPositionsTierStaff": "직원",
+  "settingsPositionsLockedBadge": "기본",
+  "settingsPositionsHierarchyHint": "권한은 대표 → 관리자 → 직원 → 미승인 순으로 내려갑니다.",
+  "settingsPositionsTierPending": "미승인"
 }

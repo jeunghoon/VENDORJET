@@ -444,6 +444,7 @@ class _SignInPageState extends State<SignInPage> {
                             email: sellerEmailCtrl.text.trim(),
                             password: sellerPwCtrl.text,
                             role: sellerIsNew ? 'owner' : 'staff',
+                            isNew: sellerIsNew,
                           );
                         }
                       } else {

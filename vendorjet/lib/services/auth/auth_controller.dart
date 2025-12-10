@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../models/tenant.dart';
 import 'api_auth_service.dart';
 import 'auth_service.dart';
+import 'buyer_reconnect_result.dart';
 
 /// 인증/테넌트 상태를 관리하는 ChangeNotifier
 class AuthController extends ChangeNotifier {
@@ -15,6 +16,7 @@ class AuthController extends ChangeNotifier {
   String? _email;
   String? _userType;
   List<Tenant> _tenants = const [];
+  String? _activeSellerTenantId;
 
   AuthController(this.service);
 
@@ -29,6 +31,7 @@ class AuthController extends ChangeNotifier {
   List<TenantMembership> get memberships => service.memberships;
   List<Tenant> get tenants => _tenants;
   String? get primaryTenantId => _api?.primaryTenantId;
+  String? get activeSellerTenantId => _activeSellerTenantId;
   Locale? get preferredLocale {
     final code = _api?.languageCode;
     if (code == null || code.isEmpty) return null;
@@ -49,6 +52,7 @@ class AuthController extends ChangeNotifier {
           ? (service as ApiAuthService).userType
           : null;
       _tenants = _signedIn ? await service.fetchTenants() : const [];
+      _syncActiveSellerTenant(_tenants);
       _pendingApproval =
           _signedIn &&
           (service.memberships.isEmpty || service.currentTenant == null);
@@ -56,6 +60,7 @@ class AuthController extends ChangeNotifier {
       _signedIn = false;
       _email = null;
       _tenants = const [];
+      _activeSellerTenantId = null;
       _pendingApproval = false;
     }
     _loading = false;
@@ -71,6 +76,7 @@ class AuthController extends ChangeNotifier {
           ? (service as ApiAuthService).userType
           : null;
       _tenants = await service.fetchTenants();
+      _syncActiveSellerTenant(_tenants);
       _pendingApproval =
           service.memberships.isEmpty || service.currentTenant == null;
     }
@@ -90,6 +96,7 @@ class AuthController extends ChangeNotifier {
     );
     if (ok) {
       _tenants = await service.fetchTenants();
+      _syncActiveSellerTenant(_tenants);
       notifyListeners();
     }
     return ok;
@@ -122,6 +129,7 @@ class AuthController extends ChangeNotifier {
         // pending 가입 등 토큰이 없을 수 있으니, 토큰이 있을 때만 테넌트 목록 요청
         if (await service.isSignedIn()) {
           _tenants = await service.fetchTenants();
+          _syncActiveSellerTenant(_tenants);
         }
         notifyListeners();
       }
@@ -165,7 +173,7 @@ class AuthController extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> requestBuyerReconnect({
+  Future<BuyerReconnectResult> requestBuyerReconnect({
     required String sellerCompanyName,
     required String buyerCompanyName,
     String buyerAddress = '',
@@ -174,18 +182,19 @@ class AuthController extends ChangeNotifier {
     String phone = '',
     String attachmentUrl = '',
   }) async {
-    final ok =
-        await _api?.requestBuyerReconnect(
-          sellerCompanyName: sellerCompanyName,
-          buyerCompanyName: buyerCompanyName,
-          buyerAddress: buyerAddress,
-          buyerSegment: buyerSegment,
-          contactName: name,
-          contactPhone: phone,
-          attachmentUrl: attachmentUrl,
-        ) ??
-        false;
-    return ok;
+    final api = _api;
+    if (api == null) {
+      return const BuyerReconnectResult.failure();
+    }
+    return await api.requestBuyerReconnect(
+      sellerCompanyName: sellerCompanyName,
+      buyerCompanyName: buyerCompanyName,
+      buyerAddress: buyerAddress,
+      buyerSegment: buyerSegment,
+      contactName: name,
+      contactPhone: phone,
+      attachmentUrl: attachmentUrl,
+    );
   }
 
   Future<void> inviteMember({
@@ -256,6 +265,7 @@ class AuthController extends ChangeNotifier {
         false;
     if (ok) {
       _tenants = await service.fetchTenants();
+      _syncActiveSellerTenant(_tenants);
       notifyListeners();
     }
     return ok;
@@ -279,6 +289,7 @@ class AuthController extends ChangeNotifier {
         false;
     if (ok) {
       _tenants = await service.fetchTenants();
+      _syncActiveSellerTenant(_tenants);
       notifyListeners();
     }
     return ok;
@@ -312,6 +323,7 @@ class AuthController extends ChangeNotifier {
     try {
       final updated = await service.fetchTenants();
       _tenants = updated;
+      _syncActiveSellerTenant(_tenants);
       _pendingApproval =
           service.memberships.isEmpty || service.currentTenant == null;
       notifyListeners();
@@ -353,5 +365,75 @@ class AuthController extends ChangeNotifier {
       await refreshTenants();
     }
     return ok;
+  }
+
+  Future<List<TenantPosition>> fetchTenantPositions(String tenantId) async {
+    return await _api?.fetchTenantPositions(tenantId) ?? const [];
+  }
+
+  Future<TenantPosition?> createTenantPosition({
+    required String tenantId,
+    required String title,
+    required TenantPositionTier tier,
+  }) async {
+    return await _api?.createTenantPosition(tenantId: tenantId, title: title, tier: tier);
+  }
+
+  Future<bool> updateTenantPosition({
+    required String tenantId,
+    required String positionId,
+    required String title,
+    required TenantPositionTier tier,
+  }) async {
+    return await _api?.updateTenantPosition(
+          tenantId: tenantId,
+          positionId: positionId,
+          title: title,
+          tier: tier,
+        ) ??
+        false;
+  }
+
+  Future<bool> deleteTenantPosition({
+    required String tenantId,
+    required String positionId,
+  }) async {
+    return await _api?.deleteTenantPosition(
+          tenantId: tenantId,
+          positionId: positionId,
+        ) ??
+        false;
+  }
+
+  Future<bool> assignMemberPosition({
+    required String tenantId,
+    required String memberId,
+    String? positionId,
+  }) async {
+    return await _api?.assignMemberPosition(
+          tenantId: tenantId,
+          memberId: memberId,
+          positionId: positionId,
+        ) ??
+        false;
+  }
+
+  void setActiveSellerTenant(String? tenantId) {
+    if (_activeSellerTenantId == tenantId) return;
+    _activeSellerTenantId = tenantId;
+    notifyListeners();
+  }
+
+  void _syncActiveSellerTenant(List<Tenant> tenants) {
+    final sellers =
+        tenants.where((tenant) => tenant.type == TenantType.seller).toList();
+    if (sellers.isEmpty) {
+      _activeSellerTenantId = null;
+      return;
+    }
+    if (_activeSellerTenantId == null ||
+        !sellers.any((tenant) => tenant.id == _activeSellerTenantId)) {
+      _activeSellerTenantId = sellers.first.id;
+    }
   }
 }

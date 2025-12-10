@@ -30,6 +30,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get subtitle => '도매 주문 관리';
 
   @override
+  String get appTooNarrowTitle => '창 너비를 늘려 주세요';
+
+  @override
+  String appTooNarrowMessage(int pixels) {
+    return 'VendorJet은 최소 ${pixels}px 이상에서 최적화됩니다. 창을 확장하거나 최대화해 주세요.';
+  }
+
+  @override
   String get language => '언어';
 
   @override
@@ -105,19 +113,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get orderUpdateNote => '업데이트 메모';
 
   @override
-  String get orderBuyerSectionTitle => 'Buyer information';
+  String get orderBuyerSectionTitle => '구매자 정보';
 
   @override
-  String get orderBuyerName => 'Store';
+  String get orderBuyerName => '매장명';
 
   @override
-  String get orderBuyerContact => 'Contact';
+  String get orderBuyerContact => '담당자';
 
   @override
-  String get orderBuyerNote => 'Buyer note';
+  String get orderBuyerNote => '구매자 메모';
 
   @override
-  String get orderBuyerUnknown => 'Not provided';
+  String get orderBuyerUnknown => '제공되지 않음';
 
   @override
   String get orderEditTitle => '주문 편집';
@@ -577,16 +585,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get ordersFormDate => '주문 날짜';
 
   @override
-  String get ordersFormBuyerName => 'Store name';
+  String get ordersFormBuyerName => '매장명';
 
   @override
-  String get ordersFormBuyerContact => 'Buyer contact';
+  String get ordersFormBuyerContact => '구매 담당자';
 
   @override
-  String get ordersFormBuyerNote => 'Buyer note';
+  String get ordersFormBuyerNote => '구매자 메모';
 
   @override
-  String get ordersFormBuyerNoteHint => 'Notes visible to the seller team.';
+  String get ordersFormBuyerNoteHint => '판매자에게 공유될 선택 메모입니다.';
 
   @override
   String get ordersFormBuyerLockedHint => '구매자가 작성한 정보로 판매자가 수정할 수 없습니다.';
@@ -903,16 +911,62 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsMembersSelfBadge => '나';
 
   @override
-  String get settingsMembersRoleLabel => '직책';
+  String get settingsMembersRoleLabel => '역할';
 
   @override
-  String get settingsMembersOwnerHint => '대표만 직책을 변경할 수 있습니다.';
+  String get settingsMembersOwnerHint => '대표만 역할을 변경할 수 있습니다.';
 
   @override
-  String get settingsMembersUpdateSuccess => '구성원 직책을 변경했습니다.';
+  String get settingsMembersUpdateSuccess => '구성원 역할을 변경했습니다.';
 
   @override
-  String get settingsMembersUpdateError => '구성원 직책을 변경하지 못했습니다.';
+  String get settingsMembersUpdateError => '구성원 역할을 변경하지 못했습니다.';
+
+  @override
+  String get settingsMembersPositionLabel => '직책';
+
+  @override
+  String get settingsMembersPositionNone => '미지정';
+
+  @override
+  String get settingsMembersPositionSaved => '직책을 저장했습니다.';
+
+  @override
+  String settingsPositionsSectionTitle(Object tenant) {
+    return '$tenant · 직책';
+  }
+
+  @override
+  String get settingsPositionsEmpty => '등록된 직책이 없습니다.';
+
+  @override
+  String get settingsPositionsAdd => '직책 추가';
+
+  @override
+  String get settingsPositionsEdit => '직책 수정';
+
+  @override
+  String get settingsPositionsDelete => '직책 삭제';
+
+  @override
+  String settingsPositionsDeleteConfirm(Object title) {
+    return '\"$title\" 직책을 삭제할까요? 해당 구성원은 미지정으로 변경됩니다.';
+  }
+
+  @override
+  String get settingsPositionsFieldLabel => '직책 이름';
+
+  @override
+  String get settingsPositionsRequired => '직책 이름을 입력하세요.';
+
+  @override
+  String get settingsPositionsSave => '저장';
+
+  @override
+  String get settingsPositionsSaved => '직책을 저장했습니다.';
+
+  @override
+  String get settingsPositionsDeleted => '직책을 삭제했습니다.';
 
   @override
   String get buyerSettingsConnectionsTitle => '연결된 도매업체';
@@ -936,6 +990,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get buyerSettingsRequestButton => '새 연결 요청';
+
+  @override
+  String get buyerSettingsRequestOwnerOnly => '소유자만 새 도매 연결을 요청할 수 있습니다.';
 
   @override
   String get buyerSettingsSheetTitle => '도매 연결 요청';
@@ -984,6 +1041,49 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String buyerSettingsRequestSuccess(Object seller) {
     return '$seller에 요청을 전송했습니다';
+  }
+
+  @override
+  String buyerSettingsRequestAlreadyPending(Object seller) {
+    return '$seller 승인 대기 중입니다.';
+  }
+
+  @override
+  String buyerSettingsRequestAlreadyConnected(Object seller) {
+    return '$seller와 이미 연결되어 있습니다.';
+  }
+
+  @override
+  String get buyerSettingsActiveSellerTitle => '활성 도매업체';
+
+  @override
+  String get buyerSettingsActiveSellerHint => '카탈로그와 주문에 사용할 도매업체를 선택하세요.';
+
+  @override
+  String buyerSettingsActiveSellerSaved(Object seller) {
+    return '$seller로 전환했습니다.';
+  }
+
+  @override
+  String get buyerSettingsConnectionsSwitchAction => '이 도매업체 사용';
+
+  @override
+  String get buyerSettingsConnectionsActiveLabel => '현재 사용 중';
+
+  @override
+  String get buyerCatalogConnectHint => '설정에서 도매업체와 연결하면 카탈로그를 볼 수 있습니다.';
+
+  @override
+  String buyerCatalogPendingMessage(Object seller) {
+    return '$seller이(가) 요청을 검토 중입니다. 승인되면 접근이 열립니다.';
+  }
+
+  @override
+  String get buyerOrderConnectHint => '도매업체와 연결하면 주문을 작성할 수 있습니다.';
+
+  @override
+  String buyerOrderPendingMessage(Object seller) {
+    return '$seller이(가) 주문 요청을 검토 중입니다. 승인 후 주문이 가능합니다.';
   }
 
   @override
@@ -1134,6 +1234,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get buyerCartClear => '장바구니 비우기';
 
   @override
+  String get buyerCartProceed => '주문서로 이동';
+
+  @override
   String get buyerDeliveryDateLabel => '희망 배송일';
 
   @override
@@ -1226,4 +1329,26 @@ class AppLocalizationsKo extends AppLocalizations {
   String buyerOrderStoreLoadError(String error) {
     return '매장 목록을 불러오지 못했습니다: $error';
   }
+
+  @override
+  String get settingsPositionsTierLabel => '직책 그룹';
+
+  @override
+  String get settingsPositionsTierOwner => '대표';
+
+  @override
+  String get settingsPositionsTierManager => '관리자';
+
+  @override
+  String get settingsPositionsTierStaff => '직원';
+
+  @override
+  String get settingsPositionsLockedBadge => '기본';
+
+  @override
+  String get settingsPositionsHierarchyHint =>
+      '권한은 대표 → 관리자 → 직원 → 미승인 순으로 내려갑니다.';
+
+  @override
+  String get settingsPositionsTierPending => '미승인';
 }

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.adminController = void 0;
 const express_1 = require("express");
 const client_1 = require("../../db/client");
+const position_utils_1 = require("../auth/position_utils");
 const router = (0, express_1.Router)();
 // 전체 사용자 목록
 router.get('/users', (_req, res) => {
@@ -39,26 +40,28 @@ router.get('/tenants', (_req, res) => {
 });
 // 테넌트 생성(지정 사용자 owner 연결)
 router.post('/tenants', (req, res) => {
-    const { name, phone = '', address = '', userId } = req.body || {};
+    const { name, phone = '', address = '', userId, representative = '' } = req.body || {};
     if (!name || !userId) {
         return res.status(400).json({ error: 'name and userId required' });
     }
     const tenantId = `t_${Date.now()}`;
     const now = new Date().toISOString();
     const tx = client_1.db.transaction(() => {
-        client_1.db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address) VALUES (?,?,?,?,?,?)')
-            .run(tenantId, name, 'en', now, phone, address);
+        client_1.db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address, representative) VALUES (?,?,?,?,?,?,?)')
+            .run(tenantId, name, 'en', now, phone, address, representative);
         client_1.db.prepare('INSERT OR IGNORE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)')
             .run(userId, tenantId, 'owner', 'approved');
     });
     tx();
-    return res.status(201).json({ id: tenantId, name, phone, address });
+    (0, position_utils_1.ensureTenantPositionDefaults)(tenantId);
+    (0, position_utils_1.assignOwnerDefaultPosition)(tenantId, userId);
+    return res.status(201).json({ id: tenantId, name, phone, address, representative });
 });
 // 테넌트 수정
 router.patch('/tenants/:id', (req, res) => {
     const { id } = req.params;
-    const { name, phone, address } = req.body || {};
-    if (!name && !phone && !address)
+    const { name, phone, address, representative } = req.body || {};
+    if (!name && !phone && !address && !representative)
         return res.json({ ok: true });
     const parts = [];
     const params = [];
@@ -73,6 +76,10 @@ router.patch('/tenants/:id', (req, res) => {
     if (address) {
         parts.push('address = ?');
         params.push(address);
+    }
+    if (representative) {
+        parts.push('representative = ?');
+        params.push(representative);
     }
     params.push(id);
     client_1.db.prepare(`UPDATE tenants SET ${parts.join(', ')} WHERE id = ?`).run(...params);
@@ -159,12 +166,11 @@ router.patch('/requests/:id', (req, res) => {
         if (!reqRow)
             return res.status(404).json({ error: 'request not found' });
         client_1.db.prepare('UPDATE buyer_requests SET status = ?, selected_segment = COALESCE(?, selected_segment), selected_tier = COALESCE(?, selected_tier) WHERE id = ?').run(status, segment, tier, id);
-        if (status === 'approved' && reqRow.seller_company && reqRow.user_id) {
+        if (status === 'approved' && reqRow.seller_company) {
             const tenant = client_1.db
                 .prepare('SELECT id FROM tenants WHERE name = ? LIMIT 1')
                 .get(reqRow.seller_company);
             if (tenant) {
-                client_1.db.prepare('INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)').run(reqRow.user_id, tenant.id, reqRow.role ?? 'staff', 'approved');
                 const nowIso = new Date().toISOString();
                 const resolvedSegment = (segment ?? '').toString().trim() ||
                     (reqRow.selected_segment ?? '').toString().trim() ||
@@ -197,7 +203,13 @@ router.patch('/requests/:id', (req, res) => {
                         client_1.db.prepare('INSERT INTO customers (id, tenant_id, name, contact_name, email, tier, created_at, segment) VALUES (?,?,?,?,?,?,?,?)').run(customerId, tenant.id, reqRow.buyer_company, reqRow.name ?? '', reqRow.email ?? '', resolvedTier, nowIso, resolvedSegment);
                     }
                 }
+                if (reqRow.user_id) {
+                    client_1.db.prepare('INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)').run(reqRow.user_id, tenant.id, reqRow.role ?? 'staff', 'approved');
+                }
             }
+        }
+        if (status !== 'pending') {
+            client_1.db.prepare('DELETE FROM buyer_requests WHERE id = ?').run(id);
         }
     }
     return res.json({ id, status });

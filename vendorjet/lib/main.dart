@@ -35,6 +35,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  static const double _kMinAppWidth = 360.0;
   Locale? _locale = const Locale('en');
   late final AuthController _authController;
   late final GoRouter _router;
@@ -231,20 +232,28 @@ class _MyAppState extends State<MyApp> {
               final ticker = context.watch<NotificationTicker>();
               const tickerHeight = 36.0;
               final bgColor = Theme.of(context).scaffoldBackgroundColor;
-              return Stack(
-                children: [
-                  Container(
-                    color: bgColor,
-                    padding: const EdgeInsets.only(bottom: tickerHeight * 1.5),
-                    child: child ?? const SizedBox.shrink(),
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: NotificationTickerBar(ticker: ticker),
-                  ),
-                ],
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final tooNarrow = constraints.maxWidth < _kMinAppWidth;
+                  final body = tooNarrow
+                      ? _NarrowWidthNotice(minWidth: _kMinAppWidth)
+                      : (child ?? const SizedBox.shrink());
+                  return Stack(
+                    children: [
+                      Container(
+                        color: bgColor,
+                        padding: const EdgeInsets.only(bottom: tickerHeight * 1.5),
+                        child: body,
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: NotificationTickerBar(ticker: ticker),
+                      ),
+                    ],
+                  );
+                },
               );
             },
           );
@@ -364,3 +373,40 @@ class _Splash extends StatelessWidget {
   }
 }
 
+class _NarrowWidthNotice extends StatelessWidget {
+  const _NarrowWidthNotice({required this.minWidth});
+
+  final double minWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final color = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.screen_rotation_alt, size: 48, color: color.primary),
+              const SizedBox(height: 16),
+              Text(
+                t.appTooNarrowTitle,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t.appTooNarrowMessage(minWidth.round()),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
