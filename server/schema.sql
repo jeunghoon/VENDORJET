@@ -5,7 +5,8 @@ CREATE TABLE tenants (
   created_at TEXT,
   phone TEXT,
   address TEXT,
-  representative TEXT
+  representative TEXT,
+  segment TEXT
 );
 
 CREATE TABLE users (
@@ -25,7 +26,26 @@ CREATE TABLE memberships (
   status TEXT,
   PRIMARY KEY (user_id, tenant_id)
 );
-   CREATE TABLE products (id TEXT PRIMARY KEY, tenant_id TEXT, sku TEXT, name TEXT, price REAL, variants_count INTEGER, categories TEXT, tags TEXT, low_stock INTEGER, image_url TEXT);
+   CREATE TABLE products (
+     id TEXT PRIMARY KEY,
+     tenant_id TEXT,
+     sku TEXT,
+     name TEXT,
+     price REAL,
+     variants_count INTEGER,
+     categories TEXT,
+     tags TEXT,
+     low_stock INTEGER,
+     image_url TEXT,
+     hs_code TEXT,
+     origin_country TEXT,
+     uom TEXT,
+     incoterm TEXT,
+     is_perishable INTEGER,
+     packaging TEXT,   -- JSON: {packType,lengthCm,widthCm,heightCm,volumeCbm,netWeightKg,grossWeightKg,unitsPerPack,barcode}
+     trade_term TEXT,  -- JSON: {incoterm,currency,price,portOfLoading,portOfDischarge,freight,insurance,leadTimeDays,minOrderQty,moqUnit}
+     eta TEXT          -- JSON: {etd,eta,vessel,voyageNo,status,note}
+   );
    CREATE TABLE customers (id TEXT PRIMARY KEY, tenant_id TEXT, name TEXT, contact_name TEXT, email TEXT, tier TEXT, created_at TEXT, segment TEXT);
    CREATE TABLE segments (id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id TEXT, name TEXT);
 CREATE TABLE orders (

@@ -252,9 +252,11 @@ router.patch('/requests/:id', (req, res) => {
           }
         }
         if (reqRow.user_id) {
+          // 구매자는 판매자 테넌트에 staff 권한으로만 연결하고, owner 권한은 부여하지 않는다.
+          db.prepare('DELETE FROM memberships WHERE user_id = ? AND tenant_id = ?').run(reqRow.user_id, tenant.id);
           db.prepare(
             'INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
-          ).run(reqRow.user_id, tenant.id, reqRow.role ?? 'staff', 'approved');
+          ).run(reqRow.user_id, tenant.id, 'staff', 'approved');
         }
       }
     }

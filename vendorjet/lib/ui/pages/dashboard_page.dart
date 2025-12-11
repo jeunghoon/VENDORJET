@@ -141,10 +141,15 @@ class _DashboardPageState extends State<DashboardPage> {
                 today: data.todayOrders,
                 open: data.openOrders,
                 lowStock: data.lowStockProducts,
+                monthlySales: data.monthlySales,
+                receivables: data.receivables,
+                returnsCount: data.returnsCount,
                 onTodayTap: () => context.go('/orders?filter=today'),
                 onOpenTap: () => context.go('/orders?filter=open'),
                 onLowStockTap: () => context.go('/products?lowStock=1'),
               ),
+              const SizedBox(height: 20),
+              _AnalyticsSection(data: data),
               const SizedBox(height: 20),
               _SectionTitle(title: t.dashboardRecentOrders),
               const SizedBox(height: 10),
@@ -180,6 +185,9 @@ class _Overview extends StatelessWidget {
   final int today;
   final int open;
   final int lowStock;
+  final double monthlySales;
+  final double receivables;
+  final int returnsCount;
   final VoidCallback onTodayTap;
   final VoidCallback onOpenTap;
   final VoidCallback onLowStockTap;
@@ -188,6 +196,9 @@ class _Overview extends StatelessWidget {
     required this.today,
     required this.open,
     required this.lowStock,
+    required this.monthlySales,
+    required this.receivables,
+    required this.returnsCount,
     required this.onTodayTap,
     required this.onOpenTap,
     required this.onLowStockTap,
@@ -196,21 +207,22 @@ class _Overview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
+    final currency = NumberFormat.compactSimpleCurrency(locale: t.localeName);
     return LayoutBuilder(
       builder: (context, c) {
         final maxWidth = c.maxWidth;
-        final isWide = maxWidth > 900;
-        final isMedium = maxWidth > 600;
+        final isWide = maxWidth > 1000;
+        final isMedium = maxWidth > 720;
         final isCompact = maxWidth < 360;
-        final crossAxisCount = isWide ? 3 : (isMedium ? 3 : 1);
+        final crossAxisCount = isWide ? 3 : (isMedium ? 2 : 1);
         final spacing = 12.0;
         final totalSpacing = spacing * (crossAxisCount - 1);
         final tileWidth = (maxWidth - totalSpacing) / crossAxisCount;
         final targetHeight = isWide
             ? 120.0
             : isMedium
-                ? 140.0
-                : (isCompact ? 200.0 : 170.0);
+                ? 150.0
+                : (isCompact ? 220.0 : 180.0);
         final aspectRatio = tileWidth / targetHeight;
 
         return GridView.count(
@@ -236,9 +248,87 @@ class _Overview extends StatelessWidget {
               value: lowStock.toString(),
               onTap: onLowStockTap,
             ),
+            _StatCard(
+              title: t.dashboardMonthlySales,
+              value: currency.format(monthlySales),
+              onTap: onTodayTap,
+            ),
+            _StatCard(
+              title: t.dashboardReceivables,
+              value: currency.format(receivables),
+              onTap: onOpenTap,
+            ),
+            _StatCard(
+              title: t.dashboardReturns,
+              value: returnsCount.toString(),
+              onTap: onLowStockTap,
+            ),
           ],
         );
       },
+    );
+  }
+}
+
+class _AnalyticsSection extends StatelessWidget {
+  final DashboardSnapshot data;
+
+  const _AnalyticsSection({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final currency = NumberFormat.compactSimpleCurrency(locale: t.localeName);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InsightBanner(
+          monthlySales: data.monthlySales,
+          receivables: data.receivables,
+          returnsCount: data.returnsCount,
+          currency: currency,
+        ),
+        const SizedBox(height: 16),
+        _SectionTitle(title: t.dashboardIncomingShipments),
+        const SizedBox(height: 8),
+        _ChipList(
+          emptyLabel: t.dashboardIncomingShipments,
+          children: data.incomingShipments.map((s) {
+            return _InfoChip(
+              label:
+                  '${s.productName} · ${t.dashboardEtaLabel} ${DateFormat('MM/dd').format(s.eta)}',
+              value: s.vessel ?? s.incoterm,
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        _SectionTitle(title: t.dashboardExpiringProducts),
+        const SizedBox(height: 8),
+        _ChipList(
+          emptyLabel: t.dashboardExpiringProducts,
+          children: data.expiringProducts.map((e) {
+            return _InfoChip(
+              label: e.productName,
+              value: t.dashboardDaysLeft(e.daysLeft),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        _SectionTitle(title: t.dashboardTopProducts),
+        const SizedBox(height: 8),
+        _BarList(items: data.topProducts, currency: currency),
+        const SizedBox(height: 16),
+        _SectionTitle(title: t.dashboardTopCustomers),
+        const SizedBox(height: 8),
+        _BarList(items: data.topCustomers, currency: currency),
+        const SizedBox(height: 16),
+        if (data.staffStats != null) ...[
+          _SectionTitle(title: t.dashboardStaffStatus),
+          const SizedBox(height: 8),
+          _StaffCard(stats: data.staffStats!),
+        ],
+      ],
     );
   }
 }
@@ -304,6 +394,315 @@ class _RecentOrdersList extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _ChipList extends StatelessWidget {
+  final List<Widget> children;
+  final String emptyLabel;
+
+  const _ChipList({required this.children, required this.emptyLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    if (children.isEmpty) {
+      return Text(
+        '$emptyLabel -',
+        style: Theme.of(context).textTheme.bodyMedium,
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: children,
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoChip({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BarList extends StatelessWidget {
+  final List<DashboardTopItem> items;
+  final NumberFormat currency;
+
+  const _BarList({required this.items, required this.currency});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (items.isEmpty) {
+      return Text(
+        '-',
+        style: theme.textTheme.bodyMedium,
+      );
+    }
+    final maxAmount = items.fold<double>(
+        0, (prev, e) => e.amount > prev ? e.amount : prev);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          children: items
+              .map(
+                (item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              style: theme.textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            currency.format(item.amount),
+                            style: theme.textTheme.labelLarge
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      LinearProgressIndicator(
+                        minHeight: 6,
+                        value: maxAmount == 0 ? 0 : item.amount / maxAmount,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      if (item.quantity > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            '${item.quantity} pcs',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _InsightBanner extends StatelessWidget {
+  final double monthlySales;
+  final double receivables;
+  final int returnsCount;
+  final NumberFormat currency;
+
+  const _InsightBanner({
+    required this.monthlySales,
+    required this.receivables,
+    required this.returnsCount,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final t = AppLocalizations.of(context)!;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: _MiniInsight(
+                icon: Icons.bar_chart_rounded,
+                label: t.dashboardMonthlySales,
+                value: currency.format(monthlySales),
+                color: scheme.primary,
+              ),
+            ),
+            Expanded(
+              child: _MiniInsight(
+                icon: Icons.account_balance_wallet_outlined,
+                label: t.dashboardReceivables,
+                value: currency.format(receivables),
+                color: scheme.tertiary,
+              ),
+            ),
+            Expanded(
+              child: _MiniInsight(
+                icon: Icons.assignment_return_outlined,
+                label: t.dashboardReturns,
+                value: returnsCount.toString(),
+                color: scheme.error,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniInsight extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _MiniInsight({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, color: color),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: theme.textTheme.labelMedium),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+class _StaffCard extends StatelessWidget {
+  final StaffStats stats;
+
+  const _StaffCard({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final color = theme.colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _StaffBadge(label: t.dashboardStaffOnDuty, value: stats.onDuty, color: color.primary),
+                const SizedBox(width: 8),
+                _StaffBadge(label: t.dashboardStaffOnLeave, value: stats.onLeave, color: color.tertiary),
+                const SizedBox(width: 8),
+                _StaffBadge(label: t.dashboardStaffOnSick, value: stats.onSick, color: color.error),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${stats.total} total',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: color.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StaffBadge extends StatelessWidget {
+  final String label;
+  final int value;
+  final Color color;
+
+  const _StaffBadge({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 6,
+            backgroundColor: color,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            value.toString(),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

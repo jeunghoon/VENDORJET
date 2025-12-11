@@ -52,6 +52,26 @@
   "dashboardPreviewSubtitle": "Preview item for layout",
   "dashboardRecentOrders": "Recent Orders",
   "dashboardRecentOrdersEmpty": "No recent orders to show.",
+  "dashboardMonthlySales": "Monthly sales",
+  "dashboardReceivables": "Outstanding",
+  "dashboardReturns": "Returns",
+  "dashboardIncomingShipments": "Incoming shipments",
+  "dashboardExpiringProducts": "Expiring soon",
+  "dashboardTopProducts": "Top products",
+  "dashboardTopCustomers": "Top customers",
+  "dashboardStaffStatus": "Staff status",
+  "dashboardStaffOnDuty": "On duty",
+  "dashboardStaffOnLeave": "On leave",
+  "dashboardStaffOnSick": "Sick leave",
+  "dashboardEtaLabel": "ETA",
+  "dashboardDaysLeft": "{days} days left",
+  "@dashboardDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "ordersEmptyMessage": "No orders found.",
   "ordersEmptyFiltered": "No {status} orders found.",
   "@ordersEmptyFiltered": {
@@ -114,6 +134,7 @@
     }
   },
   "notFound": "Content not found",
+  "notProvided": "Not provided",
   "productsDetailTitle": "Product details",
   "productSku": "SKU",
   "productPrice": "Unit price",
@@ -124,6 +145,31 @@
   "productMetaStockLow": "Low stock",
   "productMetaStockHealthy": "Healthy stock",
   "productMetaLastSync": "Inventory sync",
+  "productTradeSectionTitle": "Trade & logistics",
+  "productIncoterm": "Incoterm",
+  "productHsCode": "HS code",
+  "productOriginCountry": "Origin",
+  "productUom": "Unit",
+  "productPerishable": "Shelf life",
+  "productPerishableYes": "Perishable",
+  "productPerishableNo": "Non-perishable",
+  "productPackagingSectionTitle": "Packaging / logistics specs",
+  "productPackagingType": "Packaging unit",
+  "productPackagingDimensions": "Dimensions (cm)",
+  "productPackagingWeight": "Weight (net/gross)",
+  "productPackagingUnitsPerPack": "Units per pack",
+  "productPackagingCbm": "Volume (CBM)",
+  "productTradeTermSectionTitle": "Trade terms",
+  "productTradePrice": "Price (term)",
+  "productTradeFreight": "Freight",
+  "productTradeInsurance": "Insurance",
+  "productTradeLeadTime": "Lead time",
+  "productTradeMoq": "MOQ",
+  "productEtaSectionTitle": "ETD/ETA",
+  "productEtaEtd": "ETD",
+  "productEtaEta": "ETA",
+  "productEtaVessel": "Vessel/Voyage",
+  "productEtaStatus": "Status",
   "productCardSummary": "{name} · {count} variants",
   "@productCardSummary": {
     "placeholders": {

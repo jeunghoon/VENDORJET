@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/product.dart';
 
@@ -11,6 +12,14 @@ class ProductEditResult {
   final List<String> categoryPath;
   final Set<ProductTag> tags;
   final bool lowStock;
+  final String? hsCode;
+  final String? originCountry;
+  final String? uom;
+  final String? incoterm;
+  final bool isPerishable;
+  final ProductPackaging? packaging;
+  final ProductTradeTerm? tradeTerm;
+  final ProductEta? eta;
 
   const ProductEditResult({
     required this.sku,
@@ -20,6 +29,14 @@ class ProductEditResult {
     required this.categoryPath,
     required this.tags,
     required this.lowStock,
+    this.hsCode,
+    this.originCountry,
+    this.uom,
+    this.incoterm,
+    this.isPerishable = false,
+    this.packaging,
+    this.tradeTerm,
+    this.eta,
   });
 }
 
@@ -46,6 +63,27 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
   late final TextEditingController _variantsController;
   late final List<TextEditingController> _categoryCtrls;
   late final bool _useCategoryPresets;
+  late final TextEditingController _hsCodeController;
+  late final TextEditingController _originController;
+  late final TextEditingController _uomController;
+  late String _incoterm;
+  late bool _isPerishable;
+  late final TextEditingController _packLengthCtrl;
+  late final TextEditingController _packWidthCtrl;
+  late final TextEditingController _packHeightCtrl;
+  late final TextEditingController _packUnitsCtrl;
+  late final TextEditingController _packNetCtrl;
+  late final TextEditingController _packGrossCtrl;
+  late final TextEditingController _packBarcodeCtrl;
+  late final TextEditingController _tradeCurrencyCtrl;
+  late final TextEditingController _tradeFreightCtrl;
+  late final TextEditingController _tradeInsuranceCtrl;
+  late final TextEditingController _tradeLeadTimeCtrl;
+  late final TextEditingController _tradeMoqCtrl;
+  late final TextEditingController _tradeMoqUnitCtrl;
+  late final TextEditingController _etaVesselCtrl;
+  late final TextEditingController _etaVoyageCtrl;
+  DateTime? _etaDate;
   List<String?> _selectedCategories = [];
   final _formKey = GlobalKey<FormState>();
   late bool _lowStock;
@@ -83,6 +121,46 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
     }
     _lowStock = widget.product.lowStock;
     _tags = {...widget.product.tags};
+    _hsCodeController = TextEditingController(text: widget.product.hsCode ?? '');
+    _originController =
+        TextEditingController(text: widget.product.originCountry ?? '');
+    _uomController = TextEditingController(text: widget.product.uom ?? 'EA');
+    _incoterm = widget.product.incoterm ?? 'FOB';
+    _isPerishable = widget.product.isPerishable;
+    final packaging = widget.product.packaging;
+    _packLengthCtrl = TextEditingController(
+        text: packaging?.lengthCm?.toString() ?? '');
+    _packWidthCtrl =
+        TextEditingController(text: packaging?.widthCm?.toString() ?? '');
+    _packHeightCtrl =
+        TextEditingController(text: packaging?.heightCm?.toString() ?? '');
+    _packUnitsCtrl =
+        TextEditingController(text: packaging?.unitsPerPack?.toString() ?? '');
+    _packNetCtrl =
+        TextEditingController(text: packaging?.netWeightKg?.toString() ?? '');
+    _packGrossCtrl = TextEditingController(
+        text: packaging?.grossWeightKg?.toString() ?? '');
+    _packBarcodeCtrl =
+        TextEditingController(text: packaging?.barcode ?? '');
+
+    final trade = widget.product.tradeTerm;
+    _tradeCurrencyCtrl =
+        TextEditingController(text: trade?.currency ?? 'USD');
+    _tradeFreightCtrl =
+        TextEditingController(text: trade?.freight?.toString() ?? '');
+    _tradeInsuranceCtrl =
+        TextEditingController(text: trade?.insurance?.toString() ?? '');
+    _tradeLeadTimeCtrl =
+        TextEditingController(text: trade?.leadTimeDays?.toString() ?? '');
+    _tradeMoqCtrl =
+        TextEditingController(text: trade?.minOrderQty?.toString() ?? '');
+    _tradeMoqUnitCtrl =
+        TextEditingController(text: trade?.moqUnit ?? 'carton');
+
+    final eta = widget.product.eta;
+    _etaDate = eta?.eta ?? eta?.etd;
+    _etaVesselCtrl = TextEditingController(text: eta?.vessel ?? '');
+    _etaVoyageCtrl = TextEditingController(text: eta?.voyageNo ?? '');
   }
 
   @override
@@ -91,6 +169,24 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
     _nameController.dispose();
     _priceController.dispose();
     _variantsController.dispose();
+    _hsCodeController.dispose();
+    _originController.dispose();
+    _uomController.dispose();
+    _packLengthCtrl.dispose();
+    _packWidthCtrl.dispose();
+    _packHeightCtrl.dispose();
+    _packUnitsCtrl.dispose();
+    _packNetCtrl.dispose();
+    _packGrossCtrl.dispose();
+    _packBarcodeCtrl.dispose();
+    _tradeCurrencyCtrl.dispose();
+    _tradeFreightCtrl.dispose();
+    _tradeInsuranceCtrl.dispose();
+    _tradeLeadTimeCtrl.dispose();
+    _tradeMoqCtrl.dispose();
+    _tradeMoqUnitCtrl.dispose();
+    _etaVesselCtrl.dispose();
+    _etaVoyageCtrl.dispose();
     if (!_useCategoryPresets) {
       for (final ctrl in _categoryCtrls) {
         ctrl.dispose();
@@ -284,6 +380,204 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
                       : _tags.remove(ProductTag.newArrival);
                 }),
               ),
+              const SizedBox(height: 12),
+              Text(
+                t.productTradeSectionTitle,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              _buildTextField(controller: _hsCodeController, label: t.productHsCode),
+              const SizedBox(height: 10),
+              _buildTextField(controller: _originController, label: t.productOriginCountry),
+              const SizedBox(height: 10),
+              _buildTextField(controller: _uomController, label: t.productUom),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: _incoterm,
+                items: const [
+                  DropdownMenuItem(value: 'FOB', child: Text('FOB')),
+                  DropdownMenuItem(value: 'CIF', child: Text('CIF')),
+                  DropdownMenuItem(value: 'EXW', child: Text('EXW')),
+                  DropdownMenuItem(value: 'DAP', child: Text('DAP')),
+                ],
+                decoration: InputDecoration(
+                  labelText: t.productIncoterm,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (value) => setState(() => _incoterm = value ?? 'FOB'),
+              ),
+              SwitchListTile.adaptive(
+                value: _isPerishable,
+                contentPadding: EdgeInsets.zero,
+                title: Text(t.productPerishable),
+                onChanged: (value) => setState(() => _isPerishable = value),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t.productPackagingSectionTitle,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _packLengthCtrl,
+                      label: '${t.productPackagingDimensions} (L)',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _packWidthCtrl,
+                      label: '${t.productPackagingDimensions} (W)',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _packHeightCtrl,
+                      label: '${t.productPackagingDimensions} (H)',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _packUnitsCtrl,
+                      label: t.productPackagingUnitsPerPack,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _packNetCtrl,
+                      label: t.productPackagingWeight,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _packGrossCtrl,
+                      label: '${t.productPackagingWeight} +',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _buildTextField(
+                controller: _packBarcodeCtrl,
+                label: 'Barcode',
+              ),
+              const SizedBox(height: 12),
+              Text(
+                t.productTradeTermSectionTitle,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _tradeCurrencyCtrl,
+                      label: 'Currency',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _tradeFreightCtrl,
+                      label: t.productTradeFreight,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _tradeInsuranceCtrl,
+                      label: t.productTradeInsurance,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _tradeLeadTimeCtrl,
+                      label: t.productTradeLeadTime,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _tradeMoqCtrl,
+                      label: t.productTradeMoq,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _tradeMoqUnitCtrl,
+                      label: 'MOQ Unit',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                t.productEtaSectionTitle,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDateField(
+                      label: t.productEtaEta,
+                      value: _etaDate,
+                      onPick: () => _pickEtaDate(context),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _etaVesselCtrl,
+                      label: t.productEtaVessel,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _etaVoyageCtrl,
+                      label: 'Voyage',
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
@@ -298,6 +592,59 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
         ),
       ),
     );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onPick,
+  }) {
+    final t = widget.t;
+    final display = value == null
+        ? t.notProvided
+        : DateFormat('yyyy-MM-dd').format(value);
+    return InkWell(
+      onTap: onPick,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Text(display),
+      ),
+    );
+  }
+
+  Future<void> _pickEtaDate(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _etaDate ?? now,
+      firstDate: now.subtract(const Duration(days: 1)),
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() => _etaDate = picked);
+    }
   }
 
   Widget _buildCategoryDropdown(int level) {
@@ -387,6 +734,61 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
             .map((ctrl) => ctrl.text.trim())
             .where((value) => value.isNotEmpty)
             .toList();
+    double? parseDouble(String? value) {
+      if (value == null || value.trim().isEmpty) return null;
+      return double.tryParse(value.trim());
+    }
+
+    int? parseInt(String? value) {
+      if (value == null || value.trim().isEmpty) return null;
+      return int.tryParse(value.trim());
+    }
+
+    ProductPackaging? packaging;
+    if (_packLengthCtrl.text.isNotEmpty ||
+        _packWidthCtrl.text.isNotEmpty ||
+        _packHeightCtrl.text.isNotEmpty ||
+        _packUnitsCtrl.text.isNotEmpty) {
+      packaging = ProductPackaging(
+        packType: 'carton',
+        lengthCm: parseDouble(_packLengthCtrl.text),
+        widthCm: parseDouble(_packWidthCtrl.text),
+        heightCm: parseDouble(_packHeightCtrl.text),
+        unitsPerPack: parseInt(_packUnitsCtrl.text),
+        netWeightKg: parseDouble(_packNetCtrl.text),
+        grossWeightKg: parseDouble(_packGrossCtrl.text),
+        barcode: _packBarcodeCtrl.text.trim().isEmpty
+            ? null
+            : _packBarcodeCtrl.text.trim(),
+      );
+    }
+
+    ProductTradeTerm? tradeTerm;
+    if (_tradeCurrencyCtrl.text.isNotEmpty) {
+      tradeTerm = ProductTradeTerm(
+        incoterm: _incoterm,
+        currency: _tradeCurrencyCtrl.text.trim(),
+        price: double.tryParse(_priceController.text.trim()) ?? 0,
+        portOfLoading: null,
+        portOfDischarge: null,
+        freight: parseDouble(_tradeFreightCtrl.text),
+        insurance: parseDouble(_tradeInsuranceCtrl.text),
+        leadTimeDays: parseInt(_tradeLeadTimeCtrl.text),
+        minOrderQty: parseInt(_tradeMoqCtrl.text),
+        moqUnit:
+            _tradeMoqUnitCtrl.text.trim().isEmpty ? null : _tradeMoqUnitCtrl.text.trim(),
+      );
+    }
+
+    ProductEta? eta;
+    if (_etaDate != null || _etaVesselCtrl.text.isNotEmpty) {
+      eta = ProductEta(
+        eta: _etaDate,
+        vessel: _etaVesselCtrl.text.trim().isEmpty ? null : _etaVesselCtrl.text.trim(),
+        voyageNo: _etaVoyageCtrl.text.trim().isEmpty ? null : _etaVoyageCtrl.text.trim(),
+      );
+    }
+
     Navigator.of(context).pop(
       ProductEditResult(
         sku: _skuController.text.trim(),
@@ -398,6 +800,20 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
         categoryPath: categories,
         tags: _tags,
         lowStock: _lowStock,
+        hsCode: _hsCodeController.text.trim().isEmpty
+            ? null
+            : _hsCodeController.text.trim(),
+        originCountry: _originController.text.trim().isEmpty
+            ? null
+            : _originController.text.trim(),
+        uom: _uomController.text.trim().isEmpty
+            ? null
+            : _uomController.text.trim(),
+        incoterm: _incoterm,
+        isPerishable: _isPerishable,
+        packaging: packaging,
+        tradeTerm: tradeTerm,
+        eta: eta,
       ),
     );
   }

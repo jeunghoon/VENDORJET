@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -24,11 +27,49 @@ import 'ui/pages/profile/profile_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  final navigatorKey = GlobalKey<NavigatorState>();
+
+  void showGlobalError(Object error) {
+    final ctx = navigatorKey.currentState?.context;
+    if (ctx == null) {
+      // ignore: avoid_print
+      print('Unhandled error: $error');
+      return;
+    }
+    showDialog<void>(
+      context: ctx,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('오류'),
+        content: Text(error.toString()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    showGlobalError(details.exception);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    showGlobalError(error);
+    return true;
+  };
+
+  runZonedGuarded(
+    () => runApp(MyApp(navigatorKey: navigatorKey)),
+    (error, stack) => showGlobalError(error),
+  );
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final GlobalKey<NavigatorState> navigatorKey;
+  MyApp({super.key, GlobalKey<NavigatorState>? navigatorKey})
+      : navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>();
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -72,6 +113,7 @@ class _MyAppState extends State<MyApp> {
 
   GoRouter _createRouter() {
     return GoRouter(
+      navigatorKey: widget.navigatorKey,
       initialLocation: '/dashboard',
       refreshListenable: _authController,
       redirect: (context, state) {

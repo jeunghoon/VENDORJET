@@ -15,6 +15,14 @@ type ProductRow = {
   tags: string;
   low_stock: number;
   image_url?: string | null;
+  hs_code?: string | null;
+  origin_country?: string | null;
+  uom?: string | null;
+  incoterm?: string | null;
+  is_perishable?: number | null;
+  packaging?: string | null;
+  trade_term?: string | null;
+  eta?: string | null;
 };
 
 router.use(authMiddleware);
@@ -41,6 +49,14 @@ router.get('/', (req, res) => {
     categories: safeJson(r.categories, []),
     tags: safeJson(r.tags, []),
     lowStock: Boolean(r.lowStock ?? r.low_stock),
+    hsCode: r.hs_code,
+    originCountry: r.origin_country,
+    uom: r.uom,
+    incoterm: r.incoterm,
+    isPerishable: Boolean(r.is_perishable),
+    packaging: safeJson(r.packaging, null),
+    tradeTerm: safeJson(r.trade_term, null),
+    eta: safeJson(r.eta, null),
   }));
   if (topCategory) {
     const target = topCategory.toString();
@@ -64,18 +80,44 @@ router.get('/:id', (req, res) => {
     categories: safeJson(product.categories, []),
     tags: safeJson(product.tags, []),
     lowStock: Boolean((product as any).lowStock),
+    hsCode: (product as any).hs_code,
+    originCountry: (product as any).origin_country,
+    uom: (product as any).uom,
+    incoterm: (product as any).incoterm,
+    isPerishable: Boolean((product as any).is_perishable),
+    packaging: safeJson((product as any).packaging, null),
+    tradeTerm: safeJson((product as any).trade_term, null),
+    eta: safeJson((product as any).eta, null),
   });
 });
 
 router.post('/', (req, res) => {
   const tenantId = req.user?.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'tenantId missing' });
-  const { sku, name, price = 0, variantsCount = 1, categories = [], tags = [], lowStock = false, imageUrl = null } =
-    req.body || {};
+  const {
+    sku,
+    name,
+    price = 0,
+    variantsCount = 1,
+    categories = [],
+    tags = [],
+    lowStock = false,
+    imageUrl = null,
+    hsCode = null,
+    originCountry = null,
+    uom = null,
+    incoterm = null,
+    isPerishable = false,
+    packaging = null,
+    tradeTerm = null,
+    eta = null,
+  } = req.body || {};
   if (!sku || !name) return res.status(400).json({ error: 'sku and name required' });
   const id = `p_${Date.now()}`;
   db.prepare(
-    'INSERT INTO products (id, tenant_id, sku, name, price, variants_count, categories, tags, low_stock, image_url) VALUES (?,?,?,?,?,?,?,?,?,?)'
+    `INSERT INTO products (id, tenant_id, sku, name, price, variants_count, categories, tags, low_stock, image_url,
+      hs_code, origin_country, uom, incoterm, is_perishable, packaging, trade_term, eta)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run(
     id,
     tenantId,
@@ -86,7 +128,15 @@ router.post('/', (req, res) => {
     JSON.stringify(categories),
     JSON.stringify(tags),
     lowStock ? 1 : 0,
-    imageUrl
+    imageUrl,
+    hsCode,
+    originCountry,
+    uom,
+    incoterm,
+    isPerishable ? 1 : 0,
+    packaging != null ? JSON.stringify(packaging) : null,
+    tradeTerm != null ? JSON.stringify(tradeTerm) : null,
+    eta != null ? JSON.stringify(eta) : null
   );
   res.status(201).json({ id, sku, name, price: Number(price) });
 });
@@ -98,7 +148,24 @@ router.put('/:id', (req, res) => {
     .prepare('SELECT id FROM products WHERE id = ? AND tenant_id = ?')
     .get([id, tenantId] as any);
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const { sku, name, price, variantsCount, categories, tags, lowStock, imageUrl } = req.body || {};
+  const {
+    sku,
+    name,
+    price,
+    variantsCount,
+    categories,
+    tags,
+    lowStock,
+    imageUrl,
+    hsCode,
+    originCountry,
+    uom,
+    incoterm,
+    isPerishable,
+    packaging,
+    tradeTerm,
+    eta,
+  } = req.body || {};
   db.prepare(
     `UPDATE products
      SET sku = COALESCE(?, sku),
@@ -108,7 +175,15 @@ router.put('/:id', (req, res) => {
          categories = COALESCE(?, categories),
          tags = COALESCE(?, tags),
          low_stock = COALESCE(?, low_stock),
-         image_url = COALESCE(?, image_url)
+         image_url = COALESCE(?, image_url),
+         hs_code = COALESCE(?, hs_code),
+         origin_country = COALESCE(?, origin_country),
+         uom = COALESCE(?, uom),
+         incoterm = COALESCE(?, incoterm),
+         is_perishable = COALESCE(?, is_perishable),
+         packaging = COALESCE(?, packaging),
+         trade_term = COALESCE(?, trade_term),
+         eta = COALESCE(?, eta)
      WHERE id = ? AND tenant_id = ?`
   ).run(
     sku,
@@ -119,6 +194,14 @@ router.put('/:id', (req, res) => {
     tags !== undefined ? JSON.stringify(tags) : null,
     lowStock !== undefined ? (lowStock ? 1 : 0) : null,
     imageUrl ?? null,
+    hsCode,
+    originCountry,
+    uom,
+    incoterm,
+    isPerishable !== undefined ? (isPerishable ? 1 : 0) : null,
+    packaging != null ? JSON.stringify(packaging) : null,
+    tradeTerm != null ? JSON.stringify(tradeTerm) : null,
+    eta != null ? JSON.stringify(eta) : null,
     id,
     tenantId
   );

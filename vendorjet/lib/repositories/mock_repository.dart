@@ -41,6 +41,8 @@ class MockProductRepository {
     if (useLocalApi) return;
     _ensureCategoryPresets();
     if (_items.isNotEmpty) return;
+    const incoterms = ['FOB', 'CIF', 'EXW'];
+    const origins = ['KR', 'CN', 'VN', 'US'];
     for (var i = 0; i < 40; i++) {
       final baseCategories = _sampleCategories[i % _sampleCategories.length];
       final depth = 1 + _rnd.nextInt(baseCategories.length.clamp(1, 3));
@@ -50,6 +52,9 @@ class MockProductRepository {
       if (_rnd.nextBool()) tags.add(ProductTag.discounted);
       if (_rnd.nextBool()) tags.add(ProductTag.newArrival);
       final price = (_rnd.nextDouble() * 90) + 10;
+      final packaging = _randomPackaging(i);
+      final tradeTerm = _randomTradeTerm(i, incoterms, price);
+      final eta = _randomEta(i);
       _items.add(
         Product(
           id: 'p_${i + 1}',
@@ -60,10 +65,72 @@ class MockProductRepository {
           categories: categories,
           tags: tags,
           lowStock: _rnd.nextBool() && _rnd.nextBool(),
+          incoterm: tradeTerm.incoterm,
+          originCountry: origins[i % origins.length],
+          hsCode: 'HS${8400 + i}',
+          uom: 'EA',
+          isPerishable: i % 6 == 0,
+          packaging: packaging,
+          tradeTerm: tradeTerm,
+          eta: eta,
         ),
       );
     }
     _idCounter.seed(_items.map((e) => e.id));
+  }
+
+  ProductPackaging _randomPackaging(int index) {
+    final base = 30 + _rnd.nextInt(25);
+    final height = 20 + _rnd.nextInt(15);
+    final net = double.parse((4 + _rnd.nextDouble() * 4).toStringAsFixed(2));
+    final gross =
+        double.parse((net + _rnd.nextDouble() * 1.5).toStringAsFixed(2));
+    return ProductPackaging(
+      packType: index % 5 == 0 ? 'pallet' : 'carton',
+      lengthCm: base.toDouble(),
+      widthCm: (base - 5 + _rnd.nextInt(6)).toDouble(),
+      heightCm: height.toDouble(),
+      unitsPerPack: 6 + _rnd.nextInt(18),
+      netWeightKg: net,
+      grossWeightKg: gross,
+      barcode: 'PK${100000 + index}',
+    );
+  }
+
+  ProductTradeTerm _randomTradeTerm(
+    int index,
+    List<String> incoterms,
+    double price,
+  ) {
+    final incoterm = incoterms[index % incoterms.length];
+    final freight = double.parse((_rnd.nextDouble() * 8).toStringAsFixed(2));
+    final insurance =
+        double.parse((_rnd.nextDouble() * 3).toStringAsFixed(2));
+    return ProductTradeTerm(
+      incoterm: incoterm,
+      currency: index % 2 == 0 ? 'USD' : 'KRW',
+      price: price,
+      portOfLoading: 'Busan',
+      portOfDischarge: index % 2 == 0 ? 'Los Angeles' : 'Incheon',
+      freight: freight,
+      insurance: insurance,
+      leadTimeDays: 5 + _rnd.nextInt(15),
+      minOrderQty: 5 + _rnd.nextInt(20),
+      moqUnit: 'carton',
+    );
+  }
+
+  ProductEta _randomEta(int index) {
+    final now = DateTime.now();
+    final etd = now.add(Duration(days: 3 + (index % 5)));
+    final eta = etd.add(Duration(days: 10 + (index % 7)));
+    return ProductEta(
+      etd: etd,
+      eta: eta,
+      vessel: 'VJ-${210 + index}',
+      voyageNo: 'NV${410 + index}',
+      status: 'SCHEDULED',
+    );
   }
 
   Future<List<Product>> fetch({
@@ -149,6 +216,14 @@ class MockProductRepository {
                     'tags': product.tags.map((e) => e.name).toList(),
                     'lowStock': product.lowStock,
                     'imageUrl': product.imageUrl,
+                    'hsCode': product.hsCode,
+                    'originCountry': product.originCountry,
+                    'uom': product.uom,
+                    'incoterm': product.incoterm,
+                    'isPerishable': product.isPerishable,
+                    'packaging': product.packaging?.toJson(),
+                    'tradeTerm': product.tradeTerm?.toJson(),
+                    'eta': product.eta?.toJson(),
                   },
                 )
                 as Map<String, dynamic>;
@@ -166,6 +241,14 @@ class MockProductRepository {
             'tags': product.tags.map((e) => e.name).toList(),
             'lowStock': product.lowStock,
             'imageUrl': product.imageUrl,
+            'hsCode': product.hsCode,
+            'originCountry': product.originCountry,
+            'uom': product.uom,
+            'incoterm': product.incoterm,
+            'isPerishable': product.isPerishable,
+            'packaging': product.packaging?.toJson(),
+            'tradeTerm': product.tradeTerm?.toJson(),
+            'eta': product.eta?.toJson(),
           },
         );
         return await findById(product.id) ?? product;
@@ -665,6 +748,89 @@ List<String> _computeTopCategories(
   return list;
 }
 
+ProductPackaging? _packagingFromJson(dynamic json) {
+  if (json is! Map<String, dynamic>) return null;
+  return ProductPackaging(
+    packType: json['packType'] as String? ?? json['pack_type'] as String? ??
+        json['type'] as String? ??
+        'carton',
+    lengthCm: _toDouble(json['lengthCm'] ?? json['length_cm']),
+    widthCm: _toDouble(json['widthCm'] ?? json['width_cm']),
+    heightCm: _toDouble(json['heightCm'] ?? json['height_cm']),
+    volumeCbm: _toDouble(json['volumeCbm'] ?? json['volume_cbm']),
+    netWeightKg: _toDouble(json['netWeightKg'] ?? json['net_weight_kg']),
+    grossWeightKg: _toDouble(json['grossWeightKg'] ?? json['gross_weight_kg']),
+    unitsPerPack: (json['unitsPerPack'] ?? json['units_per_pack']) is int
+        ? (json['unitsPerPack'] ?? json['units_per_pack']) as int
+        : int.tryParse(
+              (json['unitsPerPack'] ?? json['units_per_pack'] ?? '').toString(),
+            ),
+    barcode: json['barcode'] as String?,
+  );
+}
+
+ProductTradeTerm? _tradeTermFromJson(
+  dynamic json, {
+  double? priceFallback,
+}) {
+  if (json is! Map<String, dynamic>) return null;
+  return ProductTradeTerm(
+    incoterm: json['incoterm'] as String? ?? json['incotermCode'] as String? ??
+        'FOB',
+    currency: json['currency'] as String? ?? 'USD',
+    price: _toDouble(json['price']) ?? priceFallback ?? 0,
+    portOfLoading:
+        json['portOfLoading'] as String? ?? json['port_of_loading'] as String?,
+    portOfDischarge: json['portOfDischarge'] as String? ??
+        json['port_of_discharge'] as String?,
+    freight: _toDouble(json['freight']),
+    insurance: _toDouble(json['insurance']),
+    leadTimeDays: (json['leadTimeDays'] ?? json['lead_time_days']) is int
+        ? (json['leadTimeDays'] ?? json['lead_time_days']) as int
+        : int.tryParse(
+              (json['leadTimeDays'] ?? json['lead_time_days'] ?? '').toString(),
+            ),
+    minOrderQty: (json['minOrderQty'] ?? json['min_order_qty']) is int
+        ? (json['minOrderQty'] ?? json['min_order_qty']) as int
+        : int.tryParse(
+              (json['minOrderQty'] ?? json['min_order_qty'] ?? '').toString(),
+            ),
+    moqUnit: json['moqUnit'] as String? ?? json['moq_unit'] as String?,
+  );
+}
+
+ProductEta? _etaFromJson(dynamic json) {
+  if (json is! Map<String, dynamic>) return null;
+  return ProductEta(
+    etd: _asDate(json['etd'] ?? json['etd_date']),
+    eta: _asDate(json['eta'] ?? json['eta_date']),
+    vessel: json['vessel'] as String?,
+    voyageNo: json['voyageNo'] as String? ?? json['voyage_no'] as String?,
+    status: json['status'] as String?,
+    note: json['note'] as String?,
+  );
+}
+
+double? _toDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
+}
+
+bool? _asBool(dynamic value) {
+  if (value == null) return null;
+  if (value is bool) return value;
+  final lower = value.toString().toLowerCase();
+  if (lower == 'true' || lower == '1') return true;
+  if (lower == 'false' || lower == '0') return false;
+  return null;
+}
+
+DateTime? _asDate(dynamic value) {
+  if (value == null) return null;
+  return DateTime.tryParse(value.toString());
+}
+
 Product _productFromJson(Map<String, dynamic> json) {
   final tags = <ProductTag>{};
   final tagList = (json['tags'] as List<dynamic>? ?? []);
@@ -679,6 +845,12 @@ Product _productFromJson(Map<String, dynamic> json) {
   final categories = (json['categories'] as List<dynamic>? ?? [])
       .map((e) => e.toString())
       .toList();
+  final packaging = _packagingFromJson(json['packaging']);
+  final tradeTerm = _tradeTermFromJson(
+    json['tradeTerm'] ?? json['trade_term'],
+    priceFallback: (json['price'] as num?)?.toDouble(),
+  );
+  final eta = _etaFromJson(json['eta'] ?? json['etaInfo']);
   return Product(
     id: json['id'] as String? ?? '',
     sku: json['sku'] as String? ?? '',
@@ -697,6 +869,15 @@ Product _productFromJson(Map<String, dynamic> json) {
         (json['lowStock'] ?? json['low_stock'] ?? false).toString() == 'true' ||
         (json['lowStock'] ?? json['low_stock'] ?? 0) == 1,
     imageUrl: json['imageUrl'] as String?,
+    hsCode: json['hsCode'] as String? ?? json['hs_code'] as String?,
+    originCountry:
+        json['originCountry'] as String? ?? json['origin_country'] as String?,
+    uom: json['uom'] as String?,
+    incoterm: json['incoterm'] as String? ?? tradeTerm?.incoterm,
+    isPerishable: _asBool(json['isPerishable']) ?? false,
+    packaging: packaging,
+    tradeTerm: tradeTerm,
+    eta: eta,
   );
 }
 

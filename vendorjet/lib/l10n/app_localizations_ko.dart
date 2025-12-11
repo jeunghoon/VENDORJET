@@ -170,6 +170,47 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashboardRecentOrdersEmpty => '표시할 최근 주문이 없습니다.';
 
   @override
+  String get dashboardMonthlySales => '월간 매출';
+
+  @override
+  String get dashboardReceivables => '미수금';
+
+  @override
+  String get dashboardReturns => '반품';
+
+  @override
+  String get dashboardIncomingShipments => '입고 예정';
+
+  @override
+  String get dashboardExpiringProducts => '유통기한 임박';
+
+  @override
+  String get dashboardTopProducts => '매출 상위 상품';
+
+  @override
+  String get dashboardTopCustomers => '매출 상위 거래처';
+
+  @override
+  String get dashboardStaffStatus => '직원 상태';
+
+  @override
+  String get dashboardStaffOnDuty => '근무 중';
+
+  @override
+  String get dashboardStaffOnLeave => '휴가';
+
+  @override
+  String get dashboardStaffOnSick => '병가';
+
+  @override
+  String get dashboardEtaLabel => '도착예정';
+
+  @override
+  String dashboardDaysLeft(int days) {
+    return '$days일 남음';
+  }
+
+  @override
   String get ordersEmptyMessage => '주문을 찾을 수 없습니다.';
 
   @override
@@ -250,6 +291,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notFound => '내용을 찾을 수 없습니다';
 
   @override
+  String get notProvided => '미입력';
+
+  @override
   String get productsDetailTitle => '상품 상세';
 
   @override
@@ -278,6 +322,81 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get productMetaLastSync => '재고 동기화';
+
+  @override
+  String get productTradeSectionTitle => '무역·물류 정보';
+
+  @override
+  String get productIncoterm => '인코텀즈';
+
+  @override
+  String get productHsCode => 'HS 코드';
+
+  @override
+  String get productOriginCountry => '원산지';
+
+  @override
+  String get productUom => '단위';
+
+  @override
+  String get productPerishable => '유통기한 관리';
+
+  @override
+  String get productPerishableYes => '신선/유통기한 관리';
+
+  @override
+  String get productPerishableNo => '일반 상품';
+
+  @override
+  String get productPackagingSectionTitle => '포장·물류 스펙';
+
+  @override
+  String get productPackagingType => '포장 단위';
+
+  @override
+  String get productPackagingDimensions => '포장 규격(㎝)';
+
+  @override
+  String get productPackagingWeight => '중량(순/총)';
+
+  @override
+  String get productPackagingUnitsPerPack => '묶음당 수량';
+
+  @override
+  String get productPackagingCbm => '부피(CBM)';
+
+  @override
+  String get productTradeTermSectionTitle => '거래조건/가격';
+
+  @override
+  String get productTradePrice => '조건가';
+
+  @override
+  String get productTradeFreight => '운임';
+
+  @override
+  String get productTradeInsurance => '보험';
+
+  @override
+  String get productTradeLeadTime => '리드타임';
+
+  @override
+  String get productTradeMoq => '최소 주문(MOQ)';
+
+  @override
+  String get productEtaSectionTitle => '선적/도착(ETD/ETA)';
+
+  @override
+  String get productEtaEtd => 'ETD';
+
+  @override
+  String get productEtaEta => 'ETA';
+
+  @override
+  String get productEtaVessel => '선박/항차';
+
+  @override
+  String get productEtaStatus => '상태';
 
   @override
   String productCardSummary(String name, int count) {

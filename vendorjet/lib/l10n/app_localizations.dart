@@ -416,6 +416,84 @@ abstract class AppLocalizations {
   /// **'No recent orders to show.'**
   String get dashboardRecentOrdersEmpty;
 
+  /// No description provided for @dashboardMonthlySales.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly sales'**
+  String get dashboardMonthlySales;
+
+  /// No description provided for @dashboardReceivables.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding'**
+  String get dashboardReceivables;
+
+  /// No description provided for @dashboardReturns.
+  ///
+  /// In en, this message translates to:
+  /// **'Returns'**
+  String get dashboardReturns;
+
+  /// No description provided for @dashboardIncomingShipments.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming shipments'**
+  String get dashboardIncomingShipments;
+
+  /// No description provided for @dashboardExpiringProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiring soon'**
+  String get dashboardExpiringProducts;
+
+  /// No description provided for @dashboardTopProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Top products'**
+  String get dashboardTopProducts;
+
+  /// No description provided for @dashboardTopCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'Top customers'**
+  String get dashboardTopCustomers;
+
+  /// No description provided for @dashboardStaffStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff status'**
+  String get dashboardStaffStatus;
+
+  /// No description provided for @dashboardStaffOnDuty.
+  ///
+  /// In en, this message translates to:
+  /// **'On duty'**
+  String get dashboardStaffOnDuty;
+
+  /// No description provided for @dashboardStaffOnLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'On leave'**
+  String get dashboardStaffOnLeave;
+
+  /// No description provided for @dashboardStaffOnSick.
+  ///
+  /// In en, this message translates to:
+  /// **'Sick leave'**
+  String get dashboardStaffOnSick;
+
+  /// No description provided for @dashboardEtaLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ETA'**
+  String get dashboardEtaLabel;
+
+  /// No description provided for @dashboardDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days left'**
+  String dashboardDaysLeft(int days);
+
   /// No description provided for @ordersEmptyMessage.
   ///
   /// In en, this message translates to:
@@ -560,6 +638,12 @@ abstract class AppLocalizations {
   /// **'Content not found'**
   String get notFound;
 
+  /// No description provided for @notProvided.
+  ///
+  /// In en, this message translates to:
+  /// **'Not provided'**
+  String get notProvided;
+
   /// No description provided for @productsDetailTitle.
   ///
   /// In en, this message translates to:
@@ -619,6 +703,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Inventory sync'**
   String get productMetaLastSync;
+
+  /// No description provided for @productTradeSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trade & logistics'**
+  String get productTradeSectionTitle;
+
+  /// No description provided for @productIncoterm.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoterm'**
+  String get productIncoterm;
+
+  /// No description provided for @productHsCode.
+  ///
+  /// In en, this message translates to:
+  /// **'HS code'**
+  String get productHsCode;
+
+  /// No description provided for @productOriginCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Origin'**
+  String get productOriginCountry;
+
+  /// No description provided for @productUom.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get productUom;
+
+  /// No description provided for @productPerishable.
+  ///
+  /// In en, this message translates to:
+  /// **'Shelf life'**
+  String get productPerishable;
+
+  /// No description provided for @productPerishableYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Perishable'**
+  String get productPerishableYes;
+
+  /// No description provided for @productPerishableNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-perishable'**
+  String get productPerishableNo;
+
+  /// No description provided for @productPackagingSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Packaging / logistics specs'**
+  String get productPackagingSectionTitle;
+
+  /// No description provided for @productPackagingType.
+  ///
+  /// In en, this message translates to:
+  /// **'Packaging unit'**
+  String get productPackagingType;
+
+  /// No description provided for @productPackagingDimensions.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimensions (cm)'**
+  String get productPackagingDimensions;
+
+  /// No description provided for @productPackagingWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight (net/gross)'**
+  String get productPackagingWeight;
+
+  /// No description provided for @productPackagingUnitsPerPack.
+  ///
+  /// In en, this message translates to:
+  /// **'Units per pack'**
+  String get productPackagingUnitsPerPack;
+
+  /// No description provided for @productPackagingCbm.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume (CBM)'**
+  String get productPackagingCbm;
+
+  /// No description provided for @productTradeTermSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trade terms'**
+  String get productTradeTermSectionTitle;
+
+  /// No description provided for @productTradePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price (term)'**
+  String get productTradePrice;
+
+  /// No description provided for @productTradeFreight.
+  ///
+  /// In en, this message translates to:
+  /// **'Freight'**
+  String get productTradeFreight;
+
+  /// No description provided for @productTradeInsurance.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance'**
+  String get productTradeInsurance;
+
+  /// No description provided for @productTradeLeadTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Lead time'**
+  String get productTradeLeadTime;
+
+  /// No description provided for @productTradeMoq.
+  ///
+  /// In en, this message translates to:
+  /// **'MOQ'**
+  String get productTradeMoq;
+
+  /// No description provided for @productEtaSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ETD/ETA'**
+  String get productEtaSectionTitle;
+
+  /// No description provided for @productEtaEtd.
+  ///
+  /// In en, this message translates to:
+  /// **'ETD'**
+  String get productEtaEtd;
+
+  /// No description provided for @productEtaEta.
+  ///
+  /// In en, this message translates to:
+  /// **'ETA'**
+  String get productEtaEta;
+
+  /// No description provided for @productEtaVessel.
+  ///
+  /// In en, this message translates to:
+  /// **'Vessel/Voyage'**
+  String get productEtaVessel;
+
+  /// No description provided for @productEtaStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get productEtaStatus;
 
   /// No description provided for @productCardSummary.
   ///

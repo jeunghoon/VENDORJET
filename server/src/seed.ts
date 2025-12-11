@@ -95,6 +95,15 @@ ensureColumn('buyer_requests', 'buyer_tenant_id', 'TEXT');
 ensureColumn('buyer_requests', 'requested_segment', 'TEXT');
 ensureColumn('buyer_requests', 'selected_segment', 'TEXT');
 ensureColumn('buyer_requests', 'selected_tier', 'TEXT');
+ensureColumn('tenants', 'segment', 'TEXT');
+ensureColumn('products', 'hs_code', 'TEXT');
+ensureColumn('products', 'origin_country', 'TEXT');
+ensureColumn('products', 'uom', 'TEXT');
+ensureColumn('products', 'incoterm', 'TEXT');
+ensureColumn('products', 'is_perishable', 'INTEGER');
+ensureColumn('products', 'packaging', 'TEXT');
+ensureColumn('products', 'trade_term', 'TEXT');
+ensureColumn('products', 'eta', 'TEXT');
 
 function resetTables() {
   db.exec(`
@@ -116,38 +125,44 @@ function resetTables() {
 
 function seedTenantsUsersMemberships() {
   const tenants = [
-    { id: 't_acme', name: 'Acme Foods', locale: 'en', phone: '02-1234-5678', address: 'Seoul, Korea' },
-    { id: 't_nova', name: 'Nova Market', locale: 'ko', phone: '031-987-6543', address: 'Incheon, Korea' },
+    { id: 't_food', name: 'Acme Foods', locale: 'en', phone: '02-1234-5678', address: 'Seoul, Korea', segment: 'Food & Beverage' },
+    { id: 't_apparel', name: 'Nova Apparel', locale: 'ko', phone: '031-987-6543', address: 'Incheon, Korea', segment: 'Apparel' },
+    { id: 't_mart', name: 'Bright Mart', locale: 'ko', phone: '02-555-1234', address: 'Seoul, Korea', segment: 'Mart' },
+    { id: 't_clothing', name: 'Style Boutique', locale: 'en', phone: '010-8000-1111', address: 'Busan, Korea', segment: 'Boutique' },
   ];
   const insertTenant = db.prepare(
-    'INSERT OR REPLACE INTO tenants (id, name, locale, created_at, phone, address) VALUES (?,?,?,?,?,?)'
+    'INSERT OR REPLACE INTO tenants (id, name, locale, created_at, phone, address, segment) VALUES (?,?,?,?,?,?,?)'
   );
-  tenants.forEach((t) => insertTenant.run(t.id, t.name, t.locale, nowIso, t.phone, t.address));
+  tenants.forEach((t) => insertTenant.run(t.id, t.name, t.locale, nowIso, t.phone, t.address, t.segment));
 
   const insertUser = db.prepare(
     'INSERT OR REPLACE INTO users (id, email, password_hash, name, phone, user_type) VALUES (?,?,?,?,?,?)'
   );
   const users = [
-    { id: 'u_admin', email: 'admin@vendorjet.com', name: 'Alex Admin', phone: '010-0000-0000', password: 'welcome1', type: 'wholesale' },
-    { id: 'u_seller_acme', email: 'seller@acme.com', name: 'Acme Owner', phone: '010-1111-2222', password: 'welcome1', type: 'wholesale' },
-    { id: 'u_staff_acme', email: 'staff@acme.com', name: 'Acme Staff', phone: '010-3333-4444', password: 'welcome1', type: 'wholesale' },
-    { id: 'u_seller_nova', email: 'seller@nova.com', name: 'Nova Owner', phone: '010-5555-6666', password: 'welcome1', type: 'wholesale' },
-    { id: 'u_buyer_bright', email: 'buyer@bright.com', name: 'Bright Retail Buyer', phone: '010-7777-8888', password: 'welcome1', type: 'retail' },
-    { id: 'u_buyer_sunrise', email: 'buyer@sunrise.com', name: 'Sunrise Buyer', phone: '010-9999-0000', password: 'welcome1', type: 'retail' },
-    { id: 'u_buyer_metro', email: 'buyer@metro.com', name: 'Metro Buyer', phone: '010-1212-3434', password: 'welcome1', type: 'retail' },
+    { id: 'u_admin', email: 'admin', name: 'Alex Admin', phone: '010-0000-0000', password: '123', type: 'wholesale' },    
+    { id: 'u_food_staff', email: 'w1', name: 'Acme Staff', phone: '010-3333-4444', password: '123', type: 'wholesale' },    
+    { id: 'u_apparel_staff', email: 'w2', name: 'Nova Staff', phone: '010-4444-6666', password: '123', type: 'wholesale' },
+    { id: 'u_mart_buyer', email: 'mm', name: 'Bright Mart Buyer', phone: '010-7777-8888', password: '123', type: 'retail' },
+    { id: 'u_style_buyer', email: 'ss', name: 'Style Boutique Buyer', phone: '010-9999-0000', password: '123', type: 'retail' },
   ];
   users.forEach((u) => insertUser.run(u.id, u.email, u.password, u.name, u.phone, u.type));
 
   const insertMembership = db.prepare(
     'INSERT OR REPLACE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)'
   );
-  tenants.forEach((t) => insertMembership.run('u_admin', t.id, 'owner', 'approved'));
-  insertMembership.run('u_seller_acme', 't_acme', 'owner', 'approved');
-  insertMembership.run('u_staff_acme', 't_acme', 'staff', 'approved');
-  insertMembership.run('u_seller_nova', 't_nova', 'owner', 'approved');
-  insertMembership.run('u_buyer_bright', 't_acme', 'staff', 'approved');
-  insertMembership.run('u_buyer_sunrise', 't_acme', 'staff', 'approved');
-  insertMembership.run('u_buyer_metro', 't_nova', 'staff', 'approved');
+  // 글로벌 관리자: 두 도매 업체 모두 owner, 소매도 관리 가능
+  insertMembership.run('u_admin', 't_food', 'owner', 'approved');
+  insertMembership.run('u_admin', 't_apparel', 'owner', 'approved');
+
+  insertMembership.run('u_food_staff', 't_food', 'staff', 'approved');
+
+  insertMembership.run('u_apparel_staff', 't_apparel', 'staff', 'approved');
+
+  // 소매 매장 멤버십 (admin은 소매 미보유)
+  insertMembership.run('u_mart_buyer', 't_mart', 'owner', 'approved');
+  insertMembership.run('u_style_buyer', 't_clothing', 'owner', 'approved');
+
+  // 소매-도매 연결은 고객/요청으로만 관리(교차 멤버십 제거)
 }
 
 function seedSegments() {
@@ -160,53 +175,115 @@ function seedSegments() {
 
 function seedProducts() {
   const insertProduct = db.prepare(
-    'INSERT OR REPLACE INTO products (id, tenant_id, sku, name, price, variants_count, categories, tags, low_stock, image_url) VALUES (?,?,?,?,?,?,?,?,?,?)'
+    `INSERT OR REPLACE INTO products (
+      id, tenant_id, sku, name, price, variants_count, categories, tags, low_stock, image_url,
+      hs_code, origin_country, uom, incoterm, is_perishable, packaging, trade_term, eta
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   );
-  const acmeProducts = [
-    { sku: 'ACM-COFF-001', name: 'Coldbrew Concentrate 2L', price: 24.5, cat: ['Beverages', 'Coffee'], low: 0 },
-    { sku: 'ACM-TEA-002', name: 'Jasmine Green Tea 500ml', price: 2.9, cat: ['Beverages', 'Tea'], low: 0 },
-    { sku: 'ACM-SYR-003', name: 'Vanilla Syrup 1kg', price: 8.5, cat: ['Ingredients', 'Syrup'], low: 0 },
-    { sku: 'ACM-DRY-004', name: 'Penne Rigate 5kg', price: 11.0, cat: ['Dry Goods', 'Pasta'], low: 0 },
-    { sku: 'ACM-SNCK-005', name: 'Sea Salt Chips 150g', price: 3.2, cat: ['Snacks', 'Chips'], low: 1 },
-    { sku: 'ACM-DAIR-006', name: 'Whole Milk 1L', price: 1.8, cat: ['Dairy', 'Milk'], low: 0 },
-    { sku: 'ACM-FRZN-007', name: 'Frozen Blueberries 2kg', price: 9.9, cat: ['Frozen', 'Fruit'], low: 0 },
-    { sku: 'ACM-CLN-008', name: 'Kitchen Paper Towel 12roll', price: 7.5, cat: ['Household', 'Supplies'], low: 0 },
+  const foodCategories = [
+    ['Beverages', 'Coffee'],
+    ['Beverages', 'Tea'],
+    ['Snacks', 'Chips'],
+    ['Frozen', 'Fruit'],
+    ['Dairy', 'Milk'],
+    ['Dry Goods', 'Pasta'],
+    ['Bakery', 'Bread'],
+    ['Ingredients', 'Sauce'],
   ];
-  acmeProducts.forEach((p, idx) =>
-    insertProduct.run(
-      `p_acm_${idx + 1}`,
-      't_acme',
-      p.sku,
-      p.name,
-      p.price,
-      1,
-      JSON.stringify(p.cat),
-      JSON.stringify([]),
-      p.low,
-      null
-    )
-  );
+  const apparelCategories = [
+    ['Apparel', 'Tops'],
+    ['Apparel', 'Bottoms'],
+    ['Apparel', 'Outerwear'],
+    ['Apparel', 'Accessories'],
+    ['Footwear', 'Sneakers'],
+    ['Footwear', 'Sandals'],
+  ];
 
-  const novaProducts = [
-    { sku: 'NOV-DRNK-010', name: 'Sparkling Water 500ml', price: 1.5, cat: ['Beverages', 'Water'], low: 0 },
-    { sku: 'NOV-BAKE-011', name: 'Brioche Bun 12ct', price: 6.8, cat: ['Bakery', 'Bread'], low: 0 },
-    { sku: 'NOV-MEAT-012', name: 'Chicken Breast 2kg', price: 13.2, cat: ['Meat', 'Poultry'], low: 0 },
-    { sku: 'NOV-VEG-013', name: 'Fresh Spinach 1kg', price: 3.9, cat: ['Produce', 'Leafy'], low: 1 },
-    { sku: 'NOV-FRZN-014', name: 'Frozen French Fries 2.5kg', price: 5.4, cat: ['Frozen', 'Potato'], low: 0 },
-  ];
-  novaProducts.forEach((p, idx) =>
-    insertProduct.run(
-      `p_nov_${idx + 1}`,
-      't_nova',
-      p.sku,
-      p.name,
-      p.price,
-      1,
-      JSON.stringify(p.cat),
-      JSON.stringify([]),
-      p.low,
-      null
-    )
+  function insertBatch(params: {
+    tenantId: string;
+    count: number;
+    categories: string[][];
+    incoterm: string;
+    origin: string;
+    prefix: string;
+  }) {
+    const { tenantId, count, categories, incoterm, origin, prefix } = params;
+    if (categories.length === 0) return;
+    for (let i = 0; i < count; i++) {
+      const cat = categories[i % categories.length]!;
+      const price = parseFloat((5 + Math.random() * 45).toFixed(2));
+      const low = Math.random() < 0.15 ? 1 : 0;
+      const perishable = Math.random() < 0.4 ? 1 : 0;
+      const id = `${prefix}${i + 1}`;
+      insertProduct.run(
+        id,
+        tenantId,
+        `${prefix.toUpperCase()}-${1000 + i}`,
+        `${cat[cat.length - 1]} Item ${i + 1}`,
+        price,
+        1,
+        JSON.stringify(cat),
+        JSON.stringify([]),
+        low,
+        null,
+        `HS${8800 + i}`,
+        origin,
+        'EA',
+        incoterm,
+        perishable,
+        JSON.stringify({
+          packType: 'carton',
+          lengthCm: 30 + Math.round(Math.random() * 10),
+          widthCm: 20 + Math.round(Math.random() * 10),
+          heightCm: 18 + Math.round(Math.random() * 8),
+          unitsPerPack: 6 + Math.round(Math.random() * 12),
+          netWeightKg: parseFloat((3 + Math.random() * 4).toFixed(2)),
+          grossWeightKg: parseFloat((3.5 + Math.random() * 4).toFixed(2)),
+          volumeCbm: 0.015 + Math.random() * 0.01,
+          barcode: `${prefix.toUpperCase()}-PK-${i + 1}`,
+        }),
+        JSON.stringify({
+          incoterm,
+          currency: 'USD',
+          price,
+          portOfLoading: tenantId === 't_food' ? 'Busan' : 'Incheon',
+          portOfDischarge: tenantId === 't_food' ? 'Los Angeles' : 'Seattle',
+          freight: parseFloat((5 + Math.random() * 3).toFixed(2)),
+          insurance: parseFloat((1 + Math.random() * 1.5).toFixed(2)),
+          leadTimeDays: 5 + Math.round(Math.random() * 10),
+          minOrderQty: 4 + Math.round(Math.random() * 8),
+          moqUnit: 'carton',
+        }),
+        JSON.stringify({
+          etd: nowIso,
+          eta: new Date(Date.now() + (7 + Math.round(Math.random() * 10)) * 86400000).toISOString(),
+          vessel: `VJ-${300 + i}`,
+          voyageNo: `NV${400 + i}`,
+          status: 'SCHEDULED',
+        })
+      );
+    }
+  }
+
+  insertBatch(
+    {
+      tenantId: 't_food',
+      count: 50,
+      categories: foodCategories,
+      incoterm: 'FOB',
+      origin: 'KR',
+      prefix: 'p_food_',
+    },
+  );
+  insertBatch(
+    {
+      tenantId: 't_apparel',
+      count: 50,
+      categories: apparelCategories,
+      incoterm: 'CIF',
+      origin: 'VN',
+      prefix: 'p_app_',
+    },
   );
 }
 
@@ -215,9 +292,11 @@ function seedCustomers() {
     'INSERT OR REPLACE INTO customers (id, tenant_id, name, contact_name, email, tier, created_at, segment) VALUES (?,?,?,?,?,?,?,?)'
   );
   const customers = [
-    { id: 'c_1', tenantId: 't_acme', name: 'Bright Retail', contact: 'Alex Kim', email: 'buyer1@retail.com', tier: 'gold', segment: 'Mart' },
-    { id: 'c_2', tenantId: 't_acme', name: 'Sunrise Market', contact: 'Jamie Park', email: 'buyer2@retail.com', tier: 'silver', segment: 'Restaurant' },
-    { id: 'c_3', tenantId: 't_nova', name: 'Metro Shops', contact: 'Morgan Lee', email: 'buyer3@retail.com', tier: 'platinum', segment: 'Hotel' },
+    // 도매-소매 연결
+    { id: 'c_food_mart', tenantId: 't_food', name: 'Bright Mart', contact: 'Mart Buyer', email: 'buyer@brightmart.com', tier: 'gold', segment: 'Mart' },
+    { id: 'c_food_style', tenantId: 't_food', name: 'Style Boutique', contact: 'Style Buyer', email: 'buyer@style.com', tier: 'silver', segment: 'Fashion' },
+    { id: 'c_apparel_mart', tenantId: 't_apparel', name: 'Bright Mart', contact: 'Mart Buyer', email: 'buyer@brightmart.com', tier: 'gold', segment: 'Mart' },
+    { id: 'c_apparel_style', tenantId: 't_apparel', name: 'Style Boutique', contact: 'Style Buyer', email: 'buyer@style.com', tier: 'platinum', segment: 'Boutique' },
   ];
   customers.forEach((c, idx) =>
     insertCustomer.run(
@@ -260,38 +339,70 @@ function seedOrders() {
   const insertEvent = db.prepare(
     'INSERT INTO order_events (order_id, tenant_id, action, actor, note, created_at) VALUES (?,?,?,?,?,?)'
   );
-  for (let i = 0; i < 5; i++) {
-    const tenantId = i % 2 === 0 ? 't_acme' : 't_nova';
-    const createdAt = new Date(Date.now() - i * 3600000);
-    const code = nextOrderCode(createdAt);
-    const orderId = code;
-    const actor = tenantId === 't_acme' ? 'u_staff_acme' : 'u_seller_nova';
-    const productA = tenantId === 't_acme' ? 'p_acm_1' : 'p_nov_1';
-    const productB = tenantId === 't_acme' ? 'p_acm_2' : 'p_nov_2';
-    insertOrder.run(
-      orderId,
-      tenantId,
-      code,
-      tenantId === 't_acme' ? 'seller_portal' : 'buyer_portal',
-      `Buyer ${i + 1}`,
-      '010-1234-5678',
-      i % 2 === 0 ? '메모 확인' : null,
-      i % 2 === 0 ? 'pending' : 'confirmed',
-      100 + i * 10,
-      2 + i,
-      createdAt.toISOString(),
-      actor,
-      createdAt.toISOString(),
-      actor,
-      'Auto-generated seed order',
-      createdAt.toISOString(),
-      actor,
-      new Date(createdAt.getTime() + 86400000).toISOString()
-    );
-    insertLine.run(orderId, productA, 'Starter Pack', 1 + i, 10 + i);
-    insertLine.run(orderId, productB, 'Add-on Item', 1, 12.5);
-    insertEvent.run(orderId, tenantId, 'created', actor, 'seed order created', createdAt.toISOString());
-  }
+
+  const tenants = [
+    { id: 't_food', actor: 'u_food_staff' },
+    { id: 't_apparel', actor: 'u_apparel_staff' },
+  ];
+  const statuses = ['pending', 'confirmed', 'shipped', 'completed', 'returned', 'canceled'];
+
+  const now = new Date();
+  const start = new Date(now.getTime() - 365 * 86400000);
+  let orderSeq = 0;
+
+  tenants.forEach((tenant) => {
+    const products = db
+      .prepare('SELECT id, name, price FROM products WHERE tenant_id = ?')
+      .all(tenant.id) as { id: string; name: string; price: number }[];
+    const customers = db
+      .prepare('SELECT name, contact_name FROM customers WHERE tenant_id = ?')
+      .all(tenant.id) as { name: string; contact_name?: string | null }[];
+    if (products.length === 0 || customers.length === 0) return;
+
+    for (let m = 0; m < 12; m++) {
+      const monthDate = new Date(start.getTime() + m * 30 * 86400000);
+      for (let j = 0; j < 8; j++) {
+        const dayOffset = Math.floor(Math.random() * 25);
+        const createdAt = new Date(monthDate.getTime() + dayOffset * 86400000);
+        const code = nextOrderCode(createdAt) + `-${tenant.id}-${orderSeq++}`;
+        const orderId = code;
+        const status = statuses[(j + m) % statuses.length];
+        const buyerIdx = Math.floor(Math.random() * customers.length);
+        const buyer = customers[buyerIdx]!;
+        const productA = products[j % products.length]!;
+        const productB = products[(j + 7) % products.length]!;
+        const qtyA = 1 + (j % 4);
+        const qtyB = 1 + (j % 3);
+        const priceA = productA.price;
+        const priceB = productB.price;
+        const total = qtyA * priceA + qtyB * priceB;
+
+        insertOrder.run(
+          orderId,
+          tenant.id,
+          code,
+          j % 2 === 0 ? 'seller_portal' : 'buyer_portal',
+          buyer.name,
+          buyer.contact_name ?? '010-1234-5678',
+          j % 2 === 0 ? '검토 후 발주' : '빠른 납품 요청',
+          status,
+          total,
+          qtyA + qtyB,
+          createdAt.toISOString(),
+          tenant.actor,
+          createdAt.toISOString(),
+          tenant.actor,
+          'Auto-generated seed order',
+          createdAt.toISOString(),
+          tenant.actor,
+          new Date(createdAt.getTime() + 5 * 86400000).toISOString()
+        );
+        insertLine.run(orderId, productA.id, productA.name, qtyA, priceA);
+        insertLine.run(orderId, productB.id, productB.name, qtyB, priceB);
+        insertEvent.run(orderId, tenant.id, 'created', tenant.actor, 'seed order created', createdAt.toISOString());
+      }
+    }
+  });
 }
 
 const seedAll = db.transaction(() => {

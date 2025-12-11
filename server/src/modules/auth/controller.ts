@@ -229,6 +229,14 @@ router.get('/tenants', authMiddleware, (_req, res) => {
                   AND mo.role = 'owner'
                   AND COALESCE(uo.user_type, 'wholesale') = 'retail'
               )
+              AND NOT EXISTS (
+                SELECT 1
+                FROM memberships mo
+                INNER JOIN users uo ON uo.id = mo.user_id
+                WHERE mo.tenant_id = t.id
+                  AND mo.role = 'owner'
+                  AND COALESCE(uo.user_type, 'wholesale') != 'retail'
+              )
               THEN 'buyer'
               ELSE 'seller'
             END AS tenant_type,
@@ -289,7 +297,7 @@ router.get('/tenants-public', (_req, res) => {
               WHERE br.buyer_company = t.name
               ORDER BY br.created_at DESC
               LIMIT 1
-            ), '') AS segment
+            ), COALESCE(t.segment, '')) AS segment
          FROM tenants t
          INNER JOIN memberships m ON m.tenant_id = t.id AND m.role = 'owner'
          INNER JOIN users u ON u.id = m.user_id
@@ -342,15 +350,16 @@ router.post('/register', (req, res) => {
     const tenantId = `t_${Date.now()}`;
     const userId = `u_${Date.now()}`;
     const tx = db.transaction(() => {
-      db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address, representative) VALUES (?,?,?,?,?,?,?)').run(
-        tenantId,
-        companyName,
-        'en',
-        nowIso,
-        companyPhone,
-        companyAddress,
-        companyRepresentative || name
-      );
+      db.prepare('INSERT INTO tenants (id, name, locale, created_at, phone, address, representative) VALUES (?,?,?,?,?,?,?)')
+        .run(
+          tenantId,
+          companyName,
+          'en',
+          nowIso,
+          companyPhone,
+          companyAddress,
+          companyRepresentative || name,
+        );
       db.prepare('INSERT INTO users (id, email, password_hash, name, phone, address, created_at, user_type) VALUES (?,?,?,?,?,?,?,?)')
         .run(userId, normalizedEmail, password, name, phone, companyAddress, nowIso, 'wholesale');
       db.prepare('INSERT INTO memberships (user_id, tenant_id, role) VALUES (?,?,?)').run(userId, tenantId, 'owner');
@@ -403,6 +412,7 @@ router.post('/register-buyer', (req, res) => {
     sellerCompanyName,
     buyerCompanyName,
     buyerAddress = '',
+    buyerPhone = '',
     buyerRepresentative = '',
     name = '',
     phone = '',
@@ -478,7 +488,7 @@ router.post('/register-buyer', (req, res) => {
       buyerCompanyName,
       'en',
       nowIso,
-      '',
+      buyerPhone,
       buyerAddress,
       buyerRepresentative || name
     );
@@ -491,6 +501,10 @@ router.post('/register-buyer', (req, res) => {
     ensureTenantPositionDefaults(buyerTenantId);
     assignOwnerDefaultPosition(buyerTenantId, userId);
   } else if (buyerTenantId != null && existingBuyerTenant) {
+    if (buyerPhone || buyerAddress) {
+      db.prepare('UPDATE tenants SET phone = COALESCE(NULLIF(?, \"\"), phone), address = COALESCE(NULLIF(?, \"\"), address) WHERE id = ?')
+        .run(buyerPhone, buyerAddress, buyerTenantId);
+    }
     db.prepare('INSERT OR IGNORE INTO memberships (user_id, tenant_id, role, status) VALUES (?,?,?,?)').run(
       userId,
       buyerTenantId,

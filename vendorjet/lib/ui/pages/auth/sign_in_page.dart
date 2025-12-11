@@ -26,9 +26,48 @@ class _SignInPageState extends State<SignInPage> {
   final _pwFocusNode = FocusNode();
   bool _obscure = true;
   bool _signingIn = false;
+  final List<_SegmentOption> _segmentOptions = const [
+    _SegmentOption('restaurant_bar', 'Restaurant / Bar', '식당 / 주점'),
+    _SegmentOption('cafe_bakery', 'Cafe / Bakery', '카페 / 베이커리'),
+    _SegmentOption('supermarket', 'Supermarket / Hypermarket', '슈퍼마켓 / 대형마트'),
+    _SegmentOption('convenience', 'Convenience Store', '편의점'),
+    _SegmentOption('hotel', 'Hotel / Lodging', '호텔 / 숙박'),
+    _SegmentOption('catering', 'Catering / Meal Service', '단체급식 / 케이터링'),
+    _SegmentOption('school', 'School / University', '학교 / 대학'),
+    _SegmentOption('hospital', 'Hospital / Clinic', '병원 / 의원'),
+    _SegmentOption('pharmacy', 'Pharmacy', '약국'),
+    _SegmentOption('beauty', 'Beauty / Salon', '뷰티 / 미용실'),
+    _SegmentOption('electronics', 'Electronics / IT', '전자 / IT'),
+    _SegmentOption('home_living', 'Home & Living', '생활 / 리빙'),
+    _SegmentOption('office', 'Office Supplies', '사무 / 문구'),
+    _SegmentOption('logistics', 'Logistics / Wholesale', '물류 / 도매'),
+    _SegmentOption('other', 'Other (enter manually)', '기타(직접 입력)'),
+  ];
 
   String _tr(String en, String ko) =>
       Localizations.localeOf(context).languageCode == 'ko' ? ko : en;
+
+  String? _matchSegmentId(String value) {
+    if (value.isEmpty) return null;
+    final normalized = value.toLowerCase();
+    for (final opt in _segmentOptions) {
+      if (opt.id.toLowerCase() == normalized) return opt.id;
+      if (opt.en.toLowerCase() == normalized) return opt.id;
+      if (opt.ko.toLowerCase() == normalized) return opt.id;
+    }
+    return null;
+  }
+
+  String _resolveSegmentValue(
+    String selectedId,
+    String textValue,
+    bool isCustom,
+  ) {
+    if (!isCustom && selectedId.isNotEmpty) return selectedId;
+    final matched = _matchSegmentId(textValue);
+    if (matched != null) return matched;
+    return isCustom ? 'other' : '';
+  }
 
   @override
   void dispose() {
@@ -200,6 +239,7 @@ class _SignInPageState extends State<SignInPage> {
     final buyerCompanyCtrl = TextEditingController();
     final buyerAddressCtrl = TextEditingController();
     final buyerPhoneCtrl = TextEditingController();
+    final buyerUserPhoneCtrl = TextEditingController();
     final buyerNameCtrl = TextEditingController();
     final buyerEmailCtrl = TextEditingController();
     final buyerPwCtrl = TextEditingController();
@@ -215,6 +255,8 @@ class _SignInPageState extends State<SignInPage> {
     bool sellerEmailAvailable = false;
     bool buyerEmailChecked = false;
     bool buyerEmailAvailable = false;
+    String selectedBuyerSegmentId = '';
+    bool buyerSegmentCustom = false;
 
     final companies = await _loadCompanies();
     if (!mounted) return;
@@ -332,7 +374,17 @@ class _SignInPageState extends State<SignInPage> {
                             buyerCompanyCtrl: buyerCompanyCtrl,
                             buyerAddressCtrl: buyerAddressCtrl,
                             buyerPhoneCtrl: buyerPhoneCtrl,
+                            buyerUserPhoneCtrl: buyerUserPhoneCtrl,
                             buyerSegmentCtrl: buyerSegmentCtrl,
+                            selectedSegmentId: selectedBuyerSegmentId,
+                            onSegmentChanged: (id, isCustom) {
+                              setState(() {
+                                selectedBuyerSegmentId = id;
+                                buyerSegmentCustom = isCustom;
+                              });
+                            },
+                            segmentOptions: _segmentOptions,
+                            isCustomSegment: buyerSegmentCustom,
                             buyerNameCtrl: buyerNameCtrl,
                             buyerEmailCtrl: buyerEmailCtrl,
                             buyerPwCtrl: buyerPwCtrl,
@@ -355,8 +407,11 @@ class _SignInPageState extends State<SignInPage> {
                                   buyerPhoneCtrl.text = picked['phone'] ?? '';
                                   buyerAddressCtrl.text =
                                       picked['address'] ?? '';
-                                  buyerSegmentCtrl.text =
-                                      picked['segment'] ?? '';
+                                  final seg = picked['segment'] ?? '';
+                                  buyerSegmentCtrl.text = seg;
+                                  final matched = _matchSegmentId(seg);
+                                  selectedBuyerSegmentId = matched ?? '';
+                                  buyerSegmentCustom = matched == null;
                                   sellerSearchCtrl.text =
                                       picked['sellerName'] ?? '';
                                 });
@@ -481,7 +536,8 @@ class _SignInPageState extends State<SignInPage> {
                             buyerAddress: buyerAddressCtrl.text.trim(),
                             buyerSegment: buyerSegmentCtrl.text.trim(),
                             name: buyerNameCtrl.text.trim(),
-                            phone: buyerPhoneCtrl.text.trim(),
+                            phone: buyerUserPhoneCtrl.text.trim(),
+                            buyerPhone: buyerPhoneCtrl.text.trim(),
                             email: buyerEmailCtrl.text.trim(),
                             password: buyerPwCtrl.text,
                             attachmentUrl: buyerAttachmentCtrl.text.trim(),
@@ -600,6 +656,81 @@ class _SignInPageState extends State<SignInPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            TextFormField(
+              controller: nameCtrl,
+              decoration: InputDecoration(labelText: _tr('Your name', '이름')),
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr('Enter your name', '이름을 입력하세요')
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: userPhoneCtrl,
+              decoration: InputDecoration(labelText: _tr('Your phone', '전화번호')),
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? _tr('Enter your phone', '전화번호를 입력하세요')
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: emailCtrl,
+                    decoration: InputDecoration(labelText: _tr('Email', '이메일')),
+                    keyboardType: TextInputType.emailAddress,
+                    onChanged: (_) => onEmailChanged(),
+                    validator: (v) => v == null || v.isEmpty
+                        ? _tr('Enter email', '이메일을 입력하세요')
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: onCheckEmail,
+                  child: Text(_tr('Check', '중복 확인')),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              emailChecked
+                  ? (emailAvailable
+                        ? _tr('Email is available', '사용 가능한 이메일입니다.')
+                        : _tr('Email already exists', '이미 등록된 이메일입니다.'))
+                  : _tr('Check email to enable submit', '중복 확인을 완료하세요.'),
+              style: (bodySmall ?? const TextStyle()).copyWith(
+                color: emailChecked
+                    ? (emailAvailable ? colorScheme.primary : colorScheme.error)
+                    : neutralColor,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: pwCtrl,
+              decoration: InputDecoration(labelText: _tr('Password', '비밀번호')),
+              obscureText: true,
+              validator: (v) => v == null || v.length < 6
+                  ? _tr('Min 6 chars', '6자 이상 입력')
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: pwConfirmCtrl,
+              decoration: InputDecoration(
+                labelText: _tr('Confirm password', '비밀번호 확인'),
+              ),
+              obscureText: true,
+              validator: (v) => v != pwCtrl.text
+                  ? _tr('Passwords do not match', '비밀번호가 일치하지 않습니다')
+                  : null,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              _tr('Company information', '업체 정보'),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 ChoiceChip(
@@ -680,9 +811,12 @@ class _SignInPageState extends State<SignInPage> {
                 label: _tr('Company phone', '대표번호'),
                 readOnly: isExistingMode,
               ),
-              validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr('Enter phone', '전화번호를 입력하세요')
-                  : null,
+              validator: (v) {
+                if (isExistingMode) return null;
+                return (v == null || v.trim().isEmpty)
+                    ? _tr('Enter phone', '전화번호를 입력하세요')
+                    : null;
+              },
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -694,13 +828,61 @@ class _SignInPageState extends State<SignInPage> {
                 label: _tr('Company address', '주소'),
                 readOnly: isExistingMode,
               ),
-              validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr('Enter address', '주소를 입력하세요')
-                  : null,
+              validator: (v) {
+                if (isExistingMode) return null;
+                return (v == null || v.trim().isEmpty)
+                    ? _tr('Enter address', '주소를 입력하세요')
+                    : null;
+              },
             ),
-            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBuyerForm({
+    required GlobalKey<FormState> formKey,
+    required bool isNewBuyerCompany,
+    required ValueChanged<bool> onToggleBuyerNew,
+    required TextEditingController buyerCompanyCtrl,
+    required TextEditingController buyerAddressCtrl,
+    required TextEditingController buyerPhoneCtrl,
+    required TextEditingController buyerUserPhoneCtrl,
+    required TextEditingController buyerSegmentCtrl,
+    required String selectedSegmentId,
+    required void Function(String id, bool isCustom) onSegmentChanged,
+    required List<_SegmentOption> segmentOptions,
+    required bool isCustomSegment,
+    required TextEditingController buyerNameCtrl,
+    required TextEditingController buyerEmailCtrl,
+    required TextEditingController buyerPwCtrl,
+    required TextEditingController buyerPwConfirmCtrl,
+    required TextEditingController attachmentCtrl,
+    required TextEditingController sellerSearchCtrl,
+    required Map<String, String> selectedBuyerCompany,
+    required Map<String, String> selectedSeller,
+    required VoidCallback onSearchBuyerCompany,
+    required VoidCallback onSearchSeller,
+    required bool sellerSelectionVisible,
+    required bool emailChecked,
+    required bool emailAvailable,
+    required VoidCallback onCheckEmail,
+    required VoidCallback onEmailChanged,
+  }) {
+    final isExistingMode = !isNewBuyerCompany;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bodySmall = theme.textTheme.bodySmall;
+    final neutralColor = bodySmall?.color ?? colorScheme.onSurfaceVariant;
+    return SingleChildScrollView(
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             TextFormField(
-              controller: nameCtrl,
+              controller: buyerNameCtrl,
               decoration: InputDecoration(labelText: _tr('Your name', '이름')),
               validator: (v) => v == null || v.trim().isEmpty
                   ? _tr('Enter your name', '이름을 입력하세요')
@@ -708,7 +890,7 @@ class _SignInPageState extends State<SignInPage> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: userPhoneCtrl,
+              controller: buyerUserPhoneCtrl,
               decoration: InputDecoration(labelText: _tr('Your phone', '전화번호')),
               validator: (v) => v == null || v.trim().isEmpty
                   ? _tr('Enter your phone', '전화번호를 입력하세요')
@@ -719,7 +901,7 @@ class _SignInPageState extends State<SignInPage> {
               children: [
                 Expanded(
                   child: TextFormField(
-                    controller: emailCtrl,
+                    controller: buyerEmailCtrl,
                     decoration: InputDecoration(labelText: _tr('Email', '이메일')),
                     keyboardType: TextInputType.emailAddress,
                     onChanged: (_) => onEmailChanged(),
@@ -750,65 +932,32 @@ class _SignInPageState extends State<SignInPage> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: pwCtrl,
-              decoration: InputDecoration(labelText: _tr('Password', '비밀번호')),
+              controller: buyerPwCtrl,
+              decoration: InputDecoration(
+                labelText: _tr('Password', '비밀번호'),
+              ),
               obscureText: true,
-              validator: (v) => v == null || v.length < 6
-                  ? _tr('Min 6 chars', '6자 이상 입력')
+              validator: (v) => v == null || v.isEmpty
+                  ? _tr('Enter password', '비밀번호를 입력하세요')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: pwConfirmCtrl,
+              controller: buyerPwConfirmCtrl,
               decoration: InputDecoration(
                 labelText: _tr('Confirm password', '비밀번호 확인'),
               ),
               obscureText: true,
-              validator: (v) => v != pwCtrl.text
+              validator: (v) => v != buyerPwCtrl.text
                   ? _tr('Passwords do not match', '비밀번호가 일치하지 않습니다')
                   : null,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBuyerForm({
-    required GlobalKey<FormState> formKey,
-    required bool isNewBuyerCompany,
-    required ValueChanged<bool> onToggleBuyerNew,
-    required TextEditingController buyerCompanyCtrl,
-    required TextEditingController buyerAddressCtrl,
-    required TextEditingController buyerPhoneCtrl,
-    required TextEditingController buyerSegmentCtrl,
-    required TextEditingController buyerNameCtrl,
-    required TextEditingController buyerEmailCtrl,
-    required TextEditingController buyerPwCtrl,
-    required TextEditingController buyerPwConfirmCtrl,
-    required TextEditingController attachmentCtrl,
-    required TextEditingController sellerSearchCtrl,
-    required Map<String, String> selectedBuyerCompany,
-    required Map<String, String> selectedSeller,
-    required VoidCallback onSearchBuyerCompany,
-    required VoidCallback onSearchSeller,
-    required bool sellerSelectionVisible,
-    required bool emailChecked,
-    required bool emailAvailable,
-    required VoidCallback onCheckEmail,
-    required VoidCallback onEmailChanged,
-  }) {
-    final isExistingMode = !isNewBuyerCompany;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final bodySmall = theme.textTheme.bodySmall;
-    final neutralColor = bodySmall?.color ?? colorScheme.onSurfaceVariant;
-    return SingleChildScrollView(
-      child: Form(
-        key: formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+            const SizedBox(height: 20),
+            Text(
+              _tr('Company information', '업체 정보'),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 ChoiceChip(
@@ -831,7 +980,7 @@ class _SignInPageState extends State<SignInPage> {
                   child: TextFormField(
                     controller: buyerCompanyCtrl,
                     decoration: _readOnlyInputDecoration(
-                      label: _tr('Buyer company', '업체명'),
+                      label: _tr('Company name', '업체명'),
                       readOnly: isExistingMode,
                       showFill: false,
                       helperText: isExistingMode
@@ -881,107 +1030,106 @@ class _SignInPageState extends State<SignInPage> {
             ],
             const SizedBox(height: 12),
             TextFormField(
-              controller: buyerAddressCtrl,
-              enabled: !isExistingMode,
-              readOnly: isExistingMode,
-              style: _readOnlyTextStyle(isExistingMode),
-              decoration: _readOnlyInputDecoration(
-                label: _tr('Buyer address', '주소'),
-                readOnly: isExistingMode,
-              ),
-              validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr('Enter address', '주소를 입력하세요')
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
               controller: buyerPhoneCtrl,
               enabled: !isExistingMode,
               readOnly: isExistingMode,
               style: _readOnlyTextStyle(isExistingMode),
               decoration: _readOnlyInputDecoration(
-                label: _tr('Buyer phone', '대표번호'),
+                label: _tr('Company phone', '대표번호'),
                 readOnly: isExistingMode,
               ),
-              validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr('Enter phone', '전화번호를 입력하세요')
-                  : null,
+              validator: (v) {
+                if (isExistingMode) return null;
+                return (v == null || v.trim().isEmpty)
+                    ? _tr('Enter phone', '전화번호를 입력하세요')
+                    : null;
+              },
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: buyerSegmentCtrl,
-              enabled: isNewBuyerCompany,
+              controller: buyerAddressCtrl,
+              enabled: !isExistingMode,
               readOnly: isExistingMode,
               style: _readOnlyTextStyle(isExistingMode),
               decoration: _readOnlyInputDecoration(
-                label: _tr('Buyer segment', '업체 분류'),
+                label: _tr('Company address', '주소'),
                 readOnly: isExistingMode,
               ),
+              validator: (v) {
+                if (isExistingMode) return null;
+                return (v == null || v.trim().isEmpty)
+                    ? _tr('Enter address', '주소를 입력하세요')
+                    : null;
+              },
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: buyerNameCtrl,
-              decoration: InputDecoration(labelText: _tr('Your name', '이름')),
-              validator: (v) => v == null || v.trim().isEmpty
-                  ? _tr('Enter your name', '이름을 입력하세요')
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: buyerEmailCtrl,
-                    decoration: InputDecoration(labelText: _tr('Email', '이메일')),
-                    keyboardType: TextInputType.emailAddress,
-                    onChanged: (_) => onEmailChanged(),
-                    validator: (v) => v == null || v.isEmpty
-                        ? _tr('Enter email', '이메일을 입력하세요')
-                        : null,
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: 0.7,
+                child: DropdownButtonFormField<String>(
+                  isDense: true,
+                  initialValue: _resolveSegmentValue(
+                    selectedSegmentId,
+                    buyerSegmentCtrl.text,
+                    isCustomSegment,
+                  ).isEmpty
+                      ? null
+                      : _resolveSegmentValue(
+                          selectedSegmentId,
+                          buyerSegmentCtrl.text,
+                          isCustomSegment,
+                        ),
+                  decoration: InputDecoration(
+                    labelText: _tr('Buyer segment', '업체 분류'),
+                    helperText: _tr('Examples: restaurant, cafe, mart', '예: 식당, 카페, 마트'),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   ),
+                  items: segmentOptions
+                      .map(
+                        (opt) => DropdownMenuItem(
+                          value: opt.id,
+                          child: Text(
+                            _tr(opt.en, opt.ko),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: isExistingMode
+                      ? null
+                      : (value) {
+                          final selected = value ?? '';
+                          final isCustom = selected == 'other';
+                          onSegmentChanged(selected, isCustom);
+                          if (isCustom) {
+                            buyerSegmentCtrl.text = '';
+                          } else {
+                            buyerSegmentCtrl.text = selected;
+                          }
+                        },
+                  validator: (val) {
+                    if (isExistingMode) return null;
+                    if (isCustomSegment) return null;
+                    return (val == null || val.isEmpty)
+                        ? _tr('Select category', '업체 분류를 선택하세요')
+                        : null;
+                  },
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: onCheckEmail,
-                  child: Text(_tr('Check', '중복 확인')),
+              ),
+            ),
+            if (isCustomSegment && !isExistingMode) ...[
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: buyerSegmentCtrl,
+                decoration: InputDecoration(
+                  labelText: _tr('Enter category', '업체 분류를 입력하세요'),
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              emailChecked
-                  ? (emailAvailable
-                        ? _tr('Email is available', '사용 가능한 이메일입니다.')
-                        : _tr('Email already exists', '이미 등록된 이메일입니다.'))
-                  : _tr('Check email to enable submit', '중복 확인을 완료하세요.'),
-              style: (bodySmall ?? const TextStyle()).copyWith(
-                color: emailChecked
-                    ? (emailAvailable ? colorScheme.primary : colorScheme.error)
-                    : neutralColor,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? _tr('Enter category', '업체 분류를 입력하세요')
+                    : null,
               ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: buyerPwCtrl,
-              decoration: InputDecoration(
-                labelText: _tr('Password (login)', '로그인 비밀번호'),
-              ),
-              obscureText: true,
-              validator: (v) => v == null || v.isEmpty
-                  ? _tr('Enter password', '비밀번호를 입력하세요')
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: buyerPwConfirmCtrl,
-              decoration: InputDecoration(
-                labelText: _tr('Confirm password', '비밀번호 확인'),
-              ),
-              obscureText: true,
-              validator: (v) => v != buyerPwCtrl.text
-                  ? _tr('Passwords do not match', '비밀번호가 일치하지 않습니다')
-                  : null,
-            ),
+            ],
             const SizedBox(height: 12),
             if (sellerSelectionVisible) ...[
               Row(
@@ -1129,4 +1277,11 @@ class _SignInPageState extends State<SignInPage> {
 
 void _showSnack(BuildContext context, String message) {
   context.read<NotificationTicker>().push(message);
+}
+
+class _SegmentOption {
+  final String id;
+  final String en;
+  final String ko;
+  const _SegmentOption(this.id, this.en, this.ko);
 }

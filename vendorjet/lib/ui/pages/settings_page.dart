@@ -39,6 +39,22 @@ class _SettingsPageState extends State<SettingsPage> {
   final Set<String> _positionsLoading = <String>{};
   final Set<String> _positionAssigning = <String>{};
 
+  Future<void> _showErrorDialog(BuildContext context, String message) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.stateErrorMessage),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(AppLocalizations.of(context)!.orderEditCancel),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -374,34 +390,43 @@ class _SettingsPageState extends State<SettingsPage> {
                                     return;
                                   }
                                   setSheetState(() => saving = true);
-                                  final ok = tenant == null
-                                      ? await auth.createTenantForCurrentUser(
-                                          name: nameCtrl.text.trim(),
-                                          representative: repCtrl.text.trim(),
-                                          phone: phoneCtrl.text.trim(),
-                                          address: addressCtrl.text.trim(),
-                                        )
-                                      : await auth.updateTenant(
-                                          tenantId: tenant.id,
-                                          name: nameCtrl.text.trim(),
-                                          representative: repCtrl.text.trim(),
-                                          phone: phoneCtrl.text.trim(),
-                                          address: addressCtrl.text.trim(),
-                                        );
+                                  bool ok = false;
+                                  try {
+                                    ok = tenant == null
+                                        ? await auth.createTenantForCurrentUser(
+                                            name: nameCtrl.text.trim(),
+                                            representative: repCtrl.text.trim(),
+                                            phone: phoneCtrl.text.trim(),
+                                            address: addressCtrl.text.trim(),
+                                          )
+                                        : await auth.updateTenant(
+                                            tenantId: tenant.id,
+                                            name: nameCtrl.text.trim(),
+                                            representative: repCtrl.text.trim(),
+                                            phone: phoneCtrl.text.trim(),
+                                            address: addressCtrl.text.trim(),
+                                          );
+                                  } catch (err) {
+                                    ok = false;
+                                    if (sheetInnerContext.mounted) {
+                                      await _showErrorDialog(
+                                        sheetInnerContext,
+                                        err.toString(),
+                                      );
+                                    }
+                                  }
                                   if (!mounted) return;
                                   setSheetState(() => saving = false);
                                   if (!sheetInnerContext.mounted) return;
                                   final ticker = sheetInnerContext
                                       .read<NotificationTicker>();
-                                  ticker.push(
-                                    ok
-                                        ? t.settingsCompanyFormSaved
-                                        : t.settingsCompanyFormSaveError,
-                                  );
-                                  if (ok) {
-                                    Navigator.of(sheetContext).pop();
-                                    _refreshTenants();
+                                  if (!ok) {
+                                    ticker.push(t.settingsCompanyFormSaveError);
+                                    return;
                                   }
+                                  ticker.push(t.settingsCompanyFormSaved);
+                                  Navigator.of(sheetContext).pop();
+                                  _refreshTenants();
                                 },
                           child: saving
                               ? const SizedBox(
@@ -1283,7 +1308,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       title: Text(position.title),
-                      subtitle: Text(_tierLabel(position.tier, t)),
                       trailing: canManage
                           ? Wrap(
                               spacing: 8,
@@ -1544,7 +1568,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }) async {
     final controller = TextEditingController(text: position?.title ?? '');
     final formKey = GlobalKey<FormState>();
-    TenantPositionTier selectedTier = position?.tier == TenantPositionTier.owner
+    final TenantPositionTier selectedTier = position?.tier == TenantPositionTier.owner
         ? TenantPositionTier.manager
         : (position?.tier ?? TenantPositionTier.staff);
     final result = await showDialog<bool>(
@@ -1566,25 +1590,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       decoration: InputDecoration(labelText: t.settingsPositionsFieldLabel),
                       validator: (value) => (value == null || value.trim().isEmpty) ? t.settingsPositionsRequired : null,
                     ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<TenantPositionTier>(
-                      initialValue: selectedTier,
-                      decoration: InputDecoration(labelText: t.settingsPositionsTierLabel),
-                      items: [
-                        for (final tier in [TenantPositionTier.manager, TenantPositionTier.staff])
-                          DropdownMenuItem(
-                            value: tier,
-                            child: Text(_tierLabel(tier, t)),
-                          ),
-                      ],
-                      onChanged: position?.isLocked == true
-                          ? null
-                          : (value) {
-                              if (value != null) {
-                                setStateDialog(() => selectedTier = value);
-                              }
-                            },
-                    ),
                   ],
                 ),
               ),
@@ -1605,9 +1610,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             ok = (await auth.createTenantPosition(
                                   tenantId: tenantId,
                                   title: title,
-                                  tier: selectedTier == TenantPositionTier.owner
-                                      ? TenantPositionTier.manager
-                                      : selectedTier,
+                                  tier: TenantPositionTier.staff,
                                 )) !=
                                 null;
                           } else {
@@ -1615,9 +1618,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               tenantId: tenantId,
                               positionId: position.id,
                               title: title,
-                              tier: selectedTier == TenantPositionTier.owner
-                                  ? TenantPositionTier.manager
-                                  : selectedTier,
+                              tier: selectedTier,
                             );
                           }
                           if (!mounted || !navigator.mounted) return;

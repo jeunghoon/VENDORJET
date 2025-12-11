@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -114,6 +114,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       categories: result.categoryPath,
       tags: result.tags,
       lowStock: result.lowStock,
+      hsCode: result.hsCode,
+      originCountry: result.originCountry,
+      uom: result.uom,
+      incoterm: result.incoterm,
+      isPerishable: result.isPerishable,
+      packaging: result.packaging,
+      tradeTerm: result.tradeTerm,
+      eta: result.eta,
     );
 
     await _repo.save(updatedProduct);
@@ -171,14 +179,52 @@ class _ProductOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final numberFormat = NumberFormat.decimalPattern(t.localeName);
+    final dateFormat = DateFormat('yyyy-MM-dd');
     final color = Theme.of(context).colorScheme;
     final highlights = _mockHighlights(product, t);
     final categoryLabel = product.categories.isEmpty
         ? t.productsFilterAll
-        : product.categories.join(' › ');
+        : product.categories.join(' · ');
     final lastSync = DateTime.now().subtract(
       Duration(hours: product.id.hashCode.abs() % 30),
     );
+    final packaging = product.packaging;
+    final tradeTerm = product.tradeTerm;
+    final eta = product.eta;
+    final incoterm = product.incoterm ?? tradeTerm?.incoterm;
+    final placeholder = t.notProvided;
+    final vesselLabel = [
+      eta?.vessel,
+      eta?.voyageNo,
+    ].whereType<String>().where((e) => e.isNotEmpty).join(' / ');
+    String fmtDims(ProductPackaging p) {
+      final l = p.lengthCm, w = p.widthCm, h = p.heightCm;
+      if (l == null || w == null || h == null) return placeholder;
+      return '${l.toStringAsFixed(1)} x ${w.toStringAsFixed(1)} x ${h.toStringAsFixed(1)} cm';
+    }
+
+    String fmtWeight(ProductPackaging p) {
+      final net = p.netWeightKg;
+      final gross = p.grossWeightKg;
+      if (net == null && gross == null) return placeholder;
+      final netStr = net?.toStringAsFixed(2) ?? '?';
+      final grossStr = gross?.toStringAsFixed(2) ?? '?';
+      return '$netStr / $grossStr kg';
+    }
+
+    String fmtCbm(ProductPackaging p) {
+      final cbm = p.computedCbm;
+      if (cbm == null) return placeholder;
+      return cbm.toStringAsFixed(3);
+    }
+
+    String fmtMoney(String currency, double? value) {
+      if (value == null) return placeholder;
+      return '$currency ${numberFormat.format(value)}';
+    }
+
+    String fmtDate(DateTime? value) =>
+        value == null ? placeholder : dateFormat.format(value);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -221,6 +267,28 @@ class _ProductOverview extends StatelessWidget {
                     _InfoChip(
                       label: t.productVariants,
                       value: '${product.variantsCount}',
+                    ),
+                    _InfoChip(
+                      label: t.productIncoterm,
+                      value: incoterm ?? placeholder,
+                    ),
+                    _InfoChip(
+                      label: t.productHsCode,
+                      value: product.hsCode ?? placeholder,
+                    ),
+                    _InfoChip(
+                      label: t.productOriginCountry,
+                      value: product.originCountry ?? placeholder,
+                    ),
+                    _InfoChip(
+                      label: t.productUom,
+                      value: product.uom ?? placeholder,
+                    ),
+                    _InfoChip(
+                      label: t.productPerishable,
+                      value: product.isPerishable
+                          ? t.productPerishableYes
+                          : t.productPerishableNo,
                     ),
                   ],
                 ),
@@ -265,6 +333,145 @@ class _ProductOverview extends StatelessWidget {
             ),
           ),
         ),
+        if (packaging != null || tradeTerm != null || eta != null) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.productTradeSectionTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  if (packaging != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      t.productPackagingSectionTitle,
+                      style:
+                          Theme.of(context).textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        _InfoChip(
+                          label: t.productPackagingType,
+                          value: packaging.packType,
+                        ),
+                        _InfoChip(
+                          label: t.productPackagingDimensions,
+                          value: fmtDims(packaging),
+                        ),
+                        _InfoChip(
+                          label: t.productPackagingWeight,
+                          value: fmtWeight(packaging),
+                        ),
+                        _InfoChip(
+                          label: t.productPackagingUnitsPerPack,
+                          value: packaging.unitsPerPack?.toString() ??
+                              placeholder,
+                        ),
+                        _InfoChip(
+                          label: t.productPackagingCbm,
+                          value: fmtCbm(packaging),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (tradeTerm != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      t.productTradeTermSectionTitle,
+                      style:
+                          Theme.of(context).textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        _InfoChip(
+                          label: t.productTradePrice,
+                          value: fmtMoney(tradeTerm.currency, tradeTerm.price),
+                        ),
+                        _InfoChip(
+                          label: t.productTradeFreight,
+                          value: fmtMoney(
+                            tradeTerm.currency,
+                            tradeTerm.freight,
+                          ),
+                        ),
+                        _InfoChip(
+                          label: t.productTradeInsurance,
+                          value: fmtMoney(
+                            tradeTerm.currency,
+                            tradeTerm.insurance,
+                          ),
+                        ),
+                        _InfoChip(
+                          label: t.productTradeLeadTime,
+                          value: tradeTerm.leadTimeDays != null
+                              ? '${tradeTerm.leadTimeDays} d'
+                              : placeholder,
+                        ),
+                        _InfoChip(
+                          label: t.productTradeMoq,
+                          value: tradeTerm.minOrderQty != null
+                              ? '${tradeTerm.minOrderQty} ${tradeTerm.moqUnit ?? ''}'.trim()
+                              : placeholder,
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (eta != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      t.productEtaSectionTitle,
+                      style:
+                          Theme.of(context).textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        _InfoChip(
+                          label: t.productEtaEtd,
+                          value: fmtDate(eta.etd),
+                        ),
+                        _InfoChip(
+                          label: t.productEtaEta,
+                          value: fmtDate(eta.eta),
+                        ),
+                        if (vesselLabel.isNotEmpty)
+                          _InfoChip(
+                            label: t.productEtaVessel,
+                            value: vesselLabel,
+                          ),
+                        if (eta.status != null)
+                          _InfoChip(
+                            label: t.productEtaStatus,
+                            value: eta.status ?? placeholder,
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         Text(
           t.productHighlights,
@@ -523,3 +730,4 @@ List<_Highlight> _mockHighlights(Product product, AppLocalizations t) {
     ),
   ];
 }
+

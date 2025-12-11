@@ -170,6 +170,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardRecentOrdersEmpty => 'No recent orders to show.';
 
   @override
+  String get dashboardMonthlySales => 'Monthly sales';
+
+  @override
+  String get dashboardReceivables => 'Outstanding';
+
+  @override
+  String get dashboardReturns => 'Returns';
+
+  @override
+  String get dashboardIncomingShipments => 'Incoming shipments';
+
+  @override
+  String get dashboardExpiringProducts => 'Expiring soon';
+
+  @override
+  String get dashboardTopProducts => 'Top products';
+
+  @override
+  String get dashboardTopCustomers => 'Top customers';
+
+  @override
+  String get dashboardStaffStatus => 'Staff status';
+
+  @override
+  String get dashboardStaffOnDuty => 'On duty';
+
+  @override
+  String get dashboardStaffOnLeave => 'On leave';
+
+  @override
+  String get dashboardStaffOnSick => 'Sick leave';
+
+  @override
+  String get dashboardEtaLabel => 'ETA';
+
+  @override
+  String dashboardDaysLeft(int days) {
+    return '$days days left';
+  }
+
+  @override
   String get ordersEmptyMessage => 'No orders found.';
 
   @override
@@ -250,6 +291,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notFound => 'Content not found';
 
   @override
+  String get notProvided => 'Not provided';
+
+  @override
   String get productsDetailTitle => 'Product details';
 
   @override
@@ -278,6 +322,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productMetaLastSync => 'Inventory sync';
+
+  @override
+  String get productTradeSectionTitle => 'Trade & logistics';
+
+  @override
+  String get productIncoterm => 'Incoterm';
+
+  @override
+  String get productHsCode => 'HS code';
+
+  @override
+  String get productOriginCountry => 'Origin';
+
+  @override
+  String get productUom => 'Unit';
+
+  @override
+  String get productPerishable => 'Shelf life';
+
+  @override
+  String get productPerishableYes => 'Perishable';
+
+  @override
+  String get productPerishableNo => 'Non-perishable';
+
+  @override
+  String get productPackagingSectionTitle => 'Packaging / logistics specs';
+
+  @override
+  String get productPackagingType => 'Packaging unit';
+
+  @override
+  String get productPackagingDimensions => 'Dimensions (cm)';
+
+  @override
+  String get productPackagingWeight => 'Weight (net/gross)';
+
+  @override
+  String get productPackagingUnitsPerPack => 'Units per pack';
+
+  @override
+  String get productPackagingCbm => 'Volume (CBM)';
+
+  @override
+  String get productTradeTermSectionTitle => 'Trade terms';
+
+  @override
+  String get productTradePrice => 'Price (term)';
+
+  @override
+  String get productTradeFreight => 'Freight';
+
+  @override
+  String get productTradeInsurance => 'Insurance';
+
+  @override
+  String get productTradeLeadTime => 'Lead time';
+
+  @override
+  String get productTradeMoq => 'MOQ';
+
+  @override
+  String get productEtaSectionTitle => 'ETD/ETA';
+
+  @override
+  String get productEtaEtd => 'ETD';
+
+  @override
+  String get productEtaEta => 'ETA';
+
+  @override
+  String get productEtaVessel => 'Vessel/Voyage';
+
+  @override
+  String get productEtaStatus => 'Status';
 
   @override
   String productCardSummary(String name, int count) {

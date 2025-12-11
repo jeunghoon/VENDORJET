@@ -136,7 +136,11 @@ router.get('/', (req, res) => {
   base += ' ORDER BY o.created_at DESC';
 
   const rows = db.prepare(base).all(params as any);
-  res.json(mapRows(rows as any[]));
+  const orders = mapRows<OrderRow>(rows as any[]).map((row: any) => {
+    const lines = mapRows<OrderLineRow>(selectLinesStmt.all(row.id) as any[]);
+    return { ...row, lines };
+  });
+  res.json(orders);
 });
 
 router.get('/:id', (req, res) => {
