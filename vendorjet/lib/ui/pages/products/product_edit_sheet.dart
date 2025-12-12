@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:vendorjet/l10n/app_localizations.dart';
 import 'package:vendorjet/models/product.dart';
+import 'package:vendorjet/services/auth/auth_controller.dart';
+import 'package:vendorjet/models/tenant.dart';
 
 class ProductEditResult {
   final String sku;
@@ -198,6 +201,8 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
   @override
   Widget build(BuildContext context) {
     final t = widget.t;
+    final auth = context.read<AuthController>();
+    final canEditFinance = auth.role != TenantMemberRole.staff;
 
     return SafeArea(
       child: Padding(
@@ -272,6 +277,7 @@ class _ProductEditSheetState extends State<ProductEditSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+                enabled: canEditFinance,
                 validator: (value) {
                   final price = double.tryParse(value ?? '');
                   if (price == null || price <= 0) {

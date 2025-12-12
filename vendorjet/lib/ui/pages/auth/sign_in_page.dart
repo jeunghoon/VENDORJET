@@ -26,6 +26,39 @@ class _SignInPageState extends State<SignInPage> {
   final _pwFocusNode = FocusNode();
   bool _obscure = true;
   bool _signingIn = false;
+  Future<String?> _showOptionSheet(
+    BuildContext context, {
+    required String title,
+    required List<MapEntry<String, String>> options,
+    String? current,
+  }) {
+    final ordered = <MapEntry<String, String>>[];
+    if (current != null) {
+      ordered.addAll(options.where((o) => o.key == current));
+    }
+    ordered.addAll(options.where((o) => o.key != current));
+    return showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+              ),
+              for (final opt in ordered)
+                ListTile(
+                  title: Text(opt.value),
+                  selected: opt.key == current,
+                  onTap: () => Navigator.of(sheetContext).pop(opt.key),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
   final List<_SegmentOption> _segmentOptions = const [
     _SegmentOption('restaurant_bar', 'Restaurant / Bar', '식당 / 주점'),
     _SegmentOption('cafe_bakery', 'Cafe / Bakery', '카페 / 베이커리'),
@@ -1067,54 +1100,59 @@ class _SignInPageState extends State<SignInPage> {
               alignment: Alignment.centerLeft,
               child: FractionallySizedBox(
                 widthFactor: 0.7,
-                child: DropdownButtonFormField<String>(
-                  isDense: true,
-                  initialValue: _resolveSegmentValue(
-                    selectedSegmentId,
-                    buyerSegmentCtrl.text,
-                    isCustomSegment,
-                  ).isEmpty
-                      ? null
-                      : _resolveSegmentValue(
-                          selectedSegmentId,
-                          buyerSegmentCtrl.text,
-                          isCustomSegment,
-                        ),
-                  decoration: InputDecoration(
-                    labelText: _tr('Buyer segment', '업체 분류'),
-                    helperText: _tr('Examples: restaurant, cafe, mart', '예: 식당, 카페, 마트'),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  ),
-                  items: segmentOptions
-                      .map(
-                        (opt) => DropdownMenuItem(
-                          value: opt.id,
-                          child: Text(
-                            _tr(opt.en, opt.ko),
-                            overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_tr('Buyer segment', '업체 분류')),
+                    const SizedBox(height: 4),
+                    OutlinedButton(
+                      onPressed: isExistingMode
+                          ? null
+                          : () async {
+                              final opts = segmentOptions
+                                  .map((opt) => MapEntry(opt.id, _tr(opt.en, opt.ko)))
+                                  .toList();
+                              final picked = await _showOptionSheet(
+                                context,
+                                title: _tr('Buyer segment', '업체 분류'),
+                                options: opts,
+                                current: selectedSegmentId.isNotEmpty ? selectedSegmentId : null,
+                              );
+                              if (picked == null) return;
+                              final isCustom = picked == 'other';
+                              onSegmentChanged(picked, isCustom);
+                              setState(() {
+                                buyerSegmentCtrl.text = isCustom ? '' : picked;
+                              });
+                            },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _resolveSegmentValue(
+                                        selectedSegmentId,
+                                        buyerSegmentCtrl.text,
+                                        isCustomSegment,
+                                      ).isEmpty
+                                  ? _tr('Select category', '업체 분류를 선택하세요')
+                                  : _resolveSegmentValue(
+                                      selectedSegmentId,
+                                      buyerSegmentCtrl.text,
+                                      isCustomSegment,
+                                    ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: isExistingMode
-                      ? null
-                      : (value) {
-                          final selected = value ?? '';
-                          final isCustom = selected == 'other';
-                          onSegmentChanged(selected, isCustom);
-                          if (isCustom) {
-                            buyerSegmentCtrl.text = '';
-                          } else {
-                            buyerSegmentCtrl.text = selected;
-                          }
-                        },
-                  validator: (val) {
-                    if (isExistingMode) return null;
-                    if (isCustomSegment) return null;
-                    return (val == null || val.isEmpty)
-                        ? _tr('Select category', '업체 분류를 선택하세요')
-                        : null;
-                  },
+                          const Icon(Icons.arrow_drop_down),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      _tr('Examples: restaurant, cafe, mart', '예: 식당, 카페, 마트'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
               ),
             ),

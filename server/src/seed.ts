@@ -140,8 +140,8 @@ function seedTenantsUsersMemberships() {
   );
   const users = [
     { id: 'u_admin', email: 'admin', name: 'Alex Admin', phone: '010-0000-0000', password: '123', type: 'wholesale' },    
-    { id: 'u_food_staff', email: 'w1', name: 'Acme Staff', phone: '010-3333-4444', password: '123', type: 'wholesale' },    
-    { id: 'u_apparel_staff', email: 'w2', name: 'Nova Staff', phone: '010-4444-6666', password: '123', type: 'wholesale' },
+    { id: 'u_food_staff', email: 'ac', name: 'Acme Staff', phone: '010-3333-4444', password: '123', type: 'wholesale' },    
+    { id: 'u_apparel_staff', email: 'no', name: 'Nova Staff', phone: '010-4444-6666', password: '123', type: 'wholesale' },
     { id: 'u_mart_buyer', email: 'mm', name: 'Bright Mart Buyer', phone: '010-7777-8888', password: '123', type: 'retail' },
     { id: 'u_style_buyer', email: 'ss', name: 'Style Boutique Buyer', phone: '010-9999-0000', password: '123', type: 'retail' },
   ];

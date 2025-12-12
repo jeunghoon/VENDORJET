@@ -34,7 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _membersTenantId;
   bool _membersLoading = false;
   List<TenantMemberDetail> _members = const [];
-  final Set<String> _memberUpdating = <String>{};
+  final Set<String> _loadedTenants = <String>{};
   final Map<String, List<TenantPosition>> _positionsByTenant = <String, List<TenantPosition>>{};
   final Set<String> _positionsLoading = <String>{};
   final Set<String> _positionAssigning = <String>{};
@@ -52,6 +52,92 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPersonalInfoCard(BuildContext context, AppLocalizations t, AuthController auth) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: auth.fetchProfile(),
+      builder: (context, snapshot) {
+        final loading = snapshot.connectionState == ConnectionState.waiting;
+        final nameCtrl = TextEditingController(text: snapshot.data?['name']?.toString() ?? '');
+        final phoneCtrl = TextEditingController(text: snapshot.data?['phone']?.toString() ?? '');
+        final passwordCtrl = TextEditingController();
+        final passwordConfirmCtrl = TextEditingController();
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    labelText: t.signUpUserNameLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneCtrl,
+                  decoration: InputDecoration(
+                    labelText: t.signUpUserPhoneLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordCtrl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: t.profileFieldPasswordNew,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordConfirmCtrl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: t.profileFieldPasswordConfirm,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            final ticker = context.read<NotificationTicker>();
+                            if (passwordCtrl.text.isNotEmpty &&
+                                passwordCtrl.text != passwordConfirmCtrl.text) {
+                              ticker.push(t.profilePasswordMismatch);
+                              return;
+                            }
+                            final ok = await auth.updateProfile(
+                              name: nameCtrl.text.trim(),
+                              phone: phoneCtrl.text.trim(),
+                              password: passwordCtrl.text.trim().isEmpty ? null : passwordCtrl.text.trim(),
+                            );
+                            if (!mounted) return;
+                            ticker.push(ok ? t.profileSaveSuccess : t.stateErrorMessage);
+                          },
+                    child: loading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(t.orderEditSave),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -75,88 +161,208 @@ class _SettingsPageState extends State<SettingsPage> {
     final t = AppLocalizations.of(context)!;
     final auth = context.watch<AuthController>();
     final tenant = auth.tenant;
-    final role = auth.role;
-    final tenants = auth.tenants;
     final isBuyer = auth.isBuyer;
 
-    final children = <Widget>[];
+    final tabs = [
+      const Tab(text: '매장 관리'),
+      const Tab(text: '직원 관리'),
+      const Tab(text: '개인 설정'),
+    ];
 
-    if (isBuyer) {
-      children.addAll(_buildBuyerSettings(t, auth));
-    } else if (tenant != null) {
-      children.addAll(_buildSellerSettings(context, t, auth, tenant, role, tenants));
-    }
-
-    if (children.isNotEmpty) {
-      children.add(const SizedBox(height: 24));
-    }
-
-    children.addAll([
-      Text(
-        t.language,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-      ),
-      const SizedBox(height: 8),
-      DropdownButtonFormField<Locale>(
-        initialValue: _normalized(widget.currentLocale) ?? const Locale('en'),
-        decoration: InputDecoration(
-          labelText: t.selectLanguage,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
-          ),
-        ),
-        items: [
-          DropdownMenuItem(value: const Locale('en'), child: Text(t.english)),
-          DropdownMenuItem(value: const Locale('ko'), child: Text(t.korean)),
-        ],
-        onChanged: (loc) async {
-          if (loc == null) return;
-          widget.onLocaleChanged(loc);
-          final ticker = context.read<NotificationTicker>();
-          final ok = await auth.updateProfile(language: loc);
-          if (!mounted) return;
-          ticker.push(ok ? t.settingsLanguageSaved : t.stateErrorMessage);
-        },
-      ),
-      const SizedBox(height: 4),
-      Text(
-        t.settingsLanguageApplyHint,
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-      const SizedBox(height: 24),
-    ]);
-
-    children.add(
-      FilledButton.icon(
-        onPressed: () async {
-          final authController = context.read<AuthController>();
-          final router = GoRouter.of(context);
-          await authController.signOut();
-          if (!mounted) return;
-          router.go('/sign-in');
-        },
-        icon: const Icon(Icons.logout),
-        label: Text(t.buyerMenuLogout),
-      ),
-    );
-    children.add(const SizedBox(height: 24));
-
-    final body = ListView(
+    final storeTab = ListView(
       padding: const EdgeInsets.all(16),
-      children: children,
+      children: isBuyer
+          ? _buildBuyerSettings(t, auth)
+          : (tenant != null ? _buildSellerSettings(context, t, auth, tenant, auth.role, auth.tenants) : const []),
     );
+    final staffTab = _buildStaffTab(context, t, auth, tenant);
+    final personalTab = _buildPersonalTab(context, t, auth);
 
-    if (widget.embedded) {
-      return body;
+    return DefaultTabController(
+      length: tabs.length,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(t.buyerMenuSettings),
+          bottom: TabBar(tabs: tabs),
+        ),
+        body: TabBarView(
+          children: [
+            storeTab,
+            staffTab,
+            personalTab,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStaffTab(BuildContext context, AppLocalizations t, AuthController auth, Tenant? tenant) {
+    final isBuyer = auth.isBuyer;
+    if (isBuyer) {
+      final buyerTenant = _resolveBuyerTenant(auth.tenants);
+      if (buyerTenant == null) return const SizedBox.shrink();
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildMemberSection(
+            t,
+            auth,
+            tenantId: buyerTenant.id,
+            tenantName: buyerTenant.name,
+          ),
+          const SizedBox(height: 16),
+          _buildPositionSection(
+            t,
+            auth,
+            tenantId: buyerTenant.id,
+            tenantName: buyerTenant.name,
+          ),
+          const SizedBox(height: 16),
+          _buildInviteBlock(t),
+        ],
+      );
     }
+    if (tenant == null) return const SizedBox.shrink();
+    if (!_loadedTenants.contains(tenant.id)) {
+      _loadMembers(tenant.id, forcePositions: true);
+      _loadPositions(tenant.id, force: true);
+      _loadedTenants.add(tenant.id);
+    }
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildMemberSection(
+          t,
+          auth,
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+        ),
+        const SizedBox(height: 16),
+        _buildPositionSection(
+          t,
+          auth,
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+        ),
+        const SizedBox(height: 16),
+        _buildInviteBlock(t),
+      ],
+    );
+  }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(t.buyerMenuSettings)),
-      body: body,
+  Widget _buildInviteBlock(AppLocalizations t) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t.tenantInviteTitle,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _inviteCtrl,
+                    decoration: InputDecoration(
+                      labelText: t.inviteEmailPlaceholder,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                DropdownButton<TenantMemberRole>(
+                  value: _inviteRole,
+                  onChanged: (value) {
+                    if (value != null) setState(() => _inviteRole = value);
+                  },
+                  items: [
+                    DropdownMenuItem(
+                      value: TenantMemberRole.manager,
+                      child: Text(_roleLabel(TenantMemberRole.manager, t)),
+                    ),
+                    DropdownMenuItem(
+                      value: TenantMemberRole.staff,
+                      child: Text(_roleLabel(TenantMemberRole.staff, t)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _inviting ? null : _inviteMember,
+                child: _inviting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(t.inviteSend),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonalTab(BuildContext context, AppLocalizations t, AuthController auth) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          t.language,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        _buildPersonalInfoCard(context, t, auth),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<Locale>(
+          initialValue: _normalized(widget.currentLocale) ?? const Locale('en'),
+          decoration: InputDecoration(
+            labelText: t.selectLanguage,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
+          ),
+          items: [
+            DropdownMenuItem(value: const Locale('en'), child: Text(t.english)),
+            DropdownMenuItem(value: const Locale('ko'), child: Text(t.korean)),
+          ],
+          onChanged: (loc) async {
+            if (loc == null) return;
+            widget.onLocaleChanged(loc);
+            final ticker = context.read<NotificationTicker>();
+            final ok = await auth.updateProfile(language: loc);
+            if (!mounted) return;
+            ticker.push(ok ? t.settingsLanguageSaved : t.stateErrorMessage);
+          },
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: () async {
+            final authController = context.read<AuthController>();
+            final router = GoRouter.of(context);
+            await authController.signOut();
+            if (!mounted) return;
+            router.go('/sign-in');
+          },
+          icon: const Icon(Icons.logout),
+          label: Text(t.buyerMenuLogout),
+        ),
+      ],
     );
   }
 
@@ -227,77 +433,7 @@ class _SettingsPageState extends State<SettingsPage> {
         activeTenantId: tenant.id,
         membershipRoles: membershipRoles,
       ),
-      const SizedBox(height: 24),
-      Text(
-        t.tenantInviteTitle,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-      ),
-      const SizedBox(height: 8),
-      Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _inviteCtrl,
-              decoration: InputDecoration(
-                labelText: t.inviteEmailPlaceholder,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          DropdownButton<TenantMemberRole>(
-            value: _inviteRole,
-            onChanged: (value) {
-              if (value != null) setState(() => _inviteRole = value);
-            },
-            items: TenantMemberRole.values
-                .map(
-                  (value) => DropdownMenuItem(
-                    value: value,
-                    child: Text(_roleLabel(value, t)),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-      const SizedBox(height: 8),
-      SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          onPressed: _inviting ? null : _inviteMember,
-          child: _inviting
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(t.inviteSend),
-        ),
-      ),
-      const Divider(height: 32),
     ];
-    _ensureMembersLoaded(tenant.id);
-    widgets.add(
-      _buildMemberSection(
-        t,
-        auth,
-        tenantId: tenant.id,
-        tenantName: tenant.name,
-      ),
-    );
-    widgets.add(
-      _buildPositionSection(
-        t,
-        auth,
-        tenantId: tenant.id,
-        tenantName: tenant.name,
-      ),
-    );
     return widgets;
   }
 
@@ -580,26 +716,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
     final primaryBuyer = _resolveBuyerTenant(buyerTenants);
     final canRequestConnection = primaryBuyer != null && _canManageMembers(auth, primaryBuyer.id);
-    if (primaryBuyer != null) {
-      _ensureMembersLoaded(primaryBuyer.id);
-      widgets.add(
-        _buildMemberSection(
-          t,
-          auth,
-          tenantId: primaryBuyer.id,
-          tenantName: primaryBuyer.name,
-        ),
-      );
-      widgets.add(
-        _buildPositionSection(
-          t,
-          auth,
-          tenantId: primaryBuyer.id,
-          tenantName: primaryBuyer.name,
-        ),
-      );
-      widgets.add(const SizedBox(height: 24));
-    }
 
     widgets.add(
       Card(
@@ -956,17 +1072,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  void _ensureMembersLoaded(String tenantId) {
-    if (tenantId.isEmpty) return;
-    if (_membersTenantId == tenantId && (_membersLoading || _members.isNotEmpty)) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _loadMembers(tenantId, forcePositions: true);
-    });
-  }
-
   Future<void> _loadMembers(String tenantId, {bool forcePositions = false}) async {
     setState(() {
       _membersLoading = true;
@@ -976,7 +1081,7 @@ class _SettingsPageState extends State<SettingsPage> {
       final members = await context.read<AuthController>().fetchTenantMembers(tenantId);
       if (!mounted || _membersTenantId != tenantId) return;
       setState(() {
-        _members = members;
+        _members = _sortMembers(context.read<AuthController>(), members);
         _membersLoading = false;
       });
     } catch (_) {
@@ -1002,12 +1107,14 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final positions = await context.read<AuthController>().fetchTenantPositions(tenantId);
       if (!mounted) return;
-      final sorted = [...positions]
-        ..sort((a, b) {
-          final order = a.sortOrder.compareTo(b.sortOrder);
-          if (order != 0) return order;
-          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-        });
+    final sorted = [...positions]
+      .where((p) => !_isForbiddenPositionName(p.title) && p.tier != TenantPositionTier.pending && p.tier != TenantPositionTier.owner)
+      .toList()
+      ..sort((a, b) {
+        final order = a.sortOrder.compareTo(b.sortOrder);
+        if (order != 0) return order;
+        return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+      });
       setState(() {
         _positionsByTenant[tenantId] = sorted;
         _positionsLoading.remove(tenantId);
@@ -1042,6 +1149,32 @@ class _SettingsPageState extends State<SettingsPage> {
       memberId: member.id,
       positionId: positionId,
     );
+    if (ok && positionId != null) {
+      final positions = _positionsByTenant[tenantId] ?? const <TenantPosition>[];
+      final selected = positions.firstWhere(
+        (p) => p.id == positionId,
+        orElse: () => const TenantPosition(
+          id: '',
+          tenantId: '',
+          title: '',
+          tier: TenantPositionTier.staff,
+          sortOrder: 99,
+          isLocked: false,
+        ),
+      );
+      if (selected.id.isNotEmpty) {
+        final role = switch (selected.tier) {
+          TenantPositionTier.owner => TenantMemberRole.owner,
+          TenantPositionTier.manager => TenantMemberRole.manager,
+          _ => TenantMemberRole.staff,
+        };
+        await auth.updateTenantMemberRole(
+          tenantId: tenantId,
+          memberId: member.id,
+          role: role,
+        );
+      }
+    }
     if (!mounted) return;
     setState(() => _positionAssigning.remove(key));
     final ticker = context.read<NotificationTicker>();
@@ -1145,16 +1278,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         canManage: canManage,
                         currentUserEmail: currentEmail,
                       ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: _buildMemberRoleControl(
-                              t,
-                              tenantId,
-                              member,
-                              canManage: canManage,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -1176,15 +1299,19 @@ class _SettingsPageState extends State<SettingsPage> {
     required bool canManage,
     required String currentUserEmail,
   }) {
-    final positions = _positionsByTenant[tenantId] ?? const <TenantPosition>[];
+    final positions = (_positionsByTenant[tenantId] ?? const <TenantPosition>[])
+        .where((pos) => !_isHiddenPosition(pos))
+        .toList();
     final assigning = _positionAssigning.contains(_positionAssignKey(tenantId, member.id));
     final loading = _positionsLoading.contains(tenantId);
     final isOwner = member.role == TenantMemberRole.owner;
     final isSelf = member.email.toLowerCase() == currentUserEmail;
+    final noneLabel = t.settingsMembersPositionNone;
     if (!canManage || isOwner || isSelf) {
-      final label = member.positionTitle?.isNotEmpty == true
-          ? member.positionTitle!
-          : (isOwner ? t.roleOwner : t.settingsMembersPositionNone);
+      final title = member.positionTitle?.trim() ?? '';
+      final label = title.isNotEmpty && !_isForbiddenPositionName(title)
+          ? title
+          : (isOwner ? t.roleOwner : noneLabel);
       return Text(label);
     }
     if (positions.isEmpty) {
@@ -1195,57 +1322,53 @@ class _SettingsPageState extends State<SettingsPage> {
           child: CircularProgressIndicator(strokeWidth: 2),
         );
       }
-      return Text(t.settingsMembersPositionNone);
+      return Text(noneLabel);
     }
     final selectable = positions.where((pos) => !_isHiddenPosition(pos)).toList();
-    TenantPosition? memberPosition;
-    if (member.positionId != null) {
-      for (final position in positions) {
-        if (position.id == member.positionId) {
-          memberPosition = position;
-          break;
-        }
-      }
-    }
-    final pendingPosition = memberPosition?.tier == TenantPositionTier.pending ? memberPosition : null;
-    final dropdownItems = <DropdownMenuItem<String?>>[
-      DropdownMenuItem(
-        value: null,
-        child: Text(t.settingsMembersPositionNone),
-      ),
-      for (final position in selectable)
-        DropdownMenuItem(
-          value: position.id,
-          child: Text('${position.title} · ${_tierLabel(position.tier, t)}'),
-        ),
-      if (pendingPosition != null)
-        DropdownMenuItem(
-          value: pendingPosition.id,
-          enabled: false,
-          child: Text('${pendingPosition.title} · ${_tierLabel(pendingPosition.tier, t)}'),
-        ),
-    ];
-    return Row(
+    final initial = selectable.any((pos) => pos.id == member.positionId) ? member.positionId : null;
+    final options = <String, String>{
+      for (final pos in selectable) pos.id: pos.title,
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: DropdownButtonFormField<String?>(
-            initialValue: selectable.any((pos) => pos.id == member.positionId) ? member.positionId : pendingPosition?.id,
-            decoration: InputDecoration(labelText: t.settingsMembersPositionLabel),
-            items: dropdownItems,
-            onChanged: assigning
-                ? null
-                : (value) => _assignMemberPosition(
-                      t,
-                      auth,
-                      tenantId: tenantId,
-                      member: member,
-                      positionId: value,
-                    ),
+        Text(t.settingsMembersPositionLabel, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 6),
+        OutlinedButton(
+          onPressed: assigning || loading
+              ? null
+              : () async {
+                  final picked = await _showOptionSheet(
+                    context,
+                    title: t.settingsMembersPositionLabel,
+                    options: options,
+                    current: initial,
+                  );
+                  if (picked == null) return;
+                  _assignMemberPosition(
+                    t,
+                    auth,
+                    tenantId: tenantId,
+                    member: member,
+                    positionId: picked,
+                  );
+                },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  initial != null ? (options[initial] ?? noneLabel) : noneLabel,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(Icons.arrow_drop_down),
+            ],
           ),
         ),
         if (assigning || loading)
           const Padding(
-            padding: EdgeInsets.only(left: 8),
+            padding: EdgeInsets.only(top: 4),
             child: SizedBox(
               width: 16,
               height: 16,
@@ -1313,7 +1436,9 @@ class _SettingsPageState extends State<SettingsPage> {
                               spacing: 8,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                if (position.isLocked)
+                                if (position.isLocked ||
+                                    position.tier == TenantPositionTier.owner ||
+                                    position.tier == TenantPositionTier.pending)
                                   Chip(
                                     label: Text(t.settingsPositionsLockedBadge),
                                     visualDensity: VisualDensity.compact,
@@ -1352,11 +1477,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   label: Text(t.settingsPositionsAdd),
                 ),
               ),
-            const SizedBox(height: 8),
-            Text(
-              t.settingsPositionsHierarchyHint,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           ],
         ),
       ),
@@ -1377,7 +1497,80 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   bool _isHiddenPosition(TenantPosition position) {
-    return position.tier == TenantPositionTier.owner || position.tier == TenantPositionTier.pending;
+    return position.tier == TenantPositionTier.owner ||
+        position.tier == TenantPositionTier.pending ||
+        _isForbiddenPositionName(position.title);
+  }
+
+  bool _isForbiddenPositionName(String title) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return true;
+    if (trimmed.length < 2 || trimmed.length > 12) return true;
+    final lower = trimmed.toLowerCase();
+    const reserved = {'owner', 'pending', 'unassigned', '미지정', 'none'};
+    if (reserved.contains(lower)) return true;
+    // 숫자만으로 된 경우 거부
+    if (RegExp(r'^\d+$').hasMatch(trimmed)) return true;
+    return false;
+  }
+
+  List<TenantMemberDetail> _sortMembers(AuthController auth, List<TenantMemberDetail> members) {
+    final selfEmail = (auth.email ?? '').toLowerCase();
+    int rolePriority(TenantMemberRole role) {
+      switch (role) {
+        case TenantMemberRole.owner:
+          return 0;
+        case TenantMemberRole.manager:
+          return 1;
+        case TenantMemberRole.staff:
+          return 2;
+      }
+    }
+
+    final sorted = [...members]..sort((a, b) {
+        final aSelf = a.email.toLowerCase() == selfEmail ? 0 : 1;
+        final bSelf = b.email.toLowerCase() == selfEmail ? 0 : 1;
+        if (aSelf != bSelf) return aSelf.compareTo(bSelf);
+        final roleOrder = rolePriority(a.role).compareTo(rolePriority(b.role));
+        if (roleOrder != 0) return roleOrder;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return sorted;
+  }
+
+  Future<String?> _showOptionSheet(
+    BuildContext context, {
+    required String title,
+    required Map<String, String> options,
+    String? current,
+  }) async {
+    final orderedKeys = <String>[];
+    if (current != null && options.containsKey(current)) {
+      orderedKeys.add(current);
+    }
+    orderedKeys.addAll(options.keys.where((k) => k != current));
+    return showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+              ),
+              for (final key in orderedKeys)
+                ListTile(
+                  title: Text(options[key] ?? ''),
+                  onTap: () => Navigator.of(sheetContext).pop(key),
+                  selected: key == current,
+                  selectedColor: Theme.of(context).colorScheme.primary,
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildStoreSelector(
@@ -1416,67 +1609,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildMemberRoleControl(
-    AppLocalizations t,
-    String tenantId,
-    TenantMemberDetail member, {
-    required bool canManage,
-  }) {
-    final isOwner = member.role == TenantMemberRole.owner;
-    if (!canManage || isOwner) {
-      return Text(_roleLabel(member.role, t));
-    }
-    final isUpdating = _memberUpdating.contains(member.id);
-    return isUpdating
-        ? const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        : DropdownButton<TenantMemberRole>(
-            value: member.role == TenantMemberRole.owner ? TenantMemberRole.manager : member.role,
-            onChanged: (value) {
-              if (value == null || value == member.role) return;
-              _updateMemberRole(t, tenantId, member, value);
-            },
-            items: [
-              TenantMemberRole.manager,
-              TenantMemberRole.staff,
-            ].map(
-              (role) {
-                return DropdownMenuItem(
-                  value: role,
-                  child: Text(_roleLabel(role, t)),
-                );
-              },
-            ).toList(),
-          );
-  }
-
-  Future<void> _updateMemberRole(
-    AppLocalizations t,
-    String tenantId,
-    TenantMemberDetail member,
-    TenantMemberRole role,
-  ) async {
-    setState(() {
-      _memberUpdating.add(member.id);
-    });
-    final ok = await context.read<AuthController>().updateTenantMemberRole(
-          tenantId: tenantId,
-          memberId: member.id,
-          role: role,
-        );
-    if (!mounted) return;
-    setState(() {
-      _memberUpdating.remove(member.id);
-    });
-    final ticker = context.read<NotificationTicker>();
-    ticker.push(ok ? t.settingsMembersUpdateSuccess : t.settingsMembersUpdateError);
-    if (ok && _membersTenantId == tenantId) {
-      _loadMembers(tenantId);
-    }
-  }
+  // 권한 드롭다운 제거: 직책=권한 일원화로 사용 안 함
 
   Future<void> _loadPendingSeller() async {
     if (!mounted) return;
@@ -1541,6 +1674,14 @@ class _SettingsPageState extends State<SettingsPage> {
     final t = AppLocalizations.of(context)!;
     if (!ok) {
       context.read<NotificationTicker>().push(t.tenantSwitchFailed);
+    } else {
+      _loadedTenants.clear();
+      _positionsByTenant.clear();
+      _members = const [];
+      _membersTenantId = null;
+      _positionsLoading.clear();
+      _positionAssigning.clear();
+      setState(() {});
     }
   }
 
@@ -1568,9 +1709,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }) async {
     final controller = TextEditingController(text: position?.title ?? '');
     final formKey = GlobalKey<FormState>();
-    final TenantPositionTier selectedTier = position?.tier == TenantPositionTier.owner
-        ? TenantPositionTier.manager
-        : (position?.tier ?? TenantPositionTier.staff);
+    TenantPositionTier selectedTier = position?.tier == TenantPositionTier.owner
+        ? TenantPositionTier.owner
+        : TenantPositionTier.staff;
+    final isLockedPosition = position?.tier == TenantPositionTier.owner;
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -1588,8 +1730,50 @@ class _SettingsPageState extends State<SettingsPage> {
                     TextFormField(
                       controller: controller,
                       decoration: InputDecoration(labelText: t.settingsPositionsFieldLabel),
-                      validator: (value) => (value == null || value.trim().isEmpty) ? t.settingsPositionsRequired : null,
+                      enabled: !isLockedPosition,
+                      validator: (value) {
+                        final v = value?.trim() ?? '';
+                        if (v.isEmpty) return t.settingsPositionsRequired;
+                        if (_isForbiddenPositionName(v)) return t.settingsPositionsRequired;
+                        return null;
+                      },
                     ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<TenantPositionTier>(
+                      initialValue: selectedTier,
+                      decoration: InputDecoration(labelText: t.settingsMembersPositionLabel),
+                      items: [
+                        if (position?.tier == TenantPositionTier.owner)
+                          DropdownMenuItem(
+                            value: TenantPositionTier.owner,
+                            enabled: false,
+                            child: Text(_tierLabel(TenantPositionTier.owner, t)),
+                          ),
+                        DropdownMenuItem(
+                          value: TenantPositionTier.manager,
+                          child: Text(_tierLabel(TenantPositionTier.manager, t)),
+                        ),
+                        DropdownMenuItem(
+                          value: TenantPositionTier.staff,
+                          child: Text(_tierLabel(TenantPositionTier.staff, t)),
+                        ),
+                      ],
+                      onChanged: isLockedPosition
+                          ? null
+                          : (value) {
+                              if (value != null) {
+                                setStateDialog(() => selectedTier = value);
+                              }
+                            },
+                    ),
+                    if (isLockedPosition)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          t.settingsPositionsHierarchyHint,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -1599,7 +1783,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Text(t.orderEditCancel),
                 ),
                 FilledButton(
-                  onPressed: saving
+                  onPressed: saving || isLockedPosition
                       ? null
                       : () async {
                           if (!(formKey.currentState?.validate() ?? false)) return;
@@ -1610,7 +1794,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             ok = (await auth.createTenantPosition(
                                   tenantId: tenantId,
                                   title: title,
-                                  tier: TenantPositionTier.staff,
+                                  tier: selectedTier,
                                 )) !=
                                 null;
                           } else {

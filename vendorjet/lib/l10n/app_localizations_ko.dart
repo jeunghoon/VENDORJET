@@ -654,7 +654,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get inviteSuccess => '초대가 기록되었습니다(모의).';
 
   @override
-  String get roleOwner => '소유자';
+  String get roleOwner => '대표';
 
   @override
   String get roleManager => '관리자';
@@ -1069,7 +1069,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String settingsPositionsDeleteConfirm(Object title) {
-    return '\"$title\" 직책을 삭제할까요? 해당 구성원은 미지정으로 변경됩니다.';
+    return '\"$title\" 직책을 삭제할까요? 해당 구성원은 미지정으로 전환됩니다.';
   }
 
   @override
